@@ -46,7 +46,7 @@ Being a huge fan of the **NZB360** Android app, I was looking for an equivalent 
 
 1. Clone this repository to your server:
    ```bash
-   git clone [https://github.com/YourUsername/Serviarr.git](https://github.com/YourUsername/Serviarr.git)
+   git clone [https://github.com/Nikollot/Serviarr.git](https://github.com/Nikollot/Serviarr.git)
    cd serviarr
    ```
 
