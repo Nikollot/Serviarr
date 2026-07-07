@@ -1,0 +1,22 @@
+# Configuration et données personnelles — NE JAMAIS COMMITER
+/data/
+config.json
+
+# Dépendances PHP
+/vendor/
+
+# Fichiers de logs et debug
+*.log
+debug_*.txt
+
+# Fichiers système
+.DS_Store
+Thumbs.db
+
+# Éditeurs
+.vscode/
+.idea/
+*.swp
+
+# Environnement Docker local
+.env

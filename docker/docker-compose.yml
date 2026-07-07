@@ -1,0 +1,37 @@
+version: '3.8'
+services:
+  mediaboard:
+    image: php:apache
+    container_name: serviarr
+    ports:
+      - "80:80"
+    volumes:
+      - .:/var/www/html
+      - /var/run/docker.sock:/var/run/docker.sock
+    restart: unless-stopped
+    environment:
+      - APACHE_RUN_USER=www-data
+      - APACHE_RUN_GROUP=www-data
+      - COMPOSER_ALLOW_SUPERUSER=1 # Autorise Composer à s'exécuter en root
+    entrypoint: >
+      bash -c "
+        if ! php -m | grep -q 'gmp'; then
+          echo '⏳ Installation des paquets système et de GMP...'
+          apt-get update && apt-get install -y git unzip libgmp-dev
+          docker-php-ext-install gmp
+        fi &&
+        if [ ! -f '/usr/local/bin/composer' ]; then
+          echo '⏳ Installation de Composer...'
+          curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+        fi &&
+        if [ ! -d '/var/www/html/vendor' ]; then
+          echo '⏳ Installation de Web-Push (Serviarr)...'
+          cd /var/www/html && composer require minishlink/web-push && rm -f composer.json composer.lock
+        fi &&
+        echo '✅ Application des permissions...'
+        chown -R www-data:www-data /var/www/html &&
+        chmod -R 755 /var/www/html &&
+        chmod 660 /var/www/html/data/config.json || true &&
+        echo '🚀 Démarrage de Apache...'
+        apache2-foreground
+      "

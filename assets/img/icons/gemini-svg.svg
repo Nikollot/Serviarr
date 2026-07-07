@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <linearGradient id="radarGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FCC01E" />
+      <stop offset="45%" stop-color="#ff6b00" />
+      <stop offset="100%" stop-color="#00a2ff" />
+    </linearGradient>
+    
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#1f2937" />
+      <stop offset="100%" stop-color="#0f172a" />
+    </linearGradient>
+
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="6" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <rect width="512" height="512" rx="112" fill="url(#bgGrad)" />
+
+  <g stroke="url(#radarGrad)" stroke-width="32" stroke-linecap="round" fill="none">
+    
+    <circle cx="256" cy="256" r="180" stroke-dasharray="848 283" transform="rotate(45 256 256)" />
+    
+    <circle cx="256" cy="256" r="120" stroke-dasharray="566 189" transform="rotate(225 256 256)" />
+    
+    <circle cx="256" cy="256" r="60" stroke-dasharray="283 94" transform="rotate(45 256 256)" />
+    
+  </g>
+
+  <circle cx="256" cy="256" r="22" fill="#00f2fe" filter="url(#glow)" />
+</svg>
