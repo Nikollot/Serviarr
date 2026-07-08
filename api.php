@@ -156,7 +156,7 @@ function reset_lockout($key) {
 function require_auth() {
     if (empty($_SESSION['auth'])) {
         http_response_code(401);
-        echo json_encode(['error' => 'Non authentifié']);
+        echo json_encode(['error' => t('err_not_authenticated')]);
         exit;
     }
 
@@ -242,7 +242,7 @@ function http_get($url, $headers = []) {
     $err = curl_error($ch);
     $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
-    if ($err) return ['_error' => 'Délai d\'attente dépassé (Timeout) ou erreur : ' . $err, '_code' => 0];
+    if ($err) return ['_error' => t('err_timeout_detail') . $err, '_code' => 0];
     $decoded = json_decode($res, true);
     if ($decoded === null) return ['_error' => 'Invalid JSON: ' . substr($res, 0, 200), '_code' => $code];
     return $decoded;
@@ -261,7 +261,7 @@ function http_get_secure($url, $headers = []) {
     $err = curl_error($ch);
     $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
-    if ($err) return ['_error' => 'Délai d\'attente dépassé (Timeout) ou erreur : ' . $err, '_code' => 0];
+    if ($err) return ['_error' => t('err_timeout_detail') . $err, '_code' => 0];
     $decoded = json_decode($res, true);
     if ($decoded === null) return ['_error' => 'Invalid JSON: ' . substr($res, 0, 200), '_code' => $code];
     return $decoded;
@@ -281,7 +281,7 @@ function http_post($url, $headers = [], $body = []) {
     $res = curl_exec($ch);
     $err = curl_error($ch);
     curl_close($ch);
-    if ($err) return ['_error' => 'Délai d\'attente dépassé (Timeout) : ' . $err];
+    if ($err) return ['_error' => t('err_timeout_detail') . $err];
     return json_decode($res, true) ?? ['_error' => 'Invalid JSON'];
 }
 
@@ -363,9 +363,9 @@ $action = $_POST['action'] ?? $_GET['action'] ?? '';
 // ── Auth (public) ─────────────────────────────────────────────────────────────
 if ($action === 'setup') {
     $cfg = load_config();
-    if (!empty($cfg['user'])) { echo json_encode(['error' => 'Déjà configuré']); exit; }
+    if (!empty($cfg['user'])) { echo json_encode(['error' => t('err_already_configured')]); exit; }
     $pw = $_POST['password'] ?? '';
-    if (strlen($pw) < 4) { echo json_encode(['error' => 'Mot de passe trop court']); exit; }
+    if (strlen($pw) < 4) { echo json_encode(['error' => t('err_password_too_short')]); exit; }
     $cfg['user'] = password_hash($pw, PASSWORD_BCRYPT);
     save_config($cfg);
     $_SESSION['auth'] = true;
@@ -375,12 +375,12 @@ if ($action === 'setup') {
 
 if ($action === 'login') {
     $cfg = load_config();
-    if (empty($cfg['user'])) { echo json_encode(['error' => 'Non configuré']); exit; }
+    if (empty($cfg['user'])) { echo json_encode(['error' => t('err_not_configured')]); exit; }
 
     $lockout_key = 'login_' . get_client_ip();
     $remaining = check_lockout($lockout_key);
     if ($remaining > 0) {
-        echo json_encode(['error' => "Trop de tentatives. Réessayez dans " . ceil($remaining / 60) . " min."]);
+        echo json_encode(['error' => t('err_too_many_attempts') . ' ' . ceil($remaining / 60) . ' ' . t('err_minutes_suffix')]);
         exit;
     }
 
@@ -398,20 +398,20 @@ if ($action === 'login') {
     } else {
         register_failed_attempt($lockout_key);
         log_activity('login_failed');
-        echo json_encode(['error' => 'Mot de passe incorrect']);
+        echo json_encode(['error' => t('err_password_incorrect')]);
     }
     exit;
 }
 
 if ($action === 'verify_login_2fa') {
     $cfg = load_config();
-    if (empty($_SESSION['2fa_pending'])) { echo json_encode(['error' => 'Session expirée']); exit; }
+    if (empty($_SESSION['2fa_pending'])) { echo json_encode(['error' => t('err_session_expired')]); exit; }
     $code = $_POST['code'] ?? '';
 
     $lockout_key = '2fa_' . get_client_ip();
     $remaining = check_lockout($lockout_key);
     if ($remaining > 0) {
-        echo json_encode(['error' => "Trop de tentatives. Réessayez dans " . ceil($remaining / 60) . " min."]);
+        echo json_encode(['error' => t('err_too_many_attempts') . ' ' . ceil($remaining / 60) . ' ' . t('err_minutes_suffix')]);
         exit;
     }
 
@@ -472,7 +472,7 @@ if ($action === 'get_activity_log') {
 
 if ($action === 'setup_2fa') {
     // Vérification manuelle pour ne pas bloquer l'écriture dans la session
-    if (empty($_SESSION['auth'])) { echo json_encode(['error' => 'Non autorisé']); exit; }
+    if (empty($_SESSION['auth'])) { echo json_encode(['error' => t('err_unauthorized')]); exit; }
 
     $secret = generate_base32_secret();
     $_SESSION['2fa_setup_secret'] = $secret;
@@ -484,14 +484,14 @@ if ($action === 'setup_2fa') {
 }
 
 if ($action === 'confirm_2fa') {
-    if (empty($_SESSION['auth'])) { echo json_encode(['error' => 'Non autorisé']); exit; }
+    if (empty($_SESSION['auth'])) { echo json_encode(['error' => t('err_unauthorized')]); exit; }
 
     $cfg = load_config();
     $code = $_POST['code'] ?? '';
     $secret = $_SESSION['2fa_setup_secret'] ?? '';
 
     if (!$secret) {
-        echo json_encode(['error' => 'Session expirée, fermez les paramètres et recommencez']);
+        echo json_encode(['error' => t('err_session_expired_settings')]);
         exit;
     }
 
@@ -503,7 +503,7 @@ if ($action === 'confirm_2fa') {
         session_write_close();
         echo json_encode(['ok' => true]);
     } else {
-        echo json_encode(['error' => 'Code incorrect']);
+        echo json_encode(['error' => t('err_code_incorrect')]);
     }
     exit;
 }
@@ -549,7 +549,7 @@ $get_safe_actions = [
 ];
 if ($_SERVER['REQUEST_METHOD'] === 'GET' && $action !== 'webhook_notif' && !in_array($action, $get_safe_actions, true)) {
     http_response_code(405);
-    echo json_encode(['error' => 'Cette action nécessite une requête POST']);
+    echo json_encode(['error' => t('err_requires_post')]);
     exit;
 }
 
@@ -569,7 +569,7 @@ if ($action === 'get_apps') {
 if ($action === 'driver_fields') {
     $driver = preg_replace('/[^a-z0-9_]/', '', strtolower($_GET['driver'] ?? ''));
     $file   = __DIR__ . "/drivers/$driver.php";
-    if (!file_exists($file)) { echo json_encode(['error' => 'Driver inconnu']); exit; }
+    if (!file_exists($file)) { echo json_encode(['error' => t('err_driver_unknown')]); exit; }
     require_once $file;
     $fn = $driver . '_fields';
     echo json_encode(['fields' => $fn()]);
@@ -592,7 +592,7 @@ if ($action === 'save_app') {
     $id     = $_POST['id'] ?? ('app_' . uniqid());
     $name   = trim($_POST['name'] ?? ucfirst($driver));
     $file   = __DIR__ . "/drivers/$driver.php";
-    if (!file_exists($file)) { echo json_encode(['error' => 'Driver inconnu']); exit; }
+    if (!file_exists($file)) { echo json_encode(['error' => t('err_driver_unknown')]); exit; }
     require_once $file;
     $fn     = $driver . '_fields';
     $fields = $fn();
@@ -636,7 +636,7 @@ if ($action === 'toggle_app') {
         save_config($cfg);
         echo json_encode(['ok' => true, 'enabled' => $cfg['apps'][$id]['enabled']]);
     } else {
-        echo json_encode(['error' => 'App introuvable']);
+        echo json_encode(['error' => t('err_app_not_found')]);
     }
     exit;
 }
@@ -644,11 +644,11 @@ if ($action === 'toggle_app') {
 if ($action === 'app_status') {
     $cfg = load_config();
     $id  = $_GET['id'] ?? '';
-    if (!isset($cfg['apps'][$id])) { echo json_encode(['error' => 'App introuvable']); exit; }
+    if (!isset($cfg['apps'][$id])) { echo json_encode(['error' => t('err_app_not_found')]); exit; }
     $app    = $cfg['apps'][$id];
     $driver = preg_replace('/[^a-z0-9_]/', '', $app['driver']);
     $file   = __DIR__ . "/drivers/$driver.php";
-    if (!file_exists($file)) { echo json_encode(['error' => 'Driver introuvable']); exit; }
+    if (!file_exists($file)) { echo json_encode(['error' => t('err_driver_not_found')]); exit; }
     require_once $file;
     $fn = $driver . '_status';
     echo json_encode($fn($app));
@@ -659,8 +659,8 @@ if ($action === 'change_password') {
     $cfg     = load_config();
     $current = $_POST['current'] ?? '';
     $new     = $_POST['new']     ?? '';
-    if (!password_verify($current, $cfg['user'])) { echo json_encode(['error' => 'Mot de passe actuel incorrect']); exit; }
-    if (strlen($new) < 4) { echo json_encode(['error' => 'Nouveau mot de passe trop court']); exit; }
+    if (!password_verify($current, $cfg['user'])) { echo json_encode(['error' => t('err_current_password_incorrect')]); exit; }
+    if (strlen($new) < 4) { echo json_encode(['error' => t('err_new_password_too_short')]); exit; }
     $cfg['user'] = password_hash($new, PASSWORD_BCRYPT);
     save_config($cfg);
     echo json_encode(['ok' => true]);
@@ -688,7 +688,7 @@ if ($action === 'actor_credits') {
     $cfg = load_config();
     $tmdb_key = $cfg['tmdb_api_key'] ?? '';
     if (!$tmdb_key) {
-        echo json_encode(['error' => 'Clé TMDB non configurée dans les paramètres.']);
+        echo json_encode(['error' => t('err_tmdb_not_configured')]);
         exit;
     }
 
@@ -713,7 +713,7 @@ if ($action === 'actor_credits') {
     $credits_url = "https://api.themoviedb.org/3/person/" . $person_id . "/combined_credits?api_key=" . $tmdb_key . "&language=fr-FR";
     $credits_res = http_get_secure($credits_url);
     if (isset($credits_res['_error'])) {
-        echo json_encode(['error' => 'Impossible de récupérer la filmographie.']);
+        echo json_encode(['error' => t('err_filmography_failed')]);
         exit;
     }
 
@@ -1034,7 +1034,7 @@ if ($action === 'search_movie') {
     $cfg   = load_config();
     $query = urlencode($_GET['q'] ?? '');
     $radarr = find_app_by_driver($cfg, 'radarr');
-    if (!$radarr) { echo json_encode(['error' => 'Radarr non configuré']); exit; }
+    if (!$radarr) { echo json_encode(['error' => t('err_radarr_not_configured')]); exit; }
     $data = arr_get($radarr, "/api/v3/movie/lookup?term=" . $query);
     if (isset($data['_error'])) { echo json_encode(['error' => $data['_error']]); exit; }
 
@@ -1076,7 +1076,7 @@ if ($action === 'search_serie') {
     $cfg   = load_config();
     $query = urlencode($_GET['q'] ?? '');
     $sonarr = find_app_by_driver($cfg, 'sonarr');
-    if (!$sonarr) { echo json_encode(['error' => 'Sonarr non configuré']); exit; }
+    if (!$sonarr) { echo json_encode(['error' => t('err_sonarr_not_configured')]); exit; }
     $data = arr_get($sonarr, "/api/v3/series/lookup?term=" . $query);
     if (isset($data['_error'])) { echo json_encode(['error' => $data['_error']]); exit; }
 
@@ -1120,7 +1120,7 @@ if ($action === 'bulk_import_lookup') {
     $cfg  = load_config();
     $type = $_POST['type'] ?? 'movie';
     $terms = json_decode($_POST['terms'] ?? '[]', true);
-    if (!is_array($terms) || empty($terms)) { echo json_encode(['error' => 'Aucune ligne à analyser']); exit; }
+    if (!is_array($terms) || empty($terms)) { echo json_encode(['error' => t('err_no_lines_to_analyze')]); exit; }
     $terms = array_slice(array_filter(array_map('trim', $terms)), 0, 100); // Limite de sécurité : 100 lignes
 
     $app = find_app_by_driver($cfg, $type === 'movie' ? 'radarr' : 'sonarr');
@@ -1175,7 +1175,7 @@ if ($action === 'get_options') {
     $cfg = load_config();
     $type = $_GET['app'] ?? 'radarr';
     $app = find_app_by_driver($cfg, $type);
-    if (!$app) { echo json_encode(['error' => 'App non configurée']); exit; }
+    if (!$app) { echo json_encode(['error' => t('err_app_not_configured')]); exit; }
 
     // Utilisation de ta fonction native arr_get qui est plus fiable
     $profiles = arr_get($app, '/api/v3/qualityprofile');
@@ -1196,7 +1196,7 @@ if ($action === 'get_media_raw') {
     $type = $_GET['type'] ?? 'movie';
     $id = (int)($_GET['id'] ?? 0);
     $app = find_app_by_driver($cfg, $type === 'movie' ? 'radarr' : 'sonarr');
-    if (!$app) { echo json_encode(['error' => 'App non configurée']); exit; }
+    if (!$app) { echo json_encode(['error' => t('err_app_not_configured')]); exit; }
 
     $endpoint = $type === 'movie' ? "/api/v3/movie/{$id}" : "/api/v3/series/{$id}";
     $data = arr_get($app, $endpoint);
@@ -1216,7 +1216,7 @@ if ($action === 'edit_media') {
 
     // 1. On récupère l'objet complet actuel
     $item = arr_get($app, $endpoint);
-    if (isset($item['_error'])) { echo json_encode(['error' => 'Média introuvable']); exit; }
+    if (isset($item['_error'])) { echo json_encode(['error' => t('err_media_not_found')]); exit; }
 
     // 2. On met à jour les champs
     $item['qualityProfileId'] = (int)$_POST['qualityProfileId'];
@@ -1240,14 +1240,14 @@ if ($action === 'edit_media') {
 if ($action === 'add_movie') {
     $cfg    = load_config();
     $radarr = find_app_by_driver($cfg, 'radarr');
-    if (!$radarr) { echo json_encode(['error' => 'Radarr non configuré']); exit; }
+    if (!$radarr) { echo json_encode(['error' => t('err_radarr_not_configured')]); exit; }
 
     $tmdbId = (int)($_POST['tmdbId'] ?? 0);
-    if (!$tmdbId) { echo json_encode(['error' => 'tmdbId manquant']); exit; }
+    if (!$tmdbId) { echo json_encode(['error' => t('err_tmdbid_missing')]); exit; }
 
     $lookup = arr_get($radarr, "/api/v3/movie/lookup/tmdb?tmdbId=$tmdbId");
     if (isset($lookup['_error']) || empty($lookup['title'])) {
-        echo json_encode(['error' => 'Film introuvable']); exit;
+        echo json_encode(['error' => t('err_movie_not_found_short')]); exit;
     }
 
     $rootPath = $_POST['rootFolderPath'] ?? '/movies';
@@ -1278,10 +1278,10 @@ if ($action === 'tmdb_movie_detail') {
     require_auth();
     $cfg    = load_config();
     $radarr = find_app_by_driver($cfg, 'radarr');
-    if (!$radarr) { echo json_encode(['error' => 'Radarr non configuré']); exit; }
+    if (!$radarr) { echo json_encode(['error' => t('err_radarr_not_configured')]); exit; }
 
     $tmdbId = (int)($_GET['tmdbId'] ?? 0);
-    if (!$tmdbId) { echo json_encode(['error' => 'tmdbId manquant']); exit; }
+    if (!$tmdbId) { echo json_encode(['error' => t('err_tmdbid_missing')]); exit; }
 
     // On demande à Radarr de chercher les infos du film sur TMDB
     $lookup = arr_get($radarr, "/api/v3/movie/lookup/tmdb?tmdbId=$tmdbId");
@@ -1318,18 +1318,18 @@ if ($action === 'tmdb_movie_detail') {
 if ($action === 'add_serie') {
     $cfg    = load_config();
     $sonarr = find_app_by_driver($cfg, 'sonarr');
-    if (!$sonarr) { echo json_encode(['error' => 'Sonarr non configuré']); exit; }
+    if (!$sonarr) { echo json_encode(['error' => t('err_sonarr_not_configured')]); exit; }
 
     $tvdbId = (int)($_POST['tvdbId'] ?? 0);
     $tmdbId = (int)($_POST['tmdbId'] ?? 0);
 
-    if (!$tvdbId && !$tmdbId) { echo json_encode(['error' => 'ID de série manquant']); exit; }
+    if (!$tvdbId && !$tmdbId) { echo json_encode(['error' => t('err_serie_id_missing')]); exit; }
 
     $term = $tvdbId ? "tvdb:$tvdbId" : "tmdb:$tmdbId";
     $lookup = arr_get($sonarr, "/api/v3/series/lookup?term=" . $term);
 
     if (isset($lookup['_error']) || empty($lookup[0]['title'])) {
-        echo json_encode(['error' => 'Série introuvable sur Sonarr (Skyhook)']); exit;
+        echo json_encode(['error' => t('err_serie_not_found_skyhook')]); exit;
     }
     $serie = $lookup[0];
 
@@ -1362,15 +1362,15 @@ if ($action === 'tmdb_serie_detail') {
     require_auth();
     $cfg    = load_config();
     $sonarr = find_app_by_driver($cfg, 'sonarr');
-    if (!$sonarr) { echo json_encode(['error' => 'Sonarr non configuré']); exit; }
+    if (!$sonarr) { echo json_encode(['error' => t('err_sonarr_not_configured')]); exit; }
 
     $tmdbId = (int)($_GET['tmdbId'] ?? 0);
-    if (!$tmdbId) { echo json_encode(['error' => 'tmdbId manquant']); exit; }
+    if (!$tmdbId) { echo json_encode(['error' => t('err_tmdbid_missing')]); exit; }
 
     // On utilise l'endpoint lookup de Sonarr qui comprend "tmdb:"
     $lookup = arr_get($sonarr, "/api/v3/series/lookup?term=tmdb:$tmdbId");
     if (isset($lookup['_error']) || empty($lookup[0]['title'])) {
-        echo json_encode(['error' => 'Série introuvable via l\'API Sonarr']); exit;
+        echo json_encode(['error' => t('err_serie_not_found_api')]); exit;
     }
     $serie = $lookup[0];
 
@@ -1423,7 +1423,7 @@ if ($action === 'tmdb_serie_detail') {
 if ($action === 'library_movies') {
     $cfg    = load_config();
     $radarr = find_app_by_driver($cfg, 'radarr');
-    if (!$radarr) { echo json_encode(['error' => 'Radarr non configuré']); exit; }
+    if (!$radarr) { echo json_encode(['error' => t('err_radarr_not_configured')]); exit; }
     $q      = strtolower($_GET['q'] ?? '');
     $filter = $_GET['filter'] ?? 'all'; // all | downloaded | missing
 
@@ -1498,7 +1498,7 @@ if ($action === 'library_movies') {
 if ($action === 'library_series') {
     $cfg    = load_config();
     $sonarr = find_app_by_driver($cfg, 'sonarr');
-    if (!$sonarr) { echo json_encode(['error' => 'Sonarr non configuré']); exit; }
+    if (!$sonarr) { echo json_encode(['error' => t('err_sonarr_not_configured')]); exit; }
     $q      = strtolower($_GET['q'] ?? '');
     $filter = $_GET['filter'] ?? 'all';
 
@@ -1560,14 +1560,14 @@ if ($action === 'library_series') {
 if ($action === 'movie_detail') {
     $cfg    = load_config();
     $radarr = find_app_by_driver($cfg, 'radarr');
-    if (!$radarr) { echo json_encode(['error' => 'Radarr non configuré']); exit; }
+    if (!$radarr) { echo json_encode(['error' => t('err_radarr_not_configured')]); exit; }
     $id = (int)($_GET['id'] ?? 0);
-    if (!$id) { echo json_encode(['error' => 'ID manquant']); exit; }
+    if (!$id) { echo json_encode(['error' => t('err_id_missing')]); exit; }
 
     $mv = arr_get($radarr, "/api/v3/movie/$id");
     if (isset($mv['_error'])) { echo json_encode(['error' => $mv['_error']]); exit; }
 
-    if (isset($mv['message'])) { echo json_encode(['error' => 'Média non trouvé dans la bibliothèque.']); exit; }
+    if (isset($mv['message'])) { echo json_encode(['error' => t('err_media_not_in_library')]); exit; }
 
     // Construction de l'URL directe vers l'API Radarr
     $poster_url = rtrim($radarr['url'], '/') . '/api/v3/mediacover/' . $mv['id'] . '/poster.jpg?apikey=' . $radarr['api_key'];
@@ -1681,9 +1681,9 @@ if ($action === 'movie_detail') {
 if ($action === 'movie_releases') {
     $cfg    = load_config();
     $radarr = find_app_by_driver($cfg, 'radarr');
-    if (!$radarr) { echo json_encode(['error' => 'Radarr non configuré']); exit; }
+    if (!$radarr) { echo json_encode(['error' => t('err_radarr_not_configured')]); exit; }
     $id = (int)($_GET['id'] ?? 0);
-    if (!$id) { echo json_encode(['error' => 'ID manquant']); exit; }
+    if (!$id) { echo json_encode(['error' => t('err_id_missing')]); exit; }
 
     $data = arr_get($radarr, "/api/v3/release?movieId=$id");
     if (isset($data['_error'])) { echo json_encode(['error' => $data['_error']]); exit; }
@@ -1717,11 +1717,11 @@ if ($action === 'movie_releases') {
 if ($action === 'movie_download') {
     $cfg    = load_config();
     $radarr = find_app_by_driver($cfg, 'radarr');
-    if (!$radarr) { echo json_encode(['error' => 'Radarr non configuré']); exit; }
+    if (!$radarr) { echo json_encode(['error' => t('err_radarr_not_configured')]); exit; }
     $guid    = $_POST['guid']    ?? '';
     $indexer = $_POST['indexer'] ?? '';
     $movieId = (int)($_POST['movieId'] ?? 0);
-    if (!$guid || !$movieId) { echo json_encode(['error' => 'Paramètres manquants']); exit; }
+    if (!$guid || !$movieId) { echo json_encode(['error' => t('err_params_missing')]); exit; }
 
     $res = arr_post($radarr, '/api/v3/release', ['guid' => $guid, 'indexerId' => (int)$_POST['indexerId'], 'movieId' => $movieId]);
     if (isset($res['_error'])) { echo json_encode(['error' => $res['_error']]); exit; }
@@ -1733,9 +1733,9 @@ if ($action === 'movie_download') {
 if ($action === 'movie_search_auto') {
     $cfg    = load_config();
     $radarr = find_app_by_driver($cfg, 'radarr');
-    if (!$radarr) { echo json_encode(['error' => 'Radarr non configuré']); exit; }
+    if (!$radarr) { echo json_encode(['error' => t('err_radarr_not_configured')]); exit; }
     $id = (int)($_POST['id'] ?? 0);
-    if (!$id) { echo json_encode(['error' => 'ID manquant']); exit; }
+    if (!$id) { echo json_encode(['error' => t('err_id_missing')]); exit; }
 
     $res = arr_post($radarr, '/api/v3/command', ['name' => 'MoviesSearch', 'movieIds' => [$id]]);
     if (isset($res['_error'])) { echo json_encode(['error' => $res['_error']]); exit; }
@@ -1747,9 +1747,9 @@ if ($action === 'movie_search_auto') {
 if ($action === 'serie_detail') {
     $cfg    = load_config();
     $sonarr = find_app_by_driver($cfg, 'sonarr');
-    if (!$sonarr) { echo json_encode(['error' => 'Sonarr non configuré']); exit; }
+    if (!$sonarr) { echo json_encode(['error' => t('err_sonarr_not_configured')]); exit; }
     $id = (int)($_GET['id'] ?? 0);
-    if (!$id) { echo json_encode(['error' => 'ID manquant']); exit; }
+    if (!$id) { echo json_encode(['error' => t('err_id_missing')]); exit; }
 
     $s = arr_get($sonarr, "/api/v3/series/$id");
 
@@ -1767,7 +1767,7 @@ if ($action === 'serie_detail') {
     }
     if (isset($s['_error'])) { echo json_encode(['error' => $s['_error']]); exit; }
 
-    if (isset($s['message'])) { echo json_encode(['error' => 'Série non trouvée dans la bibliothèque.']); exit; }
+    if (isset($s['message'])) { echo json_encode(['error' => t('err_serie_not_in_library')]); exit; }
 
     // Construction de l'URL directe vers l'API Sonarr
     $poster_url = rtrim($sonarr['url'], '/') . '/api/v3/mediacover/' . $s['id'] . '/poster.jpg?apikey=' . $sonarr['api_key'];
@@ -1965,9 +1965,9 @@ if ($action === 'serie_detail') {
 if ($action === 'episode_releases') {
     $cfg    = load_config();
     $sonarr = find_app_by_driver($cfg, 'sonarr');
-    if (!$sonarr) { echo json_encode(['error' => 'Sonarr non configuré']); exit; }
+    if (!$sonarr) { echo json_encode(['error' => t('err_sonarr_not_configured')]); exit; }
     $episodeId = (int)($_GET['episodeId'] ?? 0);
-    if (!$episodeId) { echo json_encode(['error' => 'episodeId manquant']); exit; }
+    if (!$episodeId) { echo json_encode(['error' => t('err_episodeid_missing')]); exit; }
 
     $data = arr_get($sonarr, "/api/v3/release?episodeId=$episodeId");
     if (isset($data['_error'])) { echo json_encode(['error' => $data['_error']]); exit; }
@@ -1999,10 +1999,10 @@ if ($action === 'episode_releases') {
 if ($action === 'season_releases') {
     $cfg    = load_config();
     $sonarr = find_app_by_driver($cfg, 'sonarr');
-    if (!$sonarr) { echo json_encode(['error' => 'Sonarr non configuré']); exit; }
+    if (!$sonarr) { echo json_encode(['error' => t('err_sonarr_not_configured')]); exit; }
     $seriesId = (int)($_GET['seriesId'] ?? 0);
     $season   = (int)($_GET['season'] ?? 0);
-    if (!$seriesId) { echo json_encode(['error' => 'seriesId manquant']); exit; }
+    if (!$seriesId) { echo json_encode(['error' => t('err_seriesid_missing')]); exit; }
 
     $data = arr_get($sonarr, "/api/v3/release?seriesId=$seriesId&seasonNumber=$season");
     if (isset($data['_error'])) { echo json_encode(['error' => $data['_error']]); exit; }
@@ -2034,11 +2034,11 @@ if ($action === 'season_releases') {
 if ($action === 'episode_download') {
     $cfg    = load_config();
     $sonarr = find_app_by_driver($cfg, 'sonarr');
-    if (!$sonarr) { echo json_encode(['error' => 'Sonarr non configuré']); exit; }
+    if (!$sonarr) { echo json_encode(['error' => t('err_sonarr_not_configured')]); exit; }
     $guid      = $_POST['guid']      ?? '';
     $indexerId = (int)($_POST['indexerId'] ?? 0);
     $seriesId  = (int)($_POST['seriesId']  ?? 0);
-    if (!$guid || !$seriesId) { echo json_encode(['error' => 'Paramètres manquants']); exit; }
+    if (!$guid || !$seriesId) { echo json_encode(['error' => t('err_params_missing')]); exit; }
 
     $res = arr_post($sonarr, '/api/v3/release', ['guid' => $guid, 'indexerId' => $indexerId, 'seriesId' => $seriesId]);
     if (isset($res['_error'])) { echo json_encode(['error' => $res['_error']]); exit; }
@@ -2050,9 +2050,9 @@ if ($action === 'episode_download') {
 if ($action === 'episode_search_auto') {
     $cfg    = load_config();
     $sonarr = find_app_by_driver($cfg, 'sonarr');
-    if (!$sonarr) { echo json_encode(['error' => 'Sonarr non configuré']); exit; }
+    if (!$sonarr) { echo json_encode(['error' => t('err_sonarr_not_configured')]); exit; }
     $episodeId = (int)($_POST['episodeId'] ?? 0);
-    if (!$episodeId) { echo json_encode(['error' => 'episodeId manquant']); exit; }
+    if (!$episodeId) { echo json_encode(['error' => t('err_episodeid_missing')]); exit; }
 
     $res = arr_post($sonarr, '/api/v3/command', ['name' => 'EpisodeSearch', 'episodeIds' => [$episodeId]]);
     if (isset($res['_error'])) { echo json_encode(['error' => $res['_error']]); exit; }
@@ -2064,10 +2064,10 @@ if ($action === 'episode_search_auto') {
 if ($action === 'season_search_auto') {
     $cfg      = load_config();
     $sonarr   = find_app_by_driver($cfg, 'sonarr');
-    if (!$sonarr) { echo json_encode(['error' => 'Sonarr non configuré']); exit; }
+    if (!$sonarr) { echo json_encode(['error' => t('err_sonarr_not_configured')]); exit; }
     $seriesId = (int)($_POST['seriesId'] ?? 0);
     $season   = (int)($_POST['season']   ?? 0);
-    if (!$seriesId) { echo json_encode(['error' => 'seriesId manquant']); exit; }
+    if (!$seriesId) { echo json_encode(['error' => t('err_seriesid_missing')]); exit; }
 
     $res = arr_post($sonarr, '/api/v3/command', ['name' => 'SeasonSearch', 'seriesId' => $seriesId, 'seasonNumber' => $season]);
     if (isset($res['_error'])) { echo json_encode(['error' => $res['_error']]); exit; }
@@ -2085,14 +2085,14 @@ if ($action === 'toggle_monitor') {
     $monitored = filter_var($_POST['monitored'], FILTER_VALIDATE_BOOLEAN);
 
     $app = find_app_by_driver($cfg, $type === 'movie' ? 'radarr' : 'sonarr');
-    if (!$app) { echo json_encode(['error' => 'App non configurée']); exit; }
+    if (!$app) { echo json_encode(['error' => t('err_app_not_configured')]); exit; }
 
     $endpoint = $type === 'movie' ? "/api/v3/movie/{$id}" : "/api/v3/series/{$id}";
 
     // 1. Récupération en texte brut pour conserver le format exact attendu par l'API
     $raw = http_get(rtrim($app['url'], '/') . $endpoint . '?apikey=' . $app['api_key']);
     if (isset($raw['_error']) || !isset($raw['id'])) {
-        echo json_encode(['error' => 'Élément introuvable côté serveur']); exit;
+        echo json_encode(['error' => t('err_element_not_found_server')]); exit;
     }
     $raw['monitored'] = $monitored;
 
@@ -2116,12 +2116,12 @@ if ($action === 'toggle_season_monitor') {
     $monitored = filter_var($_POST['monitored'], FILTER_VALIDATE_BOOLEAN);
 
     $app = find_app_by_driver($cfg, 'sonarr');
-    if (!$app) { echo json_encode(['error' => 'Sonarr non configuré']); exit; }
+    if (!$app) { echo json_encode(['error' => t('err_sonarr_not_configured')]); exit; }
 
     // 1. Récupération de la série (tableau associatif)
     $item = arr_get($app, "/api/v3/series/{$seriesId}");
     if (isset($item['_error']) || !isset($item['id'])) {
-        echo json_encode(['error' => 'Série introuvable côté serveur']); exit;
+        echo json_encode(['error' => t('err_serie_not_found_server')]); exit;
     }
 
     $updated = false;
@@ -2155,7 +2155,7 @@ if ($action === 'update_media_quality') {
     $profileId = (int)$_POST['profileId'];
 
     $app = find_app_by_driver($cfg, $type === 'movie' ? 'radarr' : 'sonarr');
-    if (!$app) { echo json_encode(['error' => 'App non configurée']); exit; }
+    if (!$app) { echo json_encode(['error' => t('err_app_not_configured')]); exit; }
 
     // Utilisation de l'endpoint "editor" pour une modification rapide
     $endpoint = $type === 'movie' ? '/api/v3/movie/editor' : '/api/v3/series/editor';
@@ -2169,7 +2169,7 @@ if ($action === 'update_media_quality') {
     if ($res['code'] >= 200 && $res['code'] < 300) {
         echo json_encode(['ok' => true]);
     } else {
-        echo json_encode(['error' => "Erreur de mise à jour ({$res['code']})"]);
+        echo json_encode(['error' => t('err_update_failed') . " ({$res['code']})"]);
     }
     exit;
 }
@@ -2181,7 +2181,7 @@ if ($action === 'queue_status') {
     $type = $_GET['type'] ?? 'movie';
     $id = (int)($_GET['id'] ?? 0);
     $app = find_app_by_driver($cfg, $type === 'movie' ? 'radarr' : 'sonarr');
-    if (!$app) { echo json_encode(['error' => 'App non configurée']); exit; }
+    if (!$app) { echo json_encode(['error' => t('err_app_not_configured')]); exit; }
 
     // --- PROGRESSION DYNAMIQUE ---
     $endpoint = $type === 'movie' ? "/api/v3/queue?movieId=$id" : "/api/v3/queue?seriesId=$id";
@@ -2270,7 +2270,7 @@ if ($action === 'proxy_fetch') {
     $is_link_local = $resolved_ip && filter_var($resolved_ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)
     && (ip2long($resolved_ip) & 0xFFFF0000) === ip2long('169.254.0.0');
     if ($is_link_local) {
-        echo json_encode(['error' => 'URL non autorisée']);
+        echo json_encode(['error' => t('err_url_not_allowed')]);
         exit;
     }
 
@@ -2294,7 +2294,7 @@ if ($action === 'movies_dashboard') {
     require_auth();
     $cfg = load_config();
     $radarr = find_app_by_driver($cfg, 'radarr');
-    if (!$radarr) { echo json_encode(['error' => 'Radarr non configuré']); exit; }
+    if (!$radarr) { echo json_encode(['error' => t('err_radarr_not_configured')]); exit; }
 
     // 🚀 1. LECTURE DU CACHE (Durée : 6 heures)
     $cacheFile = __DIR__ . '/data/.cache_movies_dashboard.json';
@@ -2486,7 +2486,7 @@ if ($action === 'series_dashboard') {
     $sonarr = find_app_by_driver($cfg, 'sonarr');
 
     if (!$sonarr) {
-        echo json_encode(['error' => 'Sonarr non configuré']);
+        echo json_encode(['error' => t('err_sonarr_not_configured')]);
         exit;
     }
 
@@ -2659,11 +2659,11 @@ if ($action === 'bulk_media_action') {
     $deleteFiles = filter_var($_POST['deleteFiles'] ?? 'true', FILTER_VALIDATE_BOOLEAN) ? 'true' : 'false';
 
     if (!is_array($ids) || empty($ids) || !in_array($bulkAction, ['monitor_on', 'monitor_off', 'delete'], true)) {
-        echo json_encode(['error' => 'Requête invalide']); exit;
+        echo json_encode(['error' => t('err_invalid_request')]); exit;
     }
 
     $app = find_app_by_driver($cfg, $type === 'movie' ? 'radarr' : 'sonarr');
-    if (!$app) { echo json_encode(['error' => 'App non configurée']); exit; }
+    if (!$app) { echo json_encode(['error' => t('err_app_not_configured')]); exit; }
 
     $success = 0;
     $failed = [];
@@ -2705,7 +2705,7 @@ if ($action === 'delete_media') {
     $deleteFiles = filter_var($_POST['deleteFiles'] ?? 'true', FILTER_VALIDATE_BOOLEAN) ? 'true' : 'false';
 
     $app = find_app_by_driver($cfg, $type === 'movie' ? 'radarr' : 'sonarr');
-    if (!$app) { echo json_encode(['error' => 'App non configurée']); exit; }
+    if (!$app) { echo json_encode(['error' => t('err_app_not_configured')]); exit; }
 
     // On injecte la variable dynamiquement dans l'URL
     $endpoint = $type === 'movie'
@@ -2730,7 +2730,7 @@ if ($action === 'delete_file') {
     $type = $_POST['type'] ?? 'movie';
     $fileId = (int)$_POST['fileId'];
     $app = find_app_by_driver($cfg, $type === 'movie' ? 'radarr' : 'sonarr');
-    if (!$app) { echo json_encode(['error' => 'App non configurée']); exit; }
+    if (!$app) { echo json_encode(['error' => t('err_app_not_configured')]); exit; }
 
     $endpoint = $type === 'movie' ? "/api/v3/moviefile/{$fileId}" : "/api/v3/episodefile/{$fileId}";
     $res = arr_delete($app, $endpoint);
@@ -2750,7 +2750,7 @@ if ($action === 'refresh_media') {
     $type = $_POST['type'] ?? 'movie';
     $id = (int)$_POST['id'];
     $app = find_app_by_driver($cfg, $type === 'movie' ? 'radarr' : 'sonarr');
-    if (!$app) { echo json_encode(['error' => 'App non configurée']); exit; }
+    if (!$app) { echo json_encode(['error' => t('err_app_not_configured')]); exit; }
 
     // Radarr et Sonarr n'attendent pas exactement les mêmes paramètres
     $payload = [];
@@ -2773,11 +2773,11 @@ if ($action === 'refresh_media') {
 if ($action === 'movie_collection') {
     $cfg    = load_config();
     $radarr = find_app_by_driver($cfg, 'radarr');
-    if (!$radarr) { echo json_encode(['error' => 'Radarr non configuré']); exit; }
+    if (!$radarr) { echo json_encode(['error' => t('err_radarr_not_configured')]); exit; }
 
     $collection_title  = $_GET['title'] ?? '';
     $collection_tmdbid = (int)($_GET['tmdbId'] ?? 0);
-    if (!$collection_title) { echo json_encode(['error' => 'Titre de collection manquant']); exit; }
+    if (!$collection_title) { echo json_encode(['error' => t('err_collection_title_missing')]); exit; }
 
     $base_url = rtrim($radarr['url'], '/');
 
@@ -2905,7 +2905,7 @@ function transmission_rpc($app, $method, $arguments = [], $sessionId = '') {
         if (preg_match('/X-Transmission-Session-Id:\s*(\S+)/i', $headers_raw, $m)) {
             return transmission_rpc($app, $method, $arguments, trim($m[1]));
         }
-        return ['result' => 'error', '_error' => 'Impossible de récupérer le Session-Id'];
+        return ['result' => 'error', '_error' => t('err_session_id_failed')];
     }
 
     $body = substr($raw, $hsize);
@@ -2967,7 +2967,7 @@ function qbt_login($app) {
 
     // Pas de cookie renvoyé : on remonte le corps de la réponse pour diagnostiquer
     // (qBittorrent répond "Fails." en cas de mauvais identifiants, par exemple).
-    return $sid_cache[$cache_key] = ['_error' => 'Authentification qBittorrent refusée' . ($body ? " ({$body})" : '')];
+    return $sid_cache[$cache_key] = ['_error' => t('err_qbt_auth_refused') . ($body ? " ({$body})" : '')];
 }
 
 // Requête générique vers l'API qBittorrent, avec authentification automatique ou Clé API
@@ -2983,7 +2983,7 @@ function qbt_request($app, $endpoint, $post_fields = null) {
         $headers[] = 'Authorization: Bearer ' . trim($api_key);
     } else {
         $sid = qbt_login($app);
-        if (!$sid) return ['_error' => 'Authentification qBittorrent échouée'];
+        if (!$sid) return ['_error' => t('err_qbt_auth_failed')];
         $headers[] = 'Cookie: ' . $sid;
     }
 
@@ -3004,7 +3004,7 @@ function qbt_request($app, $endpoint, $post_fields = null) {
     $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
 
-    if ($code === 403) return ['_error' => 'Session/Clé qBittorrent expirée ou invalide'];
+    if ($code === 403) return ['_error' => t('err_qbt_session_expired')];
     $decoded = json_decode($raw, true);
     return $decoded !== null ? $decoded : $raw;
 }
@@ -3026,7 +3026,7 @@ function qbt_map_state($state) {
 // Récupère la liste des torrents qBittorrent et la normalise au format Transmission
 function qbt_get_torrents($app) {
     $torrents = qbt_request($app, 'torrents/info');
-    if (!is_array($torrents)) return ['_error' => 'Réponse qBittorrent invalide'];
+    if (!is_array($torrents)) return ['_error' => t('err_qbt_invalid_response')];
     if (isset($torrents['_error'])) return $torrents; // on propage l'erreur telle quelle
 
     $result = [];
@@ -3149,7 +3149,7 @@ if ($action === 'get_downloads') {
     require_auth();
     $cfg = load_config();
     $trans = find_app_by_driver($cfg, 'download');
-    if (!$trans) { echo json_encode(['error' => 'Application de téléchargement non configurée']); exit; }
+    if (!$trans) { echo json_encode(['error' => t('err_download_app_not_configured')]); exit; }
 
     $client = $trans['client'] ?? 'transmission';
 
@@ -3187,7 +3187,7 @@ if ($action === 'torrent_action') {
     require_auth();
     $cfg = load_config();
     $trans = find_app_by_driver($cfg, 'download');
-    if (!$trans) { echo json_encode(['error' => 'Application de téléchargement non configurée']); exit; }
+    if (!$trans) { echo json_encode(['error' => t('err_download_app_not_configured')]); exit; }
 
     $client = $trans['client'] ?? 'transmission';
     $method = $_POST['method'] ?? ''; // torrent-start, torrent-stop, torrent-remove
@@ -3236,7 +3236,7 @@ if ($action === 'get_torrent_files') {
     require_auth();
     $cfg = load_config();
     $trans = find_app_by_driver($cfg, 'download');
-    if (!$trans) { echo json_encode(['error' => 'Application de téléchargement non configurée']); exit; }
+    if (!$trans) { echo json_encode(['error' => t('err_download_app_not_configured')]); exit; }
 
     $client = $trans['client'] ?? 'transmission';
     $id = $_GET['id'] ?? '';
@@ -3261,14 +3261,14 @@ if ($action === 'torrent_set_files') {
     require_auth();
     $cfg = load_config();
     $trans = find_app_by_driver($cfg, 'download');
-    if (!$trans) { echo json_encode(['error' => 'Application de téléchargement non configurée']); exit; }
+    if (!$trans) { echo json_encode(['error' => t('err_download_app_not_configured')]); exit; }
 
     $client = $trans['client'] ?? 'transmission';
     $id = $_POST['id'] ?? '';
     $wanted = isset($_POST['wanted']) ? json_decode($_POST['wanted'], true) : [];
     $unwanted = isset($_POST['unwanted']) ? json_decode($_POST['unwanted'], true) : [];
 
-    if ($id === '') { echo json_encode(['error' => 'ID manquant']); exit; }
+    if ($id === '') { echo json_encode(['error' => t('err_id_missing')]); exit; }
 
     if ($client === 'qbittorrent') {
         echo json_encode(['ok' => qbt_set_files($trans, $id, $wanted ?: [], $unwanted ?: [])]);
@@ -3296,7 +3296,7 @@ if ($action === 'add_torrent') {
 
     if (!$trans) {
         if ($is_share) die("Application de téléchargement non configurée");
-        echo json_encode(['error' => 'Application de téléchargement non configurée']); exit;
+        echo json_encode(['error' => t('err_download_app_not_configured')]); exit;
     }
 
     $client = $trans['client'] ?? 'transmission';
@@ -3305,7 +3305,7 @@ if ($action === 'add_torrent') {
 
     if (!$has_file && empty($magnet_link)) {
         if ($is_share) { header('Location: /'); exit; }
-        echo json_encode(['error' => 'Aucun fichier ou lien fourni']); exit;
+        echo json_encode(['error' => t('err_no_file_or_link')]); exit;
     }
 
     if ($client === 'qbittorrent') {
@@ -3345,7 +3345,7 @@ if ($action === 'add_torrent') {
     else {
         if (isset($res['result']) && $res['result'] === 'success') {
             if (isset($res['arguments']['torrent-duplicate'])) {
-                echo json_encode(['error' => 'Ce torrent est déjà dans la liste']);
+                echo json_encode(['error' => t('err_torrent_duplicate')]);
             } else {
                 $torrent_name = $res['arguments']['torrent-added']['name']
                 ?? $res['arguments']['torrent-duplicate']['name']
@@ -3403,7 +3403,7 @@ if ($action === 'get_recent_movies') {
     $radarr = find_app_by_driver($cfg, 'radarr');
 
     if (!$radarr) {
-        echo json_encode(['error' => 'Radarr non configuré']);
+        echo json_encode(['error' => t('err_radarr_not_configured')]);
         exit;
     }
 
@@ -3420,7 +3420,7 @@ if ($action === 'get_recent_movies') {
 
     $movies = json_decode($response, true);
     if (!is_array($movies)) {
-        echo json_encode(['error' => 'Impossible de joindre Radarr']);
+        echo json_encode(['error' => t('err_radarr_unreachable')]);
         exit;
     }
 
@@ -3462,7 +3462,7 @@ if ($action === 'get_containers') {
     $docker = find_app_by_driver($cfg, 'docker');
 
     if (!$docker) {
-        echo json_encode(['error' => 'Application Docker non configurée dans les paramètres']);
+        echo json_encode(['error' => t('err_docker_not_configured_settings')]);
         exit;
     }
 
@@ -3480,7 +3480,7 @@ if ($action === 'get_containers') {
     $containers = json_decode($res, true);
 
     if (!is_array($containers)) {
-        echo json_encode(['error' => 'Impossible de contacter Docker via ' . $socketPath]);
+        echo json_encode(['error' => t('err_docker_unreachable_via') . $socketPath]);
         exit;
     }
 
@@ -3508,7 +3508,7 @@ if ($action === 'docker_action') {
     $docker = find_app_by_driver($cfg, 'docker');
 
     if (!$docker) {
-        echo json_encode(['error' => 'App Docker non configurée']);
+        echo json_encode(['error' => t('err_docker_app_not_configured')]);
         exit;
     }
 
@@ -3516,7 +3516,7 @@ if ($action === 'docker_action') {
     $cmd = $_POST['cmd'] ?? ''; // start, stop, restart
 
     if (!$containerId || !in_array($cmd, ['start', 'stop', 'restart'], true)) {
-        echo json_encode(['error' => 'Paramètres invalides']);
+        echo json_encode(['error' => t('err_invalid_params')]);
         exit;
     }
 
@@ -3900,14 +3900,14 @@ if ($action === 'prowlarr_indexers') {
                     'name' => $idx['title'] ?? $idx['id'],
                     'enable' => !empty($idx['configured']),
                     'protocol' => 'torrent',
-                    'privacy' => 'Inconnu'
+                    'privacy' => t('word_unknown')
                 ];
             }
         }
     } else {
         $indexers = prowlarr_request($app, 'indexer');
         if (isset($indexers['_error'])) {
-            echo json_encode(['error' => 'Impossible de contacter Prowlarr. Vérifiez l\'URL et la clé API.']);
+            echo json_encode(['error' => t('err_prowlarr_unreachable')]);
             exit;
         }
     }
@@ -3924,7 +3924,7 @@ if ($action === 'prowlarr_categories') {
     require_auth();
     $cfg = load_config();
     $prowlarr = find_app_by_driver($cfg, 'indexer');
-    if (!$prowlarr) { echo json_encode(['error' => 'Prowlarr non configuré']); exit; }
+    if (!$prowlarr) { echo json_encode(['error' => t('err_prowlarr_not_configured')]); exit; }
 
     $categories = arr_get($prowlarr, '/api/v1/indexerCategory');
     if (isset($categories['_error'])) { echo json_encode(['error' => $categories['_error']]); exit; }
@@ -3938,7 +3938,7 @@ if ($action === 'prowlarr_search') {
     require_auth();
     $cfg = load_config();
     $app = find_app_by_driver($cfg, 'indexer');
-    if (!$app) { echo json_encode(['error' => 'Indexeur non configuré']); exit; }
+    if (!$app) { echo json_encode(['error' => t('err_indexer_not_configured')]); exit; }
 
     $query = trim($_GET['query'] ?? '');
     $indexer = $_GET['indexer'] ?? '0';
@@ -4077,7 +4077,7 @@ if ($action === 'docker_logs') {
     require_auth();
     $cfg = load_config();
     $docker = find_app_by_driver($cfg, 'docker');
-    if (!$docker) { echo json_encode(['error' => 'App Docker non configurée']); exit; }
+    if (!$docker) { echo json_encode(['error' => t('err_docker_app_not_configured')]); exit; }
 
     $containerId = preg_replace('/[^a-zA-Z0-9_.-]/', '', $_GET['id'] ?? '');
     $socketPath = $docker['url'] ?? '/var/run/docker.sock';
@@ -4106,7 +4106,7 @@ if ($action === 'docker_stats') {
     require_auth();
     $cfg = load_config();
     $docker = find_app_by_driver($cfg, 'docker');
-    if (!$docker) { echo json_encode(['error' => 'App Docker non configurée']); exit; }
+    if (!$docker) { echo json_encode(['error' => t('err_docker_app_not_configured')]); exit; }
 
     $containerId = preg_replace('/[^a-zA-Z0-9_.-]/', '', $_GET['id'] ?? '');
     $socketPath = $docker['url'] ?? '/var/run/docker.sock';
@@ -4123,7 +4123,7 @@ if ($action === 'docker_stats') {
 
     $stats = json_decode($res, true);
     if (!$stats || isset($stats['message'])) {
-        echo json_encode(['error' => 'Impossible de lire les statistiques']); exit;
+        echo json_encode(['error' => t('err_stats_read_failed')]); exit;
     }
 
     // Calcul complexe de Docker pour obtenir le pourcentage CPU exact
@@ -4182,7 +4182,7 @@ if ($action === 'import_backup') {
     require_auth();
 
     if (!isset($_FILES['backup_file']) || $_FILES['backup_file']['error'] !== UPLOAD_ERR_OK) {
-        echo json_encode(['error' => 'Erreur lors du transfert du fichier']);
+        echo json_encode(['error' => t('err_file_transfer_failed')]);
         exit;
     }
 
