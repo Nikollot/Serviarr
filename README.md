@@ -94,10 +94,15 @@ services:
           echo '⏳ Installing Web-Push (Serviarr)...'
           cd /var/www/html && composer require minishlink/web-push && rm -f composer.json composer.lock
         fi &&
+        if [ ! -f '/var/www/html/data/config.json' ]; then
+          echo '⏳ Creating config.json file...'
+          mkdir -p /var/www/html/data
+          echo '{}' > /var/www/html/data/config.json
+        fi &&
         echo '✅ Applying permissions...'
         chown -R www-data:www-data /var/www/html &&
         chmod -R 755 /var/www/html &&
-        chmod 660 /var/www/html/data/config.json || true &&
+        chmod 660 /var/www/html/data/config.json &&
         echo '🚀 Starting Apache...'
         apache2-foreground
       "      
