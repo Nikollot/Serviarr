@@ -45,35 +45,35 @@ Serviarr is fully responsive — every screen adapts from desktop down to mobile
 Calendar view of upcoming and recent releases, at a glance.
 
 <p align="center">
-  <img src="design/dashbord_web.png" alt="Dashboard - Desktop" width="800"><br>
+  <img src="design/dashbord_web.png" alt="Dashboard - Desktop" width="600">
   <img src="design/dashboard_mobile.jpg" alt="Dashboard - Mobile" width="280">
 </p>
 
 ### Movies (Radarr)
 
 <p align="center">
-  <img src="design/radarr_web.png" alt="Movies - Desktop" width="800"><br>
+  <img src="design/radarr_web.png" alt="Movies - Desktop" width="600">
   <img src="design/radarr_mobile.jpg" alt="Movies - Mobile" width="280">
 </p>
 
 ### TV Shows (Sonarr)
 
 <p align="center">
-  <img src="design/sonarr_web.png" alt="TV Shows - Desktop" width="800"><br>
+  <img src="design/sonarr_web.png" alt="TV Shows - Desktop" width="600">
   <img src="design/sonarr_mobile.jpg" alt="TV Shows - Mobile" width="280">
 </p>
 
 ### Downloads (Transmission / qBittorrent)
 
 <p align="center">
-  <img src="design/download_web.png" alt="Downloads - Desktop" width="800"><br>
+  <img src="design/download_web.png" alt="Downloads - Desktop" width="600">
   <img src="design/download_mobile.jpg" alt="Downloads - Mobile" width="280">
 </p>
 
 ### Docker Management
 
 <p align="center">
-  <img src="design/docker_web.png" alt="Docker - Desktop" width="800"><br>
+  <img src="design/docker_web.png" alt="Docker - Desktop" width="600">
   <img src="design/docker_mobile.jpg" alt="Docker - Mobile" width="280">
 </p>
 
