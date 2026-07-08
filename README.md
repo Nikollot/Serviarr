@@ -46,7 +46,7 @@ Being a huge fan of the **NZB360** Android app, I was looking for an equivalent 
 
 1. Clone this repository to your server:
    ```bash
-   git clone [https://github.com/Nikollot/Serviarr.git](https://github.com/Nikollot/Serviarr.git)
+   git clone https://github.com/Nikollot/Serviarr.git
    cd serviarr
    ```
 
@@ -72,7 +72,7 @@ services:
     ports:
       - "80:80"
     volumes:
-      - .:/var/www/html
+      - .:/var/www/html #change the path
       - /var/run/docker.sock:/var/run/docker.sock
     restart: unless-stopped
     environment:
@@ -88,7 +88,7 @@ services:
         fi &&
         if [ ! -f '/usr/local/bin/composer' ]; then
           echo '⏳ Installing Composer...'
-          curl -sS [https://getcomposer.org/installer](https://getcomposer.org/installer) | php -- --install-dir=/usr/local/bin --filename=composer
+          curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
         fi &&
         if [ ! -d '/var/www/html/vendor' ]; then
           echo '⏳ Installing Web-Push (Serviarr)...'
