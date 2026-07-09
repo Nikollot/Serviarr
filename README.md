@@ -24,7 +24,7 @@ If you do not want this risk, simply do not configure the "Docker" app in the se
 
 Being a huge fan of the **NZB360** Android app, I was looking for an equivalent solution accessible directly from a web browser, regardless of the device (PC, Mac, or iOS/Android mobile). Unable to find a web dashboard bringing together exactly these features with a clean interface, I decided to create Serviarr.
 
-🤖 **Development Note:** This project was entirely coded and architected with the help of artificial intelligence, using **Claude Code** and **Gemini**.
+🤖 **Development Note:** since I am not a Dev, this project was entirely coded and architected with the help of artificial intelligence, using **Claude Code** and **Gemini**.
 
 ## ✨ Key Features
 
