@@ -1,0 +1,34 @@
+# Dossiers Git (Très important pour alléger l'image)
+.git/
+.gitignore
+
+# Fichiers liés à Docker et la documentation (inutiles dans le serveur web)
+Dockerfile
+docker-compose.yml
+docker-compose.yaml
+README.md
+
+/design/
+
+# Configuration et données personnelles — NE JAMAIS INCLURE DANS L'IMAGE
+/data/
+config.json
+
+# Dépendances PHP (Elles sont réinstallées proprement lors du build par le Dockerfile)
+/vendor/
+
+# Fichiers de logs et debug
+*.log
+debug_*.txt
+
+# Fichiers système
+.DS_Store
+Thumbs.db
+
+# Éditeurs
+.vscode/
+.idea/
+*.swp
+
+# Environnement local
+.env

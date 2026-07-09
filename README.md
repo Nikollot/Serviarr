@@ -107,46 +107,15 @@ Calendar view of upcoming and recent releases, at a glance.
 ```yaml
 version: '3.8'
 services:
-  mediaboard:
-    image: php:apache
+  serviarr:
+    image: nikollot/serviarr:latest
     container_name: serviarr
     ports:
       - "80:80"
     volumes:
-      - .:/var/www/html #change the path
-      - /var/run/docker.sock:/var/run/docker.sock
-    restart: unless-stopped
-    environment:
-      - APACHE_RUN_USER=www-data
-      - APACHE_RUN_GROUP=www-data
-      - COMPOSER_ALLOW_SUPERUSER=1 # Allows Composer to run as root
-    entrypoint: >
-      bash -c "
-        if ! php -m | grep -q 'gmp'; then
-          echo '⏳ Installing system packages and GMP...'
-          apt-get update && apt-get install -y git unzip libgmp-dev
-          docker-php-ext-install gmp
-        fi &&
-        if [ ! -f '/usr/local/bin/composer' ]; then
-          echo '⏳ Installing Composer...'
-          curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
-        fi &&
-        if [ ! -d '/var/www/html/vendor' ]; then
-          echo '⏳ Installing Web-Push (Serviarr)...'
-          cd /var/www/html && composer require minishlink/web-push && rm -f composer.json composer.lock
-        fi &&
-        if [ ! -f '/var/www/html/data/config.json' ]; then
-          echo '⏳ Creating config.json file...'
-          mkdir -p /var/www/html/data
-          echo '{}' > /var/www/html/data/config.json
-        fi &&
-        echo '✅ Applying permissions...'
-        chown -R www-data:www-data /var/www/html &&
-        chmod -R 755 /var/www/html &&
-        chmod 660 /var/www/html/data/config.json &&
-        echo '🚀 Starting Apache...'
-        apache2-foreground
-      "      
+      - ./data:/var/www/html/data  # Pour sauvegarder la configuration
+      - /var/run/docker.sock:/var/run/docker.sock # Optionnel : pour gérer Docker
+    restart: unless-stopped      
 ```
 
 > Remember to enable `AllowOverride All` so that the `.htaccess` files of the project (which protect the `data/` folder) are properly processed by Apache — this is not the case by default on the `php:apache` image.
