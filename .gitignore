@@ -1,6 +1,7 @@
 # Configuration et données personnelles — NE JAMAIS COMMITER
-/data/
+/data/*
 config.json
+!/data/.htaccess
 
 # Dépendances PHP
 /vendor/
@@ -17,6 +18,6 @@ Thumbs.db
 .vscode/
 .idea/
 *.swp
-
+*.sh
 # Environnement Docker local
 .env

@@ -11,8 +11,9 @@ README.md
 /design/
 
 # Configuration et données personnelles — NE JAMAIS INCLURE DANS L'IMAGE
-/data/
+/data/*
 config.json
+!/data/.htaccess
 
 # Dépendances PHP (Elles sont réinstallées proprement lors du build par le Dockerfile)
 /vendor/
