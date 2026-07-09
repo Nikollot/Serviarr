@@ -11,7 +11,16 @@ fi
 # Sécuriser le dossier data avec un .htaccess s'il n'existe pas
 if [ ! -f "/var/www/html/data/.htaccess" ]; then
     echo "🔒 Création du fichier .htaccess de sécurité..."
-    echo "Require all denied" > /var/www/html/data/.htaccess
+    cat << 'EOF' > /var/www/html/data/.htaccess
+# Interdit l'accès web à tout le contenu du dossier /data
+<IfModule mod_authz_core.c>
+    Require all denied
+</IfModule>
+<IfModule !mod_authz_core.c>
+    Order deny,allow
+    Deny from all
+</IfModule>
+EOF
 fi
 
 # Forcer les droits pour qu'Apache puisse lire et écrire, peu importe comment l'utilisateur a créé son dossier
