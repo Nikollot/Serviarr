@@ -8,6 +8,12 @@ if [ ! -f "/var/www/html/data/config.json" ]; then
     echo '{}' > /var/www/html/data/config.json
 fi
 
+# Sécuriser le dossier data avec un .htaccess s'il n'existe pas
+if [ ! -f "/var/www/html/data/.htaccess" ]; then
+    echo "🔒 Création du fichier .htaccess de sécurité..."
+    echo "Require all denied" > /var/www/html/data/.htaccess
+fi
+
 # Forcer les droits pour qu'Apache puisse lire et écrire, peu importe comment l'utilisateur a créé son dossier
 echo "✅ Application des permissions pour Apache..."
 chown -R www-data:www-data /var/www/html/data
