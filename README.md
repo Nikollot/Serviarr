@@ -1,4 +1,4 @@
-# Serviarr 🚀
+# Serviarr 🚀 
 
 Unified self-hosted dashboard to manage your media stack (Radarr, Sonarr, Prowlarr, Transmission) and your Docker containers from a single interface — designed for personal use on a NAS or home server.
 
