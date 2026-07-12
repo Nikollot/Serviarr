@@ -52,14 +52,14 @@ function toggleSelectAll() {
         visibleIds.forEach(id => bulkSelectedIds.add(id));
     }
 
-    // Si la désélection totale vide la sélection, on quitte le mode (cohérent avec toggleBulkSelect)
     if (bulkSelectMode && bulkSelectedIds.size === 0) {
         bulkSelectMode = false;
         const btn = document.getElementById('btn-bulk-toggle');
         if (btn) btn.classList.remove('active');
     }
 
-    refreshCurrentGridOnly();
+    // 🔥 OPTIMISATION : On ne redessine plus toute la grille
+    updateBulkDOM();
     renderBulkBar();
 }
 
@@ -74,7 +74,9 @@ function toggleBulkMode() {
     if (!bulkSelectMode) bulkSelectedIds.clear();
     const btn = document.getElementById('btn-bulk-toggle');
     if (btn) btn.classList.toggle('active', bulkSelectMode);
-    refreshCurrentGridOnly();
+
+    // 🔥 OPTIMISATION
+    updateBulkDOM();
     renderBulkBar();
 }
 
@@ -82,14 +84,14 @@ function toggleBulkSelect(id) {
     if (bulkSelectedIds.has(id)) bulkSelectedIds.delete(id);
     else bulkSelectedIds.add(id);
 
-    // Si on vient de tout désélectionner, on quitte automatiquement le mode sélection
     if (bulkSelectMode && bulkSelectedIds.size === 0) {
         bulkSelectMode = false;
         const btn = document.getElementById('btn-bulk-toggle');
         if (btn) btn.classList.remove('active');
     }
 
-    refreshCurrentGridOnly();
+    // 🔥 OPTIMISATION
+    updateBulkDOM();
     renderBulkBar();
 }
 
@@ -5823,7 +5825,7 @@ function scrollToLetter(letter) {
         let text = el.innerText || el.textContent;
         text = text.trim().toUpperCase();
 
-        text = text.replace(/^(THE|A|AN|LE|LA|LES|L')\s+/i, '');
+        //text = text.replace(/^(THE|A|AN|LE|LA|LES|L')\s+/i, '');
 
         let match = false;
         if (letter === '#') {
@@ -5886,4 +5888,47 @@ document.addEventListener('DOMContentLoaded', () => {
     if(langSelect) langSelect.value = currentLang;
 });
 
+function updateBulkDOM() {
+    // 1. On met à jour la visibilité globale des cases à cocher
+    document.querySelectorAll('.bulk-select-checkbox').forEach(box => {
+        if (bulkSelectMode) box.classList.add('visible');
+        else box.classList.remove('visible');
+
+        // 2. On récupère l'ID du média en lisant l'attribut 'onclick' de la case
+        const onclickStr = box.getAttribute('onclick') || '';
+        const match = onclickStr.match(/toggleBulkSelect\(['"]?([^)'"]+)['"]?\)/);
+
+    if (match && match[1]) {
+        const idStr = match[1];
+        // Le Set peut contenir des Number (Films/Séries) ou des String (Torrents)
+        const isSelected = bulkSelectedIds.has(idStr) || bulkSelectedIds.has(Number(idStr));
+
+        // Met à jour la coche
+        const input = box.querySelector('input');
+        if (input) input.checked = isSelected;
+
+        // Met à jour la surbrillance de la carte parente
+        const card = box.closest('.media-card') || box.closest('.card');
+        if (card) {
+            if (isSelected) card.classList.add('bulk-selected');
+            else card.classList.remove('bulk-selected');
+        }
+    }
+    });
+}
+
 boot();
+
+// ── AFFICHER / MASQUER MOT DE PASSE ──────────────────────────────────────────
+function togglePassword(inputId, iconElement) {
+    const input = document.getElementById(inputId);
+    if (!input) return;
+
+    if (input.type === 'password') {
+        input.type = 'text';
+        iconElement.textContent = '🙈';
+    } else {
+        input.type = 'password';
+        iconElement.textContent = '👁️';
+    }
+}

@@ -61,47 +61,47 @@ if (savedTheme === 'light' || (savedTheme === 'auto' && window.matchMedia('(pref
 <div id="auth-overlay">
 <div class="auth-box">
 <div class="auth-logo-wrap">
-    <img src="/assets/img/icons/gemini-svg.svg" class="auth-logo-img" alt="Logo Serviarr">
-    <span class="auth-logo-servicarr">Serviarr</span>
+<img src="/assets/img/icons/gemini-svg.svg" class="auth-logo-img" alt="Logo Serviarr">
+<span class="auth-logo-servicarr">Serviarr</span>
 </div>
 <p id="auth-subtitle"><?= t('auth_title') ?></p>
 
 <div id="auth-form-login">
-    <label><?= t('auth_password') ?></label>
-    <input type="password" id="login-pw" placeholder="••••••••" autocomplete="current-password">
-    <div class="auth-error auth-error-hidden" id="login-err"></div>
-    <button class="btn-primary" onclick="doLogin()"><?= t('auth_login_btn') ?></button>
+<label><?= t('auth_password') ?></label>
+<div style="position: relative; margin-bottom: 16px;"><input type="password" id="login-pw" placeholder="••••••••" autocomplete="current-password" style="padding-right: 40px; margin-bottom: 0;"><span onclick="togglePassword('login-pw', this)" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); cursor: pointer; color: var(--muted); user-select: none;">👁️</span></div>
+<div class="auth-error auth-error-hidden" id="login-err"></div>
+<button class="btn-primary" onclick="doLogin()"><?= t('auth_login_btn') ?></button>
 </div>
 
 <div id="auth-form-setup" class="auth-error-hidden">
-    <label style="display:block; text-align:left; margin-bottom:5px; font-size:12px; font-weight:bold; color:var(--muted); text-transform:uppercase;"><?= t('settings_lang') ?></label>
-    <select id="setup-lang" onchange="setLang(this.value)" style="width:100%; padding:10px; margin-bottom:20px; background:var(--bg); border:1px solid var(--border); color:var(--text); border-radius:6px;">
-        <option value="fr" <?= ($lang === 'fr') ? 'selected' : '' ?>>Français</option>
-        <option value="en" <?= ($lang === 'en') ? 'selected' : '' ?>>English</option>
-        <option value="es" <?= ($lang === 'es') ? 'selected' : '' ?>>Español</option>
-        <option value="de" <?= ($lang === 'de') ? 'selected' : '' ?>>Deutsch</option>
-        <option value="it" <?= ($lang === 'it') ? 'selected' : '' ?>>Italiano</option>
-        <option value="zh" <?= ($lang === 'zh') ? 'selected' : '' ?>>中文</option>
-        <option value="ja" <?= ($lang === 'ja') ? 'selected' : '' ?>>日本語</option>
-    </select>
+<label style="display:block; text-align:left; margin-bottom:5px; font-size:12px; font-weight:bold; color:var(--muted); text-transform:uppercase;"><?= t('settings_lang') ?></label>
+<select id="setup-lang" onchange="setLang(this.value)" style="width:100%; padding:10px; margin-bottom:20px; background:var(--bg); border:1px solid var(--border); color:var(--text); border-radius:6px;">
+<option value="fr" <?= ($lang === 'fr') ? 'selected' : '' ?>>Français</option>
+<option value="en" <?= ($lang === 'en') ? 'selected' : '' ?>>English</option>
+<option value="es" <?= ($lang === 'es') ? 'selected' : '' ?>>Español</option>
+<option value="de" <?= ($lang === 'de') ? 'selected' : '' ?>>Deutsch</option>
+<option value="it" <?= ($lang === 'it') ? 'selected' : '' ?>>Italiano</option>
+<option value="zh" <?= ($lang === 'zh') ? 'selected' : '' ?>>中文</option>
+<option value="ja" <?= ($lang === 'ja') ? 'selected' : '' ?>>日本語</option>
+</select>
 
-    <p class="auth-hint"><?= t('auth_setup_hint') ?></p>
-    <label><?= t('auth_password') ?></label>
-    <input type="password" id="setup-pw" placeholder="<?= t('setup_pw_placeholder') ?>">
-    <label><?= t('auth_confirm') ?></label>
-    <input type="password" id="setup-pw2" placeholder="<?= t('setup_pw2_placeholder') ?>">
-    <div class="auth-error auth-error-hidden" id="setup-err"></div>
-    <button class="btn-primary" onclick="doSetup()"><?= t('auth_create_btn') ?></button>
+<p class="auth-hint"><?= t('auth_setup_hint') ?></p>
+<label><?= t('auth_password') ?></label>
+<div style="position: relative; margin-bottom: 16px;"><input type="password" id="setup-pw" placeholder="<?= t('setup_pw_placeholder') ?>" style="padding-right: 40px; margin-bottom: 0;"><span onclick="togglePassword('setup-pw', this)" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); cursor: pointer; color: var(--muted); user-select: none;">👁️</span></div>
+<label><?= t('auth_confirm') ?></label>
+<div style="position: relative; margin-bottom: 16px;"><input type="password" id="setup-pw2" placeholder="<?= t('setup_pw2_placeholder') ?>" style="padding-right: 40px; margin-bottom: 0;"><span onclick="togglePassword('setup-pw2', this)" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); cursor: pointer; color: var(--muted); user-select: none;">👁️</span></div>
+<div class="auth-error auth-error-hidden" id="setup-err"></div>
+<button class="btn-primary" onclick="doSetup()"><?= t('auth_create_btn') ?></button>
 </div>
 
 <div id="auth-form-2fa" class="auth-error-hidden">
-    <p class="auth-hint"><?= t('auth_2fa_hint') ?></p>
-    <label><?= t('auth_2fa_code') ?></label>
-    <input type="text" id="login-2fa-code" class="auth-2fa-input" placeholder="123456"
-           autocomplete="one-time-code" maxlength="6">
-    <div class="auth-error auth-error-hidden" id="2fa-err"></div>
-    <button class="btn-primary" onclick="doVerify2FA()"><?= t('auth_verify_btn') ?></button>
-    <button class="btn-detail secondary auth-cancel-btn" onclick="location.reload()"><?= t('auth_cancel_btn') ?></button>
+<p class="auth-hint"><?= t('auth_2fa_hint') ?></p>
+<label><?= t('auth_2fa_code') ?></label>
+<input type="text" id="login-2fa-code" class="auth-2fa-input" placeholder="123456"
+autocomplete="one-time-code" maxlength="6">
+<div class="auth-error auth-error-hidden" id="2fa-err"></div>
+<button class="btn-primary" onclick="doVerify2FA()"><?= t('auth_verify_btn') ?></button>
+<button class="btn-detail secondary auth-cancel-btn" onclick="location.reload()"><?= t('auth_cancel_btn') ?></button>
 </div>
 </div>
 </div>
@@ -109,60 +109,59 @@ if (savedTheme === 'light' || (savedTheme === 'auto' && window.matchMedia('(pref
 <div id="app">
 <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
 <aside class="sidebar" id="sidebar">
-    <div class="sidebar-header">
-        <div class="sidebar-logo">
-            <img src="/assets/img/icons/gemini-svg.svg" alt="Logo">
-            <span>Serviarr</span>
-        </div>
-    </div>
+<div class="sidebar-header">
+<div class="sidebar-logo">
+<img src="/assets/img/icons/gemini-svg.svg" alt="Logo">
+<span>Serviarr</span>
+</div>
+</div>
 
-    <div class="omni-search-wrap">
-        <div class="omni-search-inner">
-            <input type="text" id="omni-input" class="omni-input"
-                   placeholder="<?= t('nav_search_placeholder') ?>"
-                   oninput="triggerOmnisearch()">
-            <span class="omni-icon">🔍</span>
-        </div>
-        <div id="omni-results" class="omni-dropdown"></div>
-    </div>
+<div class="omni-search-wrap">
+<div class="omni-search-inner">
+<input type="text" id="omni-input" class="omni-input"
+placeholder="<?= t('nav_search_placeholder') ?>"
+oninput="triggerOmnisearch()">
+<span class="omni-icon">🔍</span>
+</div>
+<div id="omni-results" class="omni-dropdown"></div>
+</div>
 
-    <nav class="sidebar-nav" id="sidebar-nav">
-        <a href="index.php" class="sidebar-item <?php if(isset($page) && $page=='home') echo 'active'; ?>">
-            <span class="icon">🏠</span> <span><?= t('nav_dashboard') ?></span>
-        </a>
-    </nav>
+<nav class="sidebar-nav" id="sidebar-nav">
+<a href="index.php" class="sidebar-item <?php if(isset($page) && $page=='home') echo 'active'; ?>">
+<span class="icon">🏠</span> <span><?= t('nav_dashboard') ?></span>
+</a>
+</nav>
 
-    <div class="sidebar-footer">
-        <div class="sidebar-item" onclick="showTab('settings')">
-            <span class="icon">⚙️</span> <span><?= t('nav_settings') ?></span>
-        </div>
-        <div class="sidebar-item" onclick="doLogout()">
-            <span class="icon">🚪</span> <span><?= t('nav_logout') ?></span>
-        </div>
-    </div>
+<div class="sidebar-footer">
+<div class="sidebar-item" onclick="showTab('settings')">
+<span class="icon">⚙️</span> <span><?= t('nav_settings') ?></span>
+</div>
+<div class="sidebar-item" onclick="doLogout()">
+<span class="icon">🚪</span> <span><?= t('nav_logout') ?></span>
+</div>
+</div>
 </aside>
 
 <header>
-    <button class="btn-icon btn-menu" onclick="toggleSidebar()">☰</button>
+<button class="btn-icon btn-menu" onclick="toggleSidebar()">☰</button>
 
-    <div class="header-right">
-        <div class="notif-wrap">
-            <button id="notif-toggle-btn" class="btn-notif" onclick="toggleNotifMenu()" title="<?= t('notif_latest') ?>">
-                🔔
-            </button>
-            <div id="notif-dropdown" class="notif-dropdown">
-                <div class="notif-dropdown-header"><?= t('notif_history') ?></div>
-                <div id="notif-list" class="notif-list">
-                    <div class="notif-placeholder">⏳ <?= t('loading') ?></div>
-                </div>
-            </div>
-        </div>
+<div class="header-right">
+<div class="notif-wrap">
+<button id="notif-toggle-btn" class="btn-notif" onclick="toggleNotifMenu()" title="<?= t('notif_latest') ?>">
+🔔
+</button>
+<div id="notif-dropdown" class="notif-dropdown">
+<div class="notif-dropdown-header"><?= t('notif_history') ?></div>
+<div id="notif-list" class="notif-list">
+<div class="notif-placeholder">⏳ <?= t('loading') ?></div>
+</div>
+</div>
+</div>
 
-        <button id="theme-toggle-btn" class="btn-theme" onclick="quickToggleTheme()" title="<?= t('theme_change') ?>">
-            🌓
-        </button>
-    </div>
+<button id="theme-toggle-btn" class="btn-theme" onclick="quickToggleTheme()" title="<?= t('theme_change') ?>">
+🌓
+</button>
+</div>
 </header>
 
 <main>
-

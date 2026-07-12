@@ -2346,3 +2346,21 @@ padding: 20px;
 #modal-confirm {
 z-index: 30005 !important;
 }
+
+/* =========================================================================
+ * CORRECTIF : Icône de suivi à droite sur PC (évite la superposition)
+ * ========================================================================= */
+@media (min-width: 768px) {
+    .media-card > .monitored-badge {
+        left: auto !important;
+        right: 8px !important;
+    }
+
+    /* Corrige l'imbrication éventuelle des divs de l'icône */
+    .media-card > .monitored-badge .monitored-badge {
+        position: relative !important;
+        top: auto !important;
+        left: auto !important;
+        right: auto !important;
+    }
+}
