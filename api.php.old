@@ -3049,7 +3049,6 @@ function qbt_get_torrents($app) {
             'peersGettingFromUs' => $t['num_leechs'] ?? 0,
             'eta'             => ($t['eta'] ?? -1) >= 8640000 ? -1 : ($t['eta'] ?? -1), // qBt renvoie 8640000 pour "infini"
             'addedDate'       => $t['added_on'] ?? 0,
-            'trackers'        => !empty($t['tracker']) ? [['announce' => $t['tracker']]] : [],
             'files'           => [], // chargés à la demande (voir qbt_get_torrent_files)
             'fileStats'       => [],
         ];

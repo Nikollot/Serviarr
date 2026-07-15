@@ -4651,22 +4651,14 @@ function showDockerLogs(id, name) {
         modal.className = 'modal-bg';
         modal.style.zIndex = '10005';
         document.body.appendChild(modal);
-        modal.addEventListener('click', e => { 
-            if (e.target === modal) {
-                modal.classList.remove('open');
-                if (window.dockerLogsInterval) clearInterval(window.dockerLogsInterval);
-            }
-        });
+        modal.addEventListener('click', e => { if (e.target === modal) modal.classList.remove('open'); });
     }
 
     modal.innerHTML = `
     <div class="modal-box" style="width: 800px; max-width: 95%; max-height: 90vh; display: flex; flex-direction: column; padding: 0; overflow: hidden; background: var(--bg2); border-radius: 16px;">
     <h3 style="margin:0; border-bottom:1px solid var(--border); padding: 15px 20px; display:flex; justify-content:space-between; align-items:center; flex-shrink:0; background: var(--bg2);">
     <span style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">📝 ${t('docker_logs_title', {name: esc(name)})}</span>
-    <div style="display:flex; align-items:center; gap:10px;">
-        <span id="docker-logs-spinner" style="font-size:12px; color:var(--muted); opacity:0; transition:opacity 0.2s; animation: syncPulse 1.2s infinite;">↻</span>
-        <button onclick="document.getElementById('modal-docker-logs').classList.remove('open'); if(window.dockerLogsInterval) clearInterval(window.dockerLogsInterval);" class="btn-circle" style="flex-shrink:0; background:var(--bg3); border:1px solid var(--border); color:var(--text); width:32px; height:32px; border-radius:8px; cursor:pointer;">✕</button>
-    </div>
+    <button onclick="document.getElementById('modal-docker-logs').classList.remove('open')" class="btn-circle" style="flex-shrink:0; margin-left:15px; background:var(--bg3); border:1px solid var(--border); color:var(--text); width:32px; height:32px; border-radius:8px; cursor:pointer;">✕</button>
     </h3>
     <div style="padding: 20px; overflow-y: auto; flex: 1; display: flex; flex-direction: column;">
     <div id="docker-logs-content" style="background:#0a0c10; color:#00ff00; padding:15px; border-radius:8px; font-family:var(--mono); font-size:12px; flex:1; overflow-y:auto; white-space:pre-wrap; word-break:break-all;">
@@ -4675,37 +4667,16 @@ function showDockerLogs(id, name) {
     </div>
     </div>`;
     modal.classList.add('open');
-    
-    if (window.dockerLogsInterval) clearInterval(window.dockerLogsInterval);
 
-    const fetchLogs = () => {
-        if (!document.getElementById('modal-docker-logs').classList.contains('open')) {
-            clearInterval(window.dockerLogsInterval);
-            return;
+    api('docker_logs&id=' + id, {}, 'GET').then(r => {
+        const content = document.getElementById('docker-logs-content');
+        if (r.success) {
+            content.innerHTML = r.logs || t('docker_no_result');
+            content.scrollTop = content.scrollHeight;
+        } else {
+            content.innerHTML = `<span style="color:var(--accent3);">⚠️ ${r.error}</span>`;
         }
-        
-        const spinner = document.getElementById('docker-logs-spinner');
-        if (spinner) spinner.style.opacity = '1';
-
-        api('docker_logs&id=' + id, {}, 'GET').then(r => {
-            if (spinner) spinner.style.opacity = '0';
-            const content = document.getElementById('docker-logs-content');
-            if (!content) return;
-            
-            // Auto-scroll : true si on est déjà en bas de page
-            const isAtBottom = content.scrollHeight - content.clientHeight <= content.scrollTop + 20;
-            
-            if (r.success) {
-                content.innerHTML = r.logs || t('docker_no_result');
-                if (isAtBottom) content.scrollTop = content.scrollHeight;
-            } else {
-                content.innerHTML = `<span style="color:var(--accent3);">⚠️ ${r.error}</span>`;
-            }
-        });
-    };
-    
-    fetchLogs();
-    window.dockerLogsInterval = setInterval(fetchLogs, 3000);
+    });
 }
 
 function showDockerStats(id, name) {
@@ -4716,45 +4687,25 @@ function showDockerStats(id, name) {
         modal.className = 'modal-bg';
         modal.style.zIndex = '10005';
         document.body.appendChild(modal);
-        modal.addEventListener('click', e => { 
-            if (e.target === modal) {
-                modal.classList.remove('open');
-                if (window.dockerStatsInterval) clearInterval(window.dockerStatsInterval);
-            }
-        });
+        modal.addEventListener('click', e => { if (e.target === modal) modal.classList.remove('open'); });
     }
 
     modal.innerHTML = `
     <div class="modal-box" style="width: 450px; max-width: 95%; max-height: 90vh; display: flex; flex-direction: column; padding: 0; overflow: hidden; background: var(--bg2); border-radius: 16px;">
     <h3 style="margin:0; border-bottom:1px solid var(--border); padding: 15px 20px; display:flex; justify-content:space-between; align-items:center; flex-shrink:0; background: var(--bg2);">
     <span style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">📊 ${t('docker_stats_title', {name: esc(name)})}</span>
-    <div style="display:flex; align-items:center; gap:10px;">
-        <span id="docker-stats-spinner" style="font-size:12px; color:var(--muted); opacity:0; transition:opacity 0.2s; animation: syncPulse 1.2s infinite;">↻</span>
-        <button onclick="document.getElementById('modal-docker-stats').classList.remove('open'); if(window.dockerStatsInterval) clearInterval(window.dockerStatsInterval);" class="btn-circle" style="flex-shrink:0; background:var(--bg3); border:1px solid var(--border); color:var(--text); width:32px; height:32px; border-radius:8px; cursor:pointer;">✕</button>
-    </div>
+    <button onclick="document.getElementById('modal-docker-stats').classList.remove('open')" class="btn-circle" style="flex-shrink:0; margin-left:15px; background:var(--bg3); border:1px solid var(--border); color:var(--text); width:32px; height:32px; border-radius:8px; cursor:pointer;">✕</button>
     </h3>
     <div id="docker-stats-content" style="padding: 20px; overflow-y: auto; flex: 1; text-align:center; color:var(--muted);">
     ⏳ ${t('docker_stats_loading')}
     </div>
     </div>`;
     modal.classList.add('open');
-    
-    if (window.dockerStatsInterval) clearInterval(window.dockerStatsInterval);
 
     const fetchStats = () => {
-        if (!document.getElementById('modal-docker-stats').classList.contains('open')) {
-            clearInterval(window.dockerStatsInterval);
-            return;
-        }
-        
-        const spinner = document.getElementById('docker-stats-spinner');
-        if (spinner) spinner.style.opacity = '1';
-        
+        if (!modal.classList.contains('open')) return;
         api('docker_stats&id=' + id, {}, 'GET').then(r => {
-            if (spinner) spinner.style.opacity = '0';
             const content = document.getElementById('docker-stats-content');
-            if (!content) return;
-            
             if (r.success) {
                 content.innerHTML = `
                 <div style="display:flex; flex-direction:column; gap:20px;">
@@ -4786,9 +4737,7 @@ function showDockerStats(id, name) {
             }
         });
     };
-    
     fetchStats();
-    window.dockerStatsInterval = setInterval(fetchStats, 2000);
 }
 
 // Validation de la connexion avec le code 2FA

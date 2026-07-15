@@ -151,7 +151,12 @@ oninput="triggerOmnisearch()">
 🔔
 </button>
 <div id="notif-dropdown" class="notif-dropdown">
-<div class="notif-dropdown-header"><?= t('notif_history') ?></div>
+<div class="notif-dropdown-header" style="display: flex; justify-content: space-between; align-items: center;">
+    <span><?= t('notif_history') ?></span>
+    <span id="notif-sync-indicator" style="font-size: 11px; font-weight: normal; color: var(--accent); opacity: 0; transition: opacity 0.3s; display: flex; align-items: center; gap: 4px;">
+        <span class="sync-dot">●</span> Sync...
+    </span>
+</div>
 <div id="notif-list" class="notif-list">
 <div class="notif-placeholder">⏳ <?= t('loading') ?></div>
 </div>

@@ -2364,3 +2364,12 @@ z-index: 30005 !important;
         right: auto !important;
     }
 }
+
+@keyframes syncPulse {
+    0% { opacity: 0.3; }
+    50% { opacity: 1; }
+    100% { opacity: 0.3; }
+}
+.sync-dot {
+    animation: syncPulse 1.2s infinite;
+}
