@@ -2605,3 +2605,90 @@ z-index: 30005 !important;
         padding: 8px 12px !important; /* Ajuste les marges pour l'icône seule */
     }
 }
+
+/* ── COMPACTER LE BAS DU MENU LATÉRAL ── */
+.sidebar-footer {
+    padding-top: 10px !important;
+    padding-bottom: 12px !important;
+}
+
+.sidebar-footer .sidebar-item {
+    padding: 8px 20px !important; /* Réduit l'espace à l'intérieur des boutons */
+    min-height: 38px !important;  /* Hauteur minimale plus petite */
+    margin-bottom: 2px !important; /* Rapproche Paramètres et Déconnexion */
+}
+
+.sidebar-footer .sidebar-item .icon {
+    font-size: 18px !important; /* Ajuste légèrement la taille des icônes */
+}
+
+/* ── CORRECTION DU FOND DES LISTES DÉROULANTES (OPTIONS) ── */
+select option {
+    background-color: var(--bg2); /* Applique ton fond sombre */
+    color: var(--text);           /* Applique ton texte clair */
+}
+
+/* ── FORCER LES ARRONDIS SUR TOUS LES BOUTONS ── */
+button,
+.btn,
+.btn-sm,
+input[type="button"],
+input[type="submit"] {
+    border-radius: 8px !important; /* Tu peux mettre 10px ou 12px si tu veux que ce soit encore plus rond */
+}
+
+/* Cas spécifique pour le bouton Copier s'il est collé au champ de texte */
+.input-group button,
+.input-group .btn {
+    border-radius: 0 8px 8px 0 !important; /* Garde le côté gauche plat pour coller à l'input, et arrondit la droite */
+}
+
+/* ── REDONNER DE L'ESPACE INTERNE AUX BOUTONS (PADDING) ── */
+
+/* 1. On donne une belle taille à tous les boutons d'action sur PC */
+.btn,
+.btn-primary,
+.btn-torrent-add,
+.btn-app-link,
+.btn-detail,
+.action-btn,
+input[type="button"],
+input[type="submit"] {
+    padding: 8px 24px !important;
+}
+
+/* 2. On protège les petits boutons utilitaires (flèches, corbeille...) */
+.btn-sm,
+.icon-btn,
+.btn-ep,
+.btn-sort,
+.app-item-btn {
+    padding: 8px 12px !important;
+}
+
+/* 3. On garde un affichage parfait et adapté pour les téléphones */
+@media (max-width: 768px) {
+    .btn-torrent-add,
+    .btn-app-link {
+        padding: 10px 14px !important;
+    }
+}
+
+/* ── ALIGNEMENT PARFAIT DE LA HAUTEUR DES BOUTONS D'EN-TÊTE ── */
+
+/* 1. On donne au bouton Ajouter la même bordure de 1px (de sa propre couleur) */
+.btn-torrent-add {
+    border: 1px solid var(--accent) !important;
+}
+
+/* 2. On met l'icône "+" exactement à la même taille (16px) que les autres émojis */
+.btn-torrent-add span:first-child {
+    font-size: 16px !important;
+}
+
+/* 3. Sécurité absolue : on force une hauteur minimale commune pour ces 3 boutons */
+.btn-torrent-add,
+.btn-app-link {
+    min-height: 40px !important;
+    box-sizing: border-box !important;
+}

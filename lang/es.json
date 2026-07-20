@@ -529,6 +529,7 @@
     "err_too_many_attempts": "Demasiados intentos. Vuelve a intentarlo en",
     "err_minutes_suffix": "min.",
     "err_update_failed": "Error de actualización",
-	"export_list_btn": "Exportar lista",
-"btn_download": "Descargar"
+    "export_list_btn": "Exportar lista",
+    "btn_download": "Descargar",
+    "update_available": "Nueva actualización disponible"
 }

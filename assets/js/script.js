@@ -1,4 +1,4 @@
-const APP_VERSION = "1.3.2";
+const APP_VERSION = "1.3.3";
 const UPDATE_URL = "https://raw.githubusercontent.com/Nikollot/Serviarr/main/version.json";
 
 const DRIVER_ICONS = {docker:'🐳', sonarr:'📺',radarr:'🎬',prowlarr:'🔍',indexer:'🔍',transmission:'⬇',download:'⬇',jellyfin:'🎵',qbittorrent:'🌊',sabnzbd:'📥',lidarr:'🎶',readarr:'📚', iframe:'🌐', supervision:'📊'};
@@ -6265,28 +6265,29 @@ function displayVersionInSidebar(latestVersion = null, releaseUrl = '#') {
     if (!versionDiv) {
         versionDiv = document.createElement('div');
         versionDiv.id = 'sidebar-version-info';
-        versionDiv.style = "text-align: center; font-size: 11px; color: var(--muted); font-family: var(--mono); padding-top: 10px;";
+        // Marges et polices réduites pour gagner de la place
+        versionDiv.style = "text-align: center; font-size: 10px; color: var(--muted); font-family: var(--mono); padding-top: 5px;";
 
         if (sidebarFooter) {
             sidebarFooter.appendChild(versionDiv);
         } else {
             versionDiv.style.marginTop = 'auto';
-            versionDiv.style.padding = '20px';
+            versionDiv.style.padding = '10px 20px';
             versionDiv.style.borderTop = '1px solid var(--border)';
             sidebar.appendChild(versionDiv);
         }
     }
 
-    // Si une mise à jour est disponible, on affiche le bouton rouge
+    // Si une mise à jour est disponible, on affiche le bouton rouge compacté
     if (latestVersion && latestVersion !== APP_VERSION) {
         versionDiv.innerHTML = `
-        <div>v${APP_VERSION}</div>
-        <a href="${releaseUrl}" target="_blank" style="display: block; margin-top: 8px; padding: 8px 10px; background: rgba(255,93,143,0.1); border: 1px solid rgba(255,93,143,0.3); color: var(--accent3); border-radius: 8px; text-decoration: none; font-weight: bold; transition: all 0.2s;" onmouseover="this.style.background='rgba(255,93,143,0.2)'" onmouseout="this.style.background='rgba(255,93,143,0.1)'">
-        🚀 ${t('update_available')} (${latestVersion})
+        <div style="margin-bottom: 4px;">v${APP_VERSION}</div>
+        <a href="${releaseUrl}" target="_blank" style="display: block; padding: 6px 8px; font-size: 10.5px; line-height: 1.3; background: rgba(255,93,143,0.1); border: 1px solid rgba(255,93,143,0.3); color: var(--accent3); border-radius: 6px; text-decoration: none; font-weight: bold; transition: all 0.2s;" onmouseover="this.style.background='rgba(255,93,143,0.2)'" onmouseout="this.style.background='rgba(255,93,143,0.1)'">
+        🚀 ${t('update_available')}<br>(${latestVersion})
         </a>
         `;
     }
-    // Sinon, on affiche juste la version actuelle en gris
+    // Sinon, on affiche juste la version actuelle
     else {
         versionDiv.innerHTML = `v${APP_VERSION}`;
     }

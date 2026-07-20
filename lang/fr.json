@@ -531,7 +531,5 @@
     "err_update_failed": "Erreur de mise à jour",
     "export_list_btn": "Exporter une liste",
     "btn_download": "Télécharger",
-    "update_available": "Nouvelle mise à jour disponible",
-    "update_changelog_default": "Améliorations et corrections de bugs.",
-    "btn_download_update": "Télécharger"
+    "update_available": "Nouvelle mise à jour disponible"
 }
