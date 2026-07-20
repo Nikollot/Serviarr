@@ -231,11 +231,13 @@ main{flex:1;padding:24px;max-width:1400px;width:100%;margin:0 auto;}
     font-weight: bold;
 }
 
+/* Uniquement la bordure en dégradé pour le hover et le jour en cours */
 .cal-day:hover:not(.other-month),
 .cal-day.today {
-    background: var(--accent-grad-bg) padding-box, linear-gradient(var(--bg3), var(--bg3)) padding-box, var(--accent-grad) border-box !important;
+    background: linear-gradient(var(--bg3), var(--bg3)) padding-box, var(--accent-grad) border-box !important;
     border: 1px solid transparent !important;
 }
+
 .cal-day.today .day-num {
     background: var(--accent-grad) !important;
     -webkit-background-clip: text !important;
@@ -256,7 +258,7 @@ main{flex:1;padding:24px;max-width:1400px;width:100%;margin:0 auto;}
 /* RECENT */
 .recent-list{display:flex;flex-direction:column;gap:8px;}
 .day-event-item{display:flex;align-items:stretch;gap:0;background:var(--bg3);border-radius:10px;cursor:pointer;transition:background .15s,border-color .15s;border:1px solid var(--border);overflow:hidden;margin-bottom:8px;}
-.day-event-item:hover{border-color:var(--accent);background:var(--bg2);}
+
 .day-event-bar{width:4px;flex-shrink:0;border-radius:0;}
 .day-event-bar.movie{background:var(--radarr);}
 .day-event-bar.episode{background:var(--sonarr);}
@@ -839,7 +841,13 @@ display: none; /* Caché par défaut */
     transition: border-color .15s, background .15s;
     margin-bottom: 10px;
 }
-.cal-event-card:hover { border-color: var(--accent); background: var(--bg2); }
+
+/* Uniquement la bordure en dégradé au survol pour les listes d'événements */
+.day-event-item:hover, .cal-event-card:hover {
+    background: linear-gradient(var(--bg2), var(--bg2)) padding-box, var(--accent-grad) border-box !important;
+    border: 1px solid transparent !important;
+}
+
 .cal-event-bar { width: 4px; flex-shrink: 0; }
 .cal-event-bar.episode { background: var(--sonarr); }
 .cal-event-bar.movie   { background: var(--radarr); }
@@ -936,6 +944,8 @@ display: none; /* Caché par défaut */
     transition: color 0.2s;
 }
 .hub-btn.active { color: var(--accent); }
+.hub-btn[onclick*="movies"].active { color: var(--radarr); }
+.hub-btn[onclick*="series"].active { color: var(--sonarr); }
 .hub-btn .icon { font-size: 22px; }
 
 /* On ajoute une marge en bas du body sur mobile pour ne pas cacher de contenu */
@@ -2504,4 +2514,75 @@ z-index: 30005 !important;
     outline: none !important;
     background: linear-gradient(var(--bg2), var(--bg2)) padding-box, var(--accent-grad) border-box !important;
     border: 3px solid transparent !important; /* 3px pour que le dégradé soit bien visible */
+}
+
+/* =========================================================================
+ * ─ ─ PROWLARR (Barre de recherche et filtres)
+ * ========================================================================= */
+.prowlarr-toolbar {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: nowrap;
+}
+
+.prowlarr-search-wrap {
+    flex: 1; /* Prend l'espace maximal possible */
+    display: flex;
+    order: 1; /* A gauche sur PC */
+    min-width: 0;
+}
+
+.prowlarr-search-wrap input {
+    width: 100%;
+}
+
+.prowlarr-filters-wrap {
+    display: flex;
+    gap: 10px;
+    order: 2; /* Au milieu sur PC */
+    flex-shrink: 0;
+}
+
+.prowlarr-filters-wrap select {
+    max-width: 160px; 
+}
+
+.btn-search-prowlarr {
+    order: 3; /* A droite sur PC */
+    white-space: nowrap; 
+    flex-shrink: 0;
+    width: auto !important; /* 👈 LE SAUVEUR : Empêche le bouton d'écraser l'input sur PC */
+    padding: 8px 14px !important;
+    font-size: 13px !important;
+    height: 38px;
+}
+
+/* Version Mobile (Écrans < 768px) */
+@media (max-width: 768px) {
+    .prowlarr-toolbar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .prowlarr-filters-wrap {
+        order: 1; /* Filtres en haut sur mobile */
+        width: 100%;
+    }
+    
+    .prowlarr-filters-wrap select {
+        flex: 1;
+        max-width: none;
+    }
+
+    .prowlarr-search-wrap {
+        order: 2; /* Recherche au milieu sur mobile */
+    }
+
+    .btn-search-prowlarr {
+        order: 3; /* Bouton en bas sur mobile */
+        width: 100% !important; /* Reprend toute la largeur sur mobile */
+        padding: 10px 16px !important;
+        height: auto;
+    }
 }

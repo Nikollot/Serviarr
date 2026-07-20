@@ -567,7 +567,7 @@ function showDayEvents(key, date) {
 
             html += `
             <div class="day-event-item" style="flex-direction: column; padding: 0; overflow: hidden; flex-shrink: 0;">
-            <div style="display: flex; align-items: stretch; cursor: pointer; background: var(--bg3);"
+            <div style="display: flex; align-items: stretch; cursor: pointer;"
             onclick="const el = document.getElementById('${uniqueId}'); const icon = document.getElementById('icon-${uniqueId}'); if(el.style.display==='none'){el.style.display='block'; icon.style.transform='rotate(180deg)';}else{el.style.display='none'; icon.style.transform='rotate(0deg)';}">
             <div class="day-event-bar episode"></div>
             <div style="display: flex; padding: 10px; align-items: center; gap: 12px; flex: 1;">

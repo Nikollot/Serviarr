@@ -79,8 +79,8 @@ if (file_exists($config_path)) {
         </div>
         <div class="dl-actions">
             <button class="btn-sort" id="btn-bulk-toggle" onclick="toggleBulkMode()" title="<?= t('bulk_select_toggle') ?>">☑️</button>
-            <button class="btn-sm secondary" onclick="torrentActionGlobale('torrent-start')">▶ <?= t('dl_resume_all') ?></button>
-            <button class="btn-sm secondary" onclick="torrentActionGlobale('torrent-stop')">⏸ <?= t('dl_pause_all') ?></button>
+            <button class="btn-sort" style="width: auto; padding: 0 14px; font-size: 13px; font-weight: 600; gap: 6px;" onclick="torrentActionGlobale('torrent-start')">▶ <?= t('dl_resume_all') ?></button>
+            <button class="btn-sort" style="width: auto; padding: 0 14px; font-size: 13px; font-weight: 600; gap: 6px;" onclick="torrentActionGlobale('torrent-stop')">⏸ <?= t('dl_pause_all') ?></button>
         </div>
     </div>
 
