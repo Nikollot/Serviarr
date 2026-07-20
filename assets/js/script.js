@@ -402,8 +402,8 @@ function calMove(dir) {
 
 async function loadCalendarEvents() {
     const start = `${calYear}-${String(calMonth+1).padStart(2,'0')}-01`;
-    const d = new Date(calYear, calMonth+1, 0);
-    const end = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+    const nextMonth = new Date(calYear, calMonth + 1, 1);
+    const end = nextMonth.getFullYear() + '-' + String(nextMonth.getMonth() + 1).padStart(2, '0') + '-' + String(nextMonth.getDate()).padStart(2, '0');
     const r = await api(`calendar&start=${start}&end=${end}`, {}, 'GET');
     calEvents = {};
     (r.events || []).forEach(ev => {
@@ -1435,17 +1435,29 @@ function updateSidebar(apps) {
 
         if (app.driver === 'radarr') { href = 'films.php'; pageId = 'films'; }
         else if (app.driver === 'sonarr') { href = 'series.php'; pageId = 'series'; }
-        // 🌟 CORRECTION ICI POUR INDEXER ET DOWNLOAD
         else if (app.driver === 'prowlarr' || app.driver === 'indexer') { href = 'indexer.php'; pageId = 'indexer'; }
         else if (app.driver === 'transmission' || app.driver === 'download') { href = 'download.php'; pageId = 'downloads'; }
         else if (app.driver === 'docker') { href = 'docker.php'; pageId = 'docker'; }
         else if (app.driver === 'supervision') { href = 'supervision.php'; pageId = 'supervision'; }
-        else if (app.driver === 'iframe') { href = 'iframe.php?id=' + app.id; pageId = 'iframe_' + app.id; }
+        else if (app.driver === 'iframe') { href = 'iframe.php?id=' + app.id; pageId = 'iframe'; }
 
         if (href !== '#') {
-            const isActive = (typeof CURRENT_PAGE !== 'undefined' && CURRENT_PAGE === pageId) ? 'active' : '';
+            let isActive = false;
+
+            // On vérifie si on est sur la bonne page
+            if (typeof CURRENT_PAGE !== 'undefined' && CURRENT_PAGE === pageId) {
+                if (app.driver === 'iframe') {
+                    // Pour les iframes, on vérifie que l'ID dans l'URL correspond à l'application
+                    const urlParams = new URLSearchParams(window.location.search);
+                    if (urlParams.get('id') == app.id) isActive = true;
+                } else {
+                    isActive = true;
+                }
+            }
+
+            const activeClass = isActive ? 'active' : '';
             html += `
-            <a href="${href}" class="sidebar-item ${isActive}">
+            <a href="${href}" class="sidebar-item ${activeClass}">
             <span class="icon" style="display:inline-flex; align-items:center; justify-content:center; width:24px; height:24px;">${getAppIconHtml(app)}</span>
             <span>${esc(app.name)}</span> </a>`;
         }
@@ -1860,7 +1872,13 @@ async function openMovieDetail(id) {
 
         <div style="padding-bottom:5px; flex:1; min-width:0;">
         <div id="movie-status-badge" style="display:inline-block; font-size:10px; font-weight:bold; padding:3px 8px; border-radius:6px; background:var(--bg3); border:1px solid var(--border); color:${statusColor}; margin-bottom:6px;">${statusText}</div>
-        <h2 style="font-size:22px; font-weight:800; line-height:1.2; margin:0 0 6px 0; color:var(--text); text-overflow:ellipsis; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;">${esc(r.title)}</h2>
+        <h2 style="font-size:22px; font-weight:800; line-height:1.2; margin:0 0 6px 0; color:var(--text); text-overflow:ellipsis; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;">${esc(r.title)}
+		<!-- LE BOUTON STYLE "BTN-APP-LINK" EST ICI -->
+        ${r.appUrl && r.titleSlug ? `<a href="${r.appUrl}/movie/${r.titleSlug}" target="_blank" class="btn-app-link" style="margin-left:auto; padding:6px 12px; font-size:11px; border-radius:6px; box-shadow:none;">
+        <span class="icon" style="font-size:14px;">🌐</span>
+        <span class="btn-app-link-text">${t('films_open_radarr')}</span>
+        </a>` : ''}
+		</h2>
 
         <div style="font-size:12px; color:var(--muted); display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
         <span>${r.year}</span>
@@ -1869,6 +1887,9 @@ async function openMovieDetail(id) {
         <span style="cursor:pointer; display:flex; align-items:center;" onclick="toggleMonitor(${id}, 'movie', ${!r.monitored}, this)" title="Surveiller">
         ${r.monitored ? ICON_MONITORED : ICON_UNMONITORED}
         </span>
+
+        
+
         </div>
         </div>
         </div>
@@ -1887,31 +1908,28 @@ async function openMovieDetail(id) {
         <span>📅 ${t('sort_added')} : ${r.added || t('status_unknown')}</span>
         </div>
 
-        <!-- CONTENEUR POUR LA BARRE DYNAMIQUE -->
+        ${fileHtml}
+        ${releaseDatesHtml}
 
-            ${fileHtml}
-            ${releaseDatesHtml}
+        <h3 style="margin:0 0 10px 0; font-size:16px; color:var(--text);">${t('detail_overview')}</h3>
+        <p style="font-size:13.5px; line-height:1.6; color:#a0a5b5; margin:0 0 25px 0;">${esc(r.overview) || t('no_movie_found')}</p>
 
-            <h3 style="margin:0 0 10px 0; font-size:16px; color:var(--text);">${t('detail_overview')}</h3>
-            <p style="font-size:13.5px; line-height:1.6; color:#a0a5b5; margin:0 0 25px 0;">${esc(r.overview) || t('no_movie_found')}</p>
+        ${r.collection ? `
+            <div onclick="openMovieCollection('${esc(r.collection.title).replace(/'/g, "\\'")}', ${r.id}, ${r.collection.tmdbId || 0})"
+            style="margin-bottom:25px; padding:15px; background:var(--bg3); border:1px solid var(--border); border-left:4px solid var(--radarr); border-radius:12px; display:flex; align-items:center; gap:15px; cursor:pointer;">
+            <span style="font-size:24px;">🎞️</span>
+            <div style="flex:1;">
+            <div style="font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:2px;">${t('detail_collection')}</div>
+            <div style="font-size:14px; font-weight:bold; color:var(--text);">${esc(r.collection.title)}</div>
+            </div>
+            <span style="color:var(--muted); font-size:20px;">›</span>
+            </div>` : ''}
 
-            ${r.collection ? `
-                <div onclick="openMovieCollection('${esc(r.collection.title).replace(/'/g, "\\'")}', ${r.id}, ${r.collection.tmdbId || 0})"
-                style="margin-bottom:25px; padding:15px; background:var(--bg3); border:1px solid var(--border); border-left:4px solid var(--radarr); border-radius:12px; display:flex; align-items:center; gap:15px; cursor:pointer;">
-                <span style="font-size:24px;">🎞️</span>
-                <div style="flex:1;">
-                <div style="font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:2px;">${t('detail_collection')}</div>
-                <div style="font-size:14px; font-weight:bold; color:var(--text);">${esc(r.collection.title)}</div>
-                </div>
-                <span style="color:var(--muted); font-size:20px;">›</span>
-                </div>` : ''}
+            ${castHtml}
+            </div>
+            </div>`;
 
-                ${castHtml}
-                </div>
-                </div>`;
-
-                animateContentSlideIn(content);
-
+            animateContentSlideIn(content);
 }
 
 // ── FICHE TMDB DÉCOUVERTE (Film non possédé) ──────────────────────────────────
@@ -1992,7 +2010,7 @@ async function openTmdbMovieDetail(tmdbId) {
     </div>
 
     <div style="display:flex; gap:10px; padding:20px; overflow-x:auto; scrollbar-width:none; border-bottom:1px solid var(--border); margin-bottom:20px;">
-    <button id="btn-add-tmdb" style="background:var(--accent); border:none; color:#000; padding:10px 20px; border-radius:20px; font-size:14px; font-weight:800; white-space:nowrap; cursor:pointer; flex-shrink:0; display:flex; gap:6px; align-items:center; box-shadow:0 4px 10px rgba(0,209,64,0.3);" onclick="promptAddMedia('movie', ${tmdbId}, '${safeTitle}', this, 'tmdb')">＋ ${t('add_radarr')}</button>
+    <button id="btn-add-tmdb" style="background:var(--accent); border:none; color:#000; padding:10px 20px; border-radius:20px; font-size:14px; font-weight:800; white-space:nowrap; cursor:pointer; flex-shrink:0; display:flex; gap:6px; align-items:center; box-shadow:0 4px 10px var(--accent-bg);;" onclick="promptAddMedia('movie', ${tmdbId}, '${safeTitle}', this, 'tmdb')">＋ ${t('add_radarr')}</button>
     <a href="https://www.themoviedb.org/movie/${tmdbId}" target="_blank" style="background:var(--bg3); border:1px solid var(--border); color:var(--text); padding:10px 20px; border-radius:20px; font-size:14px; font-weight:600; white-space:nowrap; cursor:pointer; flex-shrink:0; display:flex; gap:6px; align-items:center; text-decoration:none;">TMDB ↗</a>
     ${imdbBtn} </div>
 
@@ -2157,7 +2175,7 @@ async function openMovieCollection(collectionTitle, fromMovieId, collectionTmdbI
     <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
     <div style="font-size:22px;font-weight:800;">${esc(collectionTitle)}</div>
     ${window.currentCollectionUnmonitored.length > 0
-        ? `<button onclick="promptAddCollection('${esc(collectionTitle).replace(/'/g, "\\'")}')" style="background:var(--accent); color:#000; font-weight:bold; border:none; padding:6px 14px; border-radius:8px; cursor:pointer; font-size:13px; box-shadow:0 4px 10px rgba(0,209,64,0.3);">＋ Ajouter la collection (${window.currentCollectionUnmonitored.length})</button>`
+        ? `<button class="btn-pill" onclick="promptAddCollection('${esc(collectionTitle).replace(/'/g, "\\'")}')" style="font-weight:bold; padding:8px 16px; border-radius:8px; cursor:pointer; font-size:13px;">＋ Ajouter la collection (${window.currentCollectionUnmonitored.length})</button>`
         : `<span style="color:var(--accent2); font-weight:bold; font-size:12px; padding:4px 8px; background:rgba(93,255,214,0.1); border-radius:6px; border:1px solid rgba(93,255,214,0.3);">✓ Collection complète</span>`
     }
     </div>
@@ -2392,7 +2410,7 @@ async function openSerieDetail(id) {
                 statusStyle = 'background: rgba(93, 255, 214, 0.08); color: var(--accent2); border: 1px solid rgba(93, 255, 214, 0.2);';
                 statusLabel = `<span style="color: var(--accent2);">${t('torrent_downloaded')}</span>`;
             } else if (isInitDownloading) {
-                statusStyle = 'background: rgba(0, 209, 64, 0.1); color: var(--accent); border: 1px solid rgba(0, 209, 64, 0.3);';
+                statusStyle = 'background: var(--accent-bg); color: var(--accent); border: 1px solid var(--accent);';
                 statusLabel = `<span style="color: var(--accent); font-weight:bold;">⬇ ${ep.download_info.pct}%</span>`;
             } else if (ep.airDate && ep.airDate < todayStr) {
                 statusStyle = 'background: rgba(255, 93, 143, 0.08); color: var(--accent3); border: 1px solid rgba(255, 93, 143, 0.2);';
@@ -2405,7 +2423,6 @@ async function openSerieDetail(id) {
             const sizeDisplay = ep.size ? `<span style="font-family:var(--mono);">${formatBytes(ep.size)}</span>` : '';
             const qualityDisplay = ep.quality ? `<span style="color:var(--sonarr); font-weight:600;">${esc(ep.quality)}</span>` : '';
 
-            // 🌟 NOUVEAU : Formatage "S01E01 - Titre"
             const seasonStr = String(s.number).padStart(2, '0');
             const epStr = String(ep.episode).padStart(2, '0');
             const formattedTitle = `S${seasonStr}E${epStr} - ${ep.title}`;
@@ -2541,14 +2558,22 @@ async function openSerieDetail(id) {
         ${posterUrl ? `<img src="${posterUrl}" style="width:115px; height:170px; border-radius:12px; box-shadow:0 6px 20px rgba(0,0,0,0.6); object-fit:cover; flex-shrink:0; border:1px solid rgba(255,255,255,0.1);">` : `<div style="width:115px; height:170px; background:var(--bg3); border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:40px; box-shadow:0 6px 20px rgba(0,0,0,0.6); border:1px solid rgba(255,255,255,0.1); flex-shrink:0;">📺</div>`}
 
         <div style="padding-bottom:5px; flex:1; min-width:0;">
-        <div style="display:inline-block; font-size:10px; font-weight:bold; padding:3px 8px; border-radius:6px; background:var(--bg3); border:1px solid var(--border); color:${statusColor}; margin-bottom:6px;">${r.pct}% • ${statusText}</div>
-        <h2 style="font-size:22px; font-weight:800; line-height:1.2; margin:0 0 6px 0; color:var(--text); text-overflow:ellipsis; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;">${esc(r.title)}</h2>
-
+        <div id="movie-status-badge" style="display:inline-block; font-size:10px; font-weight:bold; padding:3px 8px; border-radius:6px; background:var(--bg3); border:1px solid var(--border); color:${statusColor}; margin-bottom:6px;">${r.pct}% • ${statusText}</div>
+        <h2 style="font-size:22px; font-weight:800; line-height:1.2; margin:0 0 6px 0; color:var(--text); text-overflow:ellipsis; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;">${esc(r.title)}
+		<!-- LE BOUTON STYLE "BTN-APP-LINK" EST ICI -->
+        ${r.appUrl && r.titleSlug ? `<a href="${r.appUrl}/series/${r.titleSlug}" target="_blank" class="btn-app-link" style="margin-left:auto; padding:6px 12px; font-size:11px; border-radius:6px; box-shadow:none;">
+        <span class="icon" style="font-size:14px;">🌐</span>
+        <span class="btn-app-link-text">${t('films_open_sonarr')}</span>
+        </a>` : ''}
+		</h2>
         <div style="font-size:12px; color:var(--muted); display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
         <span>${r.year}</span>
         ${r.network ? `<span>• ${esc(r.network)}</span>` : ''}
         ${r.rating ? `<span style="background:rgba(255,255,255,0.08); padding:1px 6px; border-radius:4px; color:var(--text);">⭐ ${r.rating}</span>` : ''}
         <span style="cursor:pointer; display:flex; align-items:center;" onclick="toggleMonitor(${r.id}, 'serie', ${!r.monitored}, this)" title="Surveiller">${r.monitored ? ICON_MONITORED : ICON_UNMONITORED}</span>
+
+        
+
         </div>
         </div>
         </div>
@@ -2608,8 +2633,8 @@ async function openSerieDetail(id) {
 
                         if(labelSpan) labelSpan.innerHTML = `<span style="color: var(--accent); font-weight:bold;">⬇ ${info.pct}%</span>`;
                         if(badgeWrap) {
-                            badgeWrap.style.background = 'rgba(0, 209, 64, 0.1)';
-                            badgeWrap.style.border = '1px solid rgba(0, 209, 64, 0.3)';
+                            badgeWrap.style.background = 'var(--accent-bg)';
+                            badgeWrap.style.border = '1px solid var(--accent)';
                             badgeWrap.style.color = 'var(--accent)';
                         }
                         container.dataset.wasDownloading = "true";
@@ -4367,8 +4392,6 @@ async function openTorrentDetail(id) {
     const tInfo = dlTorrentsCache.find(x => x.id === id);
     if (!tInfo) return;
 
-    // Certains clients (qBittorrent) ne renvoient pas les fichiers dans la liste
-    // globale pour ne pas la ralentir : on les charge ici, à la demande.
     if (!tInfo.files || tInfo.files.length === 0) {
         const filesRes = await api('get_torrent_files', { id: tInfo.id }, 'GET');
         tInfo.files = filesRes.files || [];
@@ -4642,7 +4665,6 @@ async function doDockerAction(id, cmd, btn) {
     }
 }
 
-// ── DOCKER NIVEAU 2 : LOGS & STATS ────────────────────────────────────────────
 function showDockerLogs(id, name) {
     let modal = document.getElementById('modal-docker-logs');
     if (!modal) {
@@ -4692,7 +4714,7 @@ function showDockerLogs(id, name) {
             const content = document.getElementById('docker-logs-content');
             if (!content) return;
             
-            // Auto-scroll : true si on est déjà en bas de page
+            // Auto-scroll si on est déjà en bas
             const isAtBottom = content.scrollHeight - content.clientHeight <= content.scrollTop + 20;
             
             if (r.success) {
@@ -4705,7 +4727,7 @@ function showDockerLogs(id, name) {
     };
     
     fetchLogs();
-    window.dockerLogsInterval = setInterval(fetchLogs, 3000);
+    window.dockerLogsInterval = setInterval(fetchLogs, 3000); // Actualisation toutes les 3s
 }
 
 function showDockerStats(id, name) {
@@ -4788,7 +4810,7 @@ function showDockerStats(id, name) {
     };
     
     fetchStats();
-    window.dockerStatsInterval = setInterval(fetchStats, 2000);
+    window.dockerStatsInterval = setInterval(fetchStats, 2000); // Actualisation toutes les 2s
 }
 
 // Validation de la connexion avec le code 2FA
@@ -5004,7 +5026,6 @@ async function toggleNotifMenu() {
 
 async function loadNotifMenuData() {
     const list = document.getElementById('notif-list');
-    const syncIndicator = document.getElementById('notif-sync-indicator');
     
     // 1. Essayer d'afficher immédiatement depuis le cache
     const cached = localStorage.getItem('serviarr_notifs_cache');
@@ -5023,9 +5044,6 @@ async function loadNotifMenuData() {
         list.innerHTML = `<div style="padding:15px; text-align:center; color:var(--muted); font-size:13px;">${t('notif_loading')}</div>`;
     }
 
-    // Affiche l'indicateur "Sync..." en haut à droite du menu
-    if (syncIndicator) syncIndicator.style.opacity = '1';
-
     // 2. Fetch en arrière plan pour mettre à jour
     try {
         const r = await api('get_notifications_list', {}, 'GET');
@@ -5043,9 +5061,6 @@ async function loadNotifMenuData() {
         }
     } catch (e) {
         console.error("Erreur maj notifs", e);
-    } finally {
-        // Masque l'indicateur une fois la mise à jour terminée
-        if (syncIndicator) syncIndicator.style.opacity = '0';
     }
 }
 
@@ -5171,17 +5186,24 @@ async function loadProwlarrIndexers() {
 
     r.indexers.forEach(ind => {
         const isActive = ind.enable;
-        const statusColor = isActive ? '#00D140' : 'var(--accent3)';
         const statusText = isActive ? 'ON' : 'OFF';
         const protocol = ind.protocol === 'torrent' ? 'Torrent 🧲' : 'Usenet 📥';
 
+        // Utilisation du bleu cyan pour ON, et rouge pour OFF (barre latérale)
+        const barColor = isActive ? 'var(--accent)' : 'var(--accent3)';
+        
+        // Pastilles translucides très propres, sans bordure
+        const badgeStyle = isActive 
+            ? 'background: var(--accent-bg); color: var(--accent); border: none;' 
+            : 'background: rgba(255,93,143, 0.15); color: var(--accent3); border: none;';
+
         html += `
         <div style="background:var(--bg3); padding:20px; border-radius:16px; border:1px solid var(--border); box-shadow:0 4px 15px rgba(0,0,0,0.2); position:relative; overflow:hidden;">
-        <div style="position:absolute; left:0; top:0; bottom:0; width:4px; background:${statusColor};"></div>
+        <div style="position:absolute; left:0; top:0; bottom:0; width:4px; background:${barColor};"></div>
 
         <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px;">
         <h3 style="margin:0; font-size:16px; font-weight:700; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; padding-right:10px;">${esc(ind.name)}</h3>
-        <span style="font-size:11px; font-weight:bold; padding:4px 8px; border-radius:12px; background:rgba(${isActive ? '0,209,64' : '255,60,60'}, 0.1); color:${statusColor}; border:1px solid ${statusColor}; flex-shrink:0;">
+        <span style="font-size:11px; font-weight:bold; padding:4px 8px; border-radius:12px; ${badgeStyle} flex-shrink:0;">
         ${statusText}
         </span>
         </div>
@@ -5194,6 +5216,7 @@ async function loadProwlarrIndexers() {
         </div>
         </div>`;
     });
+	
 
     html += '</div>';
     container.innerHTML = html;
@@ -5287,8 +5310,8 @@ async function searchProwlarr() {
         ${downloadBtn}
         </div>
         <div style="display:flex; flex-wrap:wrap; gap:10px; font-size:12px; align-items:center;">
-        <span style="color:var(--accent2); background:rgba(93,255,214,0.1); padding:2px 6px; border-radius:4px; font-weight:bold;">${esc(res.indexer)}</span>
-        <span style="color:var(--muted);">📁 ${size}</span>
+        <span style="color:var(--accent); background:var(--accent-bg); padding:2px 6px; border-radius:4px; font-weight:bold; border:none;">${esc(res.indexer)}</span>
+		<span style="color:var(--muted);">📁 ${size}</span>
         <span style="color:var(--muted);">🌱 ${res.seeders || 0} / 🧛 ${res.leechers || 0}</span>
         <span style="color:var(--muted);">📅 ${ageInDays} j</span>
         </div>
@@ -5597,7 +5620,6 @@ function importBackup(input) {
     });
 }
 
-// ── SYSTÈME D'AJOUT PAR MODALE ────────────────────────────────────────────────
 // ── IMPORT DE LISTE ──────────────────────────────────────────────────────────
 let _importListType = 'movie';
 let _importResults = [];
@@ -5618,7 +5640,15 @@ function openImportListModal(type) {
         <span onclick="document.getElementById('modal-import-list').style.display='none'" style="cursor:pointer; color:var(--muted); font-size:24px; line-height:1;">&times;</span>
         </div>
         <div id="import-list-step1" style="padding: 20px; overflow-y: auto; flex: 1;">
-        <p style="color:var(--muted); font-size:13px; margin-bottom:10px;">${t('import_list_hint')}</p>
+        
+        <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:10px; flex-wrap:wrap; gap:10px;">
+            <p style="color:var(--muted); font-size:13px; margin:0;">${t('import_list_hint')}</p>
+            <button class="btn-sm" onclick="document.getElementById('import-file-upload').click()" style="background:var(--bg3); color:var(--text); border:1px solid var(--border); padding:6px 12px; border-radius:6px; cursor:pointer; display:flex; align-items:center; gap:6px;">
+                📂 Charger un fichier .txt
+            </button>
+            <input type="file" id="import-file-upload" accept=".txt" style="display:none;" onchange="handleImportFileUpload(event)">
+        </div>
+
         <textarea id="import-list-textarea" rows="8" style="width:100%; background:var(--bg3); border:1px solid var(--border); color:var(--text); border-radius:8px; padding:12px; font-size:14px; resize:vertical;" placeholder="${t('import_list_placeholder')}"></textarea>
         <button class="btn-primary" style="margin-top:15px; width:100%; flex-shrink:0;" onclick="analyzeImportList()">${t('import_list_analyze')}</button>
         </div>
@@ -5639,6 +5669,23 @@ function openImportListModal(type) {
     document.getElementById('import-list-step1').style.display = 'block';
     document.getElementById('import-list-step2').style.display = 'none';
     modal.style.display = 'flex';
+}
+
+function handleImportFileUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const textarea = document.getElementById('import-list-textarea');
+        if (textarea) {
+            // Remplit le champ texte avec le contenu du fichier
+            textarea.value = e.target.result;
+        }
+        // Réinitialise l'input file pour permettre de recharger le même fichier si on se trompe
+        event.target.value = '';
+    };
+    reader.readAsText(file);
 }
 
 async function analyzeImportList() {
@@ -6042,6 +6089,142 @@ function togglePassword(inputId, iconElement) {
         input.type = 'password';
         iconElement.textContent = '👁️';
     }
+}
+
+window.forceSyncNotifs = async function() {
+    const syncIndicator = document.getElementById('notif-sync-indicator');
+    if (syncIndicator) {
+        syncIndicator.style.opacity = '1';
+        syncIndicator.style.animation = 'syncPulse 1.2s infinite';
+    }
+    
+    localStorage.removeItem('serviarr_notifs_cache');
+    const list = document.getElementById('notif-list');
+    if (list) list.innerHTML = `<div style="padding:15px; text-align:center; color:var(--muted); font-size:13px;">${t('notif_loading')}</div>`;
+    
+    await loadNotifMenuData();
+};
+
+async function loadNotifMenuData() {
+    const list = document.getElementById('notif-list');
+    const syncIndicator = document.getElementById('notif-sync-indicator');
+    
+    const cached = localStorage.getItem('serviarr_notifs_cache');
+    let hasCache = false;
+    if (cached) {
+        try {
+            const parsed = JSON.parse(cached);
+            if (parsed && parsed.length > 0) {
+                renderNotifsData(parsed);
+                hasCache = true;
+            }
+        } catch(e) {}
+    }
+    
+    if (!hasCache) {
+        list.innerHTML = `<div style="padding:15px; text-align:center; color:var(--muted); font-size:13px;">${t('notif_loading')}</div>`;
+    }
+
+    if (syncIndicator) syncIndicator.style.opacity = '1';
+
+    try {
+        const r = await api('get_notifications_list', {}, 'GET');
+        
+        if (!r || r.length === 0) {
+            if (!hasCache) list.innerHTML = `<div style="padding:15px; text-align:center; color:var(--muted); font-size:13px;">${t('no_recent_dl')}</div>`;
+            return;
+        }
+
+        localStorage.setItem('serviarr_notifs_cache', JSON.stringify(r));
+        const dropdown = document.getElementById('notif-dropdown');
+        if (dropdown && dropdown.style.display === 'block') {
+            renderNotifsData(r);
+        }
+    } catch (e) {
+        console.error("Erreur maj notifs", e);
+    } finally {
+        if (syncIndicator) {
+            syncIndicator.style.opacity = '0';
+            syncIndicator.style.animation = 'none';
+        }
+    }
+}
+
+// ── EXPORT DE LISTE ───────────────────────────────────────────────────────────
+async function openExportListModal(type) {
+    let modal = document.getElementById('modal-export-list');
+    if (!modal) {
+        const modalHtml = `
+        <div id="modal-export-list" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:999999; align-items:center; justify-content:center; padding:20px; backdrop-filter:blur(5px);">
+        <div style="background:var(--bg2); width:100%; max-width:600px; border:1px solid var(--border); border-radius:12px; display:flex; flex-direction:column; box-shadow:0 10px 40px rgba(0,0,0,0.5); overflow:hidden;">
+        <div style="display:flex; justify-content:space-between; align-items:center; padding: 15px 20px; border-bottom: 1px solid var(--border); background:var(--bg2);">
+        <h3 id="export-list-title" style="margin:0; color:var(--text); font-size:18px;">Exporter une liste</h3>
+        <span onclick="document.getElementById('modal-export-list').style.display='none'" style="cursor:pointer; color:var(--muted); font-size:24px; line-height:1;">&times;</span>
+        </div>
+        <div style="padding: 20px; display:flex; flex-direction:column;">
+        <p id="export-list-hint" style="color:var(--muted); font-size:13px; margin-bottom:10px;">Chargement en cours...</p>
+        <textarea id="export-list-textarea" rows="12" style="width:100%; background:var(--bg3); border:1px solid var(--border); color:var(--text); border-radius:8px; padding:12px; font-size:14px; resize:vertical; font-family:var(--mono);" readonly></textarea>
+        
+        <div id="export-actions" style="display:flex; gap:10px; margin-top:15px; display:none;">
+            <button class="btn-primary" style="flex:1; background:var(--bg3); color:var(--text); border:1px solid var(--border);" onclick="copyExportList()">📋 Copier</button>
+            <button class="btn-primary" style="flex:1; background:var(--accent2); color:#000; border:none;" onclick="downloadExportList()">💾 Enregistrer (.txt)</button>
+        </div>
+        
+        </div>
+        </div>
+        </div>`;
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        modal = document.getElementById('modal-export-list');
+        modal.addEventListener('click', e => { if (e.target === modal) modal.style.display = 'none'; });
+    }
+
+    // On stocke le type de média pour générer le nom du fichier
+    document.getElementById('export-list-textarea').dataset.type = type;
+
+    document.getElementById('export-list-title').textContent = type === 'movie' ? 'Exporter les films' : 'Exporter les séries';
+    document.getElementById('export-list-textarea').value = 'Chargement en cours...';
+    document.getElementById('export-list-hint').textContent = 'Veuillez patienter pendant la génération de la liste...';
+    document.getElementById('export-actions').style.display = 'none';
+    modal.style.display = 'flex';
+
+    const r = await api(`export_media_list&type=${type}`, {}, 'GET');
+    if (r.error) {
+        document.getElementById('export-list-textarea').value = r.error;
+        document.getElementById('export-list-hint').textContent = 'Erreur lors de l\'export.';
+    } else {
+        document.getElementById('export-list-textarea').value = r.text;
+        document.getElementById('export-list-hint').textContent = `${r.count} identifiants IMDb exportés avec succès.`;
+        document.getElementById('export-actions').style.display = 'flex';
+    }
+}
+
+function copyExportList() {
+    const textarea = document.getElementById('export-list-textarea');
+    textarea.select();
+    document.execCommand('copy');
+    notify('Copié dans le presse-papier !', 'ok');
+}
+
+function downloadExportList() {
+    const textarea = document.getElementById('export-list-textarea');
+    const type = textarea.dataset.type === 'movie' ? 'films' : 'series';
+    
+    // Génère la date du jour (ex: 2026-07-17)
+    const date = new Date().toISOString().split('T')[0];
+    const filename = `export_imdb_${type}_${date}.txt`;
+    
+    // Création du fichier "virtuel" et téléchargement
+    const blob = new Blob([textarea.value], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
 }
 
 boot();

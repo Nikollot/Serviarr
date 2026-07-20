@@ -528,5 +528,6 @@
     "err_docker_unreachable_via": "Unable to reach Docker via ",
     "err_too_many_attempts": "Too many attempts. Try again in",
     "err_minutes_suffix": "min.",
-    "err_update_failed": "Update error"
+    "err_update_failed": "Update error",
+	"export_list_btn": "Export list"
 }

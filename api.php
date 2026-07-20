@@ -545,7 +545,7 @@ $get_safe_actions = [
 'movie_collection', 'docker_logs', 'docker_stats', 'app_status', 'queue_status',
 'tmdb_movie_detail', 'tmdb_serie_detail', 'get_torrent_files',
 'calendar', 'search_movie', 'search_serie', 'get_media_raw', 'actor_credits',
-'prowlarr_search',
+'prowlarr_search', 'export_media_list',
 ];
 if ($_SERVER['REQUEST_METHOD'] === 'GET' && $action !== 'webhook_notif' && !in_array($action, $get_safe_actions, true)) {
     http_response_code(405);
@@ -1121,7 +1121,7 @@ if ($action === 'bulk_import_lookup') {
     $type = $_POST['type'] ?? 'movie';
     $terms = json_decode($_POST['terms'] ?? '[]', true);
     if (!is_array($terms) || empty($terms)) { echo json_encode(['error' => t('err_no_lines_to_analyze')]); exit; }
-    $terms = array_slice(array_filter(array_map('trim', $terms)), 0, 100); // Limite de sécurité : 100 lignes
+    $terms = array_slice(array_filter(array_map('trim', $terms)), 0, 10000); // Limite de sécurité : 100 lignes 
 
     $app = find_app_by_driver($cfg, $type === 'movie' ? 'radarr' : 'sonarr');
     if (!$app) { echo json_encode(['error' => ($type === 'movie' ? 'Radarr' : 'Sonarr') . ' non configuré']); exit; }
@@ -1139,6 +1139,11 @@ if ($action === 'bulk_import_lookup') {
     $results = [];
 
     foreach ($terms as $term) {
+        // Nettoyage : si la ligne ressemble à "tt1234567 (Nom du film)", on ne garde que le "tt1234567" pour chercher
+        if (preg_match('/^(tt\d{6,})\s*\(.*\)$/i', $term, $matches)) {
+            $term = $matches[1];
+        }
+
         // Reconnaît automatiquement un ID IMDb (ttXXXXXXX) collé directement
         $search_term = preg_match('/^tt\d{6,}$/i', $term) ? 'imdb:' . $term : $term;
         $data = arr_get($app, $lookup_endpoint . urlencode($search_term));
@@ -1594,7 +1599,7 @@ if ($action === 'movie_detail') {
         ];
     }
 
-    // --- NOUVEAU : Récupération de l'état du téléchargement (File d'attente) ---
+    // --- Récupération de l'état du téléchargement (File d'attente) ---
     $queue = arr_get($radarr, "/api/v3/queue?movieId=$id");
     $download_info = null;
     if (is_array($queue) && isset($queue['records']) && count($queue['records']) > 0) {
@@ -1604,7 +1609,7 @@ if ($action === 'movie_detail') {
         $pct = $size > 0 ? (100 - round(($sizeleft / $size) * 100)) : 0;
 
         $timeleft = $q['timeleft'] ?? '';
-        if (strpos($timeleft, '.') !== false) $timeleft = explode('.', $timeleft)[0]; // Retire les millisecondes
+        if (strpos($timeleft, '.') !== false) $timeleft = explode('.', $timeleft)[0];
 
         $download_info = [
             'pct' => max(0, min(100, $pct)),
@@ -1624,7 +1629,7 @@ if ($action === 'movie_detail') {
         }
     }
 
-    // --- NOUVEAU : Date d'ajout et Casting (Radarr) ---
+    // --- Date d'ajout et Casting (Radarr) ---
     $added = !empty($mv['added']) ? date('d/m/Y', strtotime($mv['added'])) : 'Inconnue';
 
     $credits = arr_get($radarr, "/api/v3/credit?movieId=$id");
@@ -1641,7 +1646,7 @@ if ($action === 'movie_detail') {
                     'character' => $c['character'] ?? '',
                     'image'     => $img
                 ];
-                if (count($cast) >= 15) break; // On limite à 15 acteurs maximum
+                if (count($cast) >= 15) break; 
             }
         }
     }
@@ -1653,26 +1658,26 @@ if ($action === 'movie_detail') {
         'year'       => $mv['year'] ?? '',
         'overview'   => $mv['overview'] ?? '',
         'rating'     => round($mv['ratings']['tmdb']['value'] ?? 0, 1),
-                     'runtime'    => $mv['runtime'] ?? 0,
-                     'genres'     => $mv['genres'] ?? [],
-                     'status'     => $mv['status'] ?? '',
-                     'studio'     => $mv['studio'] ?? '',
-                     'poster'     => $poster_url,
-                     'fanart'     => $fanart_url,
-                     'hasFile'    => $mv['hasFile'] ?? false,
-                     'monitored'  => $mv['monitored'] ?? false,
-                     'qualityProfileId' => $mv['qualityProfileId'] ?? 0,
-                     'qualityProfileName' => $profileName,
-                     'file'       => $file_info,
-                     'collection' => $collection,
-                     'added' => $added,
-                     'cast' => $cast,
-                     // ── 💡 AJOUT DES 3 DATES DE SORTIE ICI ──
-                     'inCinemas'       => $mv['inCinemas'] ?? null,
-                     'digitalRelease'  => $mv['digitalRelease'] ?? null,
-                     'physicalRelease' => $mv['physicalRelease'] ?? null,
-                     'download_info' => $download_info,
-                     // ───────────────────────────────────────
+        'runtime'    => $mv['runtime'] ?? 0,
+        'genres'     => $mv['genres'] ?? [],
+        'status'     => $mv['status'] ?? '',
+        'studio'     => $mv['studio'] ?? '',
+        'poster'     => $poster_url,
+        'fanart'     => $fanart_url,
+        'hasFile'    => $mv['hasFile'] ?? false,
+        'monitored'  => $mv['monitored'] ?? false,
+        'qualityProfileId' => $mv['qualityProfileId'] ?? 0,
+        'qualityProfileName' => $profileName,
+        'file'       => $file_info,
+        'collection' => $collection,
+        'added'      => $added,
+        'cast'       => $cast,
+        'inCinemas'       => $mv['inCinemas'] ?? null,
+        'digitalRelease'  => $mv['digitalRelease'] ?? null,
+        'physicalRelease' => $mv['physicalRelease'] ?? null,
+        'download_info'   => $download_info,
+        'titleSlug'       => $mv['titleSlug'] ?? '',
+        'appUrl'          => rtrim($radarr['url'], '/')
     ], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_IGNORE);
     exit;
 }
@@ -1753,7 +1758,6 @@ if ($action === 'serie_detail') {
 
     $s = arr_get($sonarr, "/api/v3/series/$id");
 
-    // Récupération des fichiers pour avoir leur nom ET leur taille
     $epFiles = arr_get($sonarr, "/api/v3/episodefile?seriesId=$id");
     $fileMap = [];
     $fileSizeMap = [];
@@ -1769,11 +1773,9 @@ if ($action === 'serie_detail') {
 
     if (isset($s['message'])) { echo json_encode(['error' => t('err_serie_not_in_library')]); exit; }
 
-    // Construction de l'URL directe vers l'API Sonarr
     $poster_url = rtrim($sonarr['url'], '/') . '/api/v3/mediacover/' . $s['id'] . '/poster.jpg?apikey=' . $sonarr['api_key'];
     $fanart_url = rtrim($sonarr['url'], '/') . '/api/v3/mediacover/' . $s['id'] . '/fanart.jpg?apikey=' . $sonarr['api_key'];
 
-    // --- NOUVEAU : Récupération de la file d'attente (téléchargements en cours) ---
     $queue = arr_get($sonarr, "/api/v3/queue?seriesId=$id");
     $downloading_eps = [];
     if (is_array($queue) && isset($queue['records'])) {
@@ -1783,7 +1785,6 @@ if ($action === 'serie_detail') {
                 $size = $q['size'] ?? 0;
                 $sizeleft = $q['sizeleft'] ?? 0;
                 $pct = $size > 0 ? (100 - round(($sizeleft / $size) * 100)) : 0;
-
                 $timeleft = $q['timeleft'] ?? '';
                 if (strpos($timeleft, '.') !== false) $timeleft = explode('.', $timeleft)[0];
 
@@ -1796,13 +1797,12 @@ if ($action === 'serie_detail') {
         }
     }
 
-    // Épisodes
     $episodes = arr_get($sonarr, "/api/v3/episode?seriesId=$id");
     $ep_by_season = [];
     if (is_array($episodes) && !isset($episodes['_error'])) {
         foreach ($episodes as $ep) {
             $sn = $ep['seasonNumber'] ?? 0;
-            if ($sn === 0) continue; // skip specials
+            if ($sn === 0) continue; 
             $fileId = $ep['episodeFileId'] ?? 0;
             $ep_by_season[$sn][] = [
                 'id'            => $ep['id'],
@@ -1814,7 +1814,7 @@ if ($action === 'serie_detail') {
                 'fileId'        => $fileId,
                 'fileName'      => isset($fileMap[$fileId]) ? $fileMap[$fileId] : '',
                 'size'          => isset($fileSizeMap[$fileId]) ? $fileSizeMap[$fileId] : 0,
-                'quality'       => isset($fileQualityMap[$fileId]) ? $fileQualityMap[$fileId] : '', // 🌟 NOUVEAU
+                'quality'       => isset($fileQualityMap[$fileId]) ? $fileQualityMap[$fileId] : '',
                 'download_info' => $downloading_eps[$ep['id']] ?? null,
             ];
         }
@@ -1835,7 +1835,6 @@ if ($action === 'serie_detail') {
         ];
     }
 
-    // --- Récupération du profil de qualité ---
     $profiles = arr_get($sonarr, '/api/v3/qualityprofile');
     $profileName = 'Profil inconnu';
     if (is_array($profiles) && !isset($profiles['_error'])) {
@@ -1847,50 +1846,32 @@ if ($action === 'serie_detail') {
         }
     }
 
-    // --- Date d'ajout et Casting (Séries via TMDB en priorité) ---
     $added = !empty($s['added']) ? date('d/m/Y', strtotime($s['added'])) : 'Inconnue';
     $cast = [];
-
-    // 🌟 CORRECTION : On récupère TA vraie clé TMDB configurée dans les paramètres
     $tmdb_api_key = $cfg['tmdb_api_key'] ?? '';
     $tvdb_id = $s['tvdbId'] ?? 0;
 
     if ($tvdb_id && $tmdb_api_key) {
-        // 1. Trouver le ID TMDB exact de la série via son TVDB ID
         $find_url = "https://api.themoviedb.org/3/find/{$tvdb_id}?api_key={$tmdb_api_key}&external_source=tvdb_id";
-
         $ch = curl_init($find_url);
-        curl_setopt_array($ch, [
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_SSL_VERIFYPEER => true,
-            CURLOPT_TIMEOUT => 5,
-        ]);
+        curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_SSL_VERIFYPEER => true, CURLOPT_TIMEOUT => 5]);
         $find_raw = curl_exec($ch);
         curl_close($ch);
-
         $find_data = json_decode($find_raw, true);
         $tmdb_id = $find_data['tv_results'][0]['id'] ?? null;
 
-        // 2. Si on a l'ID TMDB, on télécharge le casting complet
         if ($tmdb_id) {
             $credits_url = "https://api.themoviedb.org/3/tv/{$tmdb_id}/credits?api_key={$tmdb_api_key}&language=fr-FR";
-
             $ch = curl_init($credits_url);
-            curl_setopt_array($ch, [
-                CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_SSL_VERIFYPEER => true,
-                CURLOPT_TIMEOUT => 5,
-            ]);
+            curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_SSL_VERIFYPEER => true, CURLOPT_TIMEOUT => 5]);
             $credits_raw = curl_exec($ch);
             curl_close($ch);
-
             $credits_data = json_decode($credits_raw, true);
 
             if (is_array($credits_data['cast'] ?? null)) {
                 foreach ($credits_data['cast'] as $member) {
                     $img_path = $member['profile_path'] ?? null;
                     $image_url = $img_path ? "https://image.tmdb.org/t/p/w185{$img_path}" : null;
-
                     $cast[] = [
                         'name'      => $member['name'] ?? '?',
                         'character' => $member['character'] ?? '',
@@ -1902,24 +1883,17 @@ if ($action === 'serie_detail') {
         }
     }
 
-    // 3. Fallback de secours sur TVMaze UNIQUEMENT si la clé TMDB est absente ou si TMDB n'a rien trouvé
     if (empty($cast)) {
         $tvmaze_id = $s['tvMazeId'] ?? 0;
-
         if (!$tvmaze_id && !empty($s['tvdbId'])) {
             $lookup = arr_get($sonarr, "/api/v3/series/lookup?term=tvdb:{$s['tvdbId']}");
             if (is_array($lookup) && !isset($lookup['_error']) && !empty($lookup)) {
                 $tvmaze_id = $lookup[0]['tvMazeId'] ?? 0;
             }
         }
-
         if ($tvmaze_id) {
             $ch = curl_init("https://api.tvmaze.com/shows/{$tvmaze_id}/cast");
-            curl_setopt_array($ch, [
-                CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_SSL_VERIFYPEER => true,
-                CURLOPT_TIMEOUT => 4,
-            ]);
+            curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_SSL_VERIFYPEER => true, CURLOPT_TIMEOUT => 4]);
             $cast_raw = curl_exec($ch);
             curl_close($ch);
             if ($cast_raw) {
@@ -1948,15 +1922,17 @@ if ($action === 'serie_detail') {
         'overview'  => $s['overview'] ?? '',
         'status'    => $s['status'] ?? '?',
         'rating'    => round($s['ratings']['value'] ?? 0, 1),
-                     'network'   => $s['network'] ?? '',
-                     'genres'    => $s['genres'] ?? [],
-                     'seasons'   => $seasons,
-                     'pct'       => round($s['statistics']['percentOfEpisodes'] ?? 0),
-                     'monitored' => $s['monitored'] ?? false,
-                     'qualityProfileId' => $s['qualityProfileId'] ?? 0,
-                     'qualityProfileName' => $profileName,
-                     'added'     => $added, // 👈 Ajouté
-                     'cast'      => $cast   // 👈 Ajouté
+        'network'   => $s['network'] ?? '',
+        'genres'    => $s['genres'] ?? [],
+        'seasons'   => $seasons,
+        'pct'       => round($s['statistics']['percentOfEpisodes'] ?? 0),
+        'monitored' => $s['monitored'] ?? false,
+        'qualityProfileId' => $s['qualityProfileId'] ?? 0,
+        'qualityProfileName' => $profileName,
+        'added'     => $added,
+        'cast'      => $cast,
+        'titleSlug' => $s['titleSlug'] ?? '',
+        'appUrl'    => rtrim($sonarr['url'], '/')
     ], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_IGNORE);
     exit;
 }
@@ -4203,6 +4179,33 @@ if ($action === 'import_backup') {
         'ok' => true,
         'frontend' => $backup['frontend'] ?? []
     ]);
+    exit;
+}
+
+// ── EXPORT DE LISTE (IMDb IDs) ────────────────────────────────────────────────
+if ($action === 'export_media_list') {
+    require_auth();
+    $cfg = load_config();
+    $type = $_GET['type'] ?? 'movie';
+    
+    $app = find_app_by_driver($cfg, $type === 'movie' ? 'radarr' : 'sonarr');
+    if (!$app) { echo json_encode(['error' => t('err_app_not_configured')]); exit; }
+    
+    $endpoint = $type === 'movie' ? '/api/v3/movie' : '/api/v3/series';
+    $library = arr_get($app, $endpoint);
+    
+    if (isset($library['_error'])) { echo json_encode(['error' => $library['_error']]); exit; }
+    
+    $list = [];
+    foreach ($library as $item) {
+        if (!empty($item['imdbId'])) {
+            $title = $item['title'] ?? 'Inconnu';
+            // Ajoute le titre entre parenthèses
+            $list[] = $item['imdbId'] . ' (' . $title . ')';
+        }
+    }
+    
+    echo json_encode(['ok' => true, 'text' => implode("\n", $list), 'count' => count($list)]);
     exit;
 }
 

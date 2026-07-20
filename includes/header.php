@@ -62,7 +62,7 @@ if (savedTheme === 'light' || (savedTheme === 'auto' && window.matchMedia('(pref
 <div class="auth-box">
 <div class="auth-logo-wrap">
 <img src="/assets/img/icons/gemini-svg.svg" class="auth-logo-img" alt="Logo Serviarr">
-<span class="auth-logo-servicarr">Serviarr</span>
+<span class="auth-logo-serviarr">Serviarr</span>
 </div>
 <p id="auth-subtitle"><?= t('auth_title') ?></p>
 

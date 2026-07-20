@@ -528,5 +528,6 @@
     "err_docker_unreachable_via": "Impossible de contacter Docker via ",
     "err_too_many_attempts": "Trop de tentatives. Réessayez dans",
     "err_minutes_suffix": "min.",
-    "err_update_failed": "Erreur de mise à jour"
+    "err_update_failed": "Erreur de mise à jour",
+	"export_list_btn": "Exporter une liste"
 }

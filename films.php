@@ -19,7 +19,17 @@ if (file_exists($config_path)) {
 <div class="tab-page active">
 <div class="page-title-row">
 <div class="page-title"><?= t('page_films') ?> <span class="badge" id="movies-count">—</span>
-<button class="btn-pill" style="background:var(--bg2); color:var(--text); border:1px solid var(--border); padding:8px 16px; font-weight:bold; margin-left:auto;" onclick="openImportListModal('movie')">📋 <?= t('import_list_btn') ?></button>
+<div style="margin-left:auto; display:flex; gap:10px;">
+    <button class="btn-app-link" onclick="openExportListModal('movie')">
+        <span class="icon">📤</span>
+        <span class="btn-torrent-text"><?= t('export_list_btn') ?></span>
+    </button>
+    <button class="btn-app-link" onclick="openImportListModal('movie')">
+        <span class="icon">📋</span>
+        <span class="btn-torrent-text"><?= t('import_list_btn') ?></span>
+    </button>
+</div>
+
 <button class="btn-torrent-add" onclick="openSearchModal('movie')">
 <span>＋</span>
 <span class="btn-torrent-text"><?= t('films_add') ?></span>

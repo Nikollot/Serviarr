@@ -528,5 +528,6 @@
     "err_docker_unreachable_via": "次の方法でDockerに接続できません：",
     "err_too_many_attempts": "試行回数が多すぎます。次の時間後に再試行してください：",
     "err_minutes_suffix": "分",
-    "err_update_failed": "更新エラー"
+    "err_update_failed": "更新エラー",
+	"export_list_btn": "リストをエクスポート"
 }
