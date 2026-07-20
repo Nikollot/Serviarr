@@ -1,3 +1,6 @@
+const APP_VERSION = "1.3";
+const UPDATE_URL = "https://raw.githubusercontent.com/Nikollot/Serviarr/main/version.json";
+
 const DRIVER_ICONS = {docker:'🐳', sonarr:'📺',radarr:'🎬',prowlarr:'🔍',indexer:'🔍',transmission:'⬇',download:'⬇',jellyfin:'🎵',qbittorrent:'🌊',sabnzbd:'📥',lidarr:'🎶',readarr:'📚', iframe:'🌐', supervision:'📊'};
 let appsCache = [], editingId = null;
 
@@ -337,6 +340,7 @@ function showApp() {
 
     loadDriverOptions();
     loadAppsList();
+    checkForUpdates();
 }
 
 function showTab(name) {
@@ -6228,6 +6232,51 @@ function downloadExportList() {
     
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+}
+
+// ── SYSTÈME DE MISE À JOUR ────────────────────────────────────────────────────
+async function checkForUpdates() {
+    if (!UPDATE_URL || UPDATE_URL.includes('...')) return; // Ignore si non configuré
+
+    try {
+        const r = await fetch(UPDATE_URL, { cache: 'no-cache' });
+        if (!r.ok) return;
+        const data = await r.json();
+
+        // Si la version distante est différente de la version locale
+        if (data.version && data.version !== APP_VERSION) {
+
+            // 1. Ajouter un point rouge clignotant sur les boutons "Paramètres"
+            const settingsBtns = document.querySelectorAll('[onclick*="settings"]');
+            settingsBtns.forEach(btn => {
+                if (!btn.querySelector('.update-dot')) {
+                    btn.innerHTML += `<span class="update-dot" style="width:8px; height:8px; background:var(--accent3); border-radius:50%; margin-left:auto; box-shadow:0 0 8px var(--accent3); animation: syncPulse 1.5s infinite;"></span>`;
+                }
+            });
+
+            // 2. Ajouter une belle bannière dans la page des paramètres
+            const settingsInner = document.querySelector('.settings-inner');
+            if (settingsInner && !document.getElementById('update-banner')) {
+                const banner = document.createElement('div');
+                banner.id = 'update-banner';
+                banner.style = "background:rgba(255,93,143,0.1); border:1px solid rgba(255,93,143,0.3); padding:15px 20px; border-radius:12px; margin-bottom:20px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;";
+                banner.innerHTML = `
+                <div>
+                <div style="color:var(--accent3); font-weight:bold; font-size:14px; margin-bottom:4px;">🚀 ${t('update_available')} (${data.version})</div>
+                <div style="color:var(--text); font-size:12px; opacity:0.8;">${data.changelog || t('update_changelog_default')}</div>
+                </div>
+                <a href="${data.url || '#'}" target="_blank" class="btn-sm danger" style="text-decoration:none; padding:8px 16px; border-radius:8px; font-weight:bold;">${t('btn_download_update')}</a>
+                `;
+
+                // On insère la bannière juste après le bouton Fermer
+                const closeBtn = settingsInner.querySelector('.settings-close-btn');
+                if (closeBtn) closeBtn.insertAdjacentElement('afterend', banner);
+                else settingsInner.insertBefore(banner, settingsInner.firstChild);
+            }
+        }
+    } catch (e) {
+        console.log("Erreur lors de la vérification des mises à jour.");
+    }
 }
 
 boot();

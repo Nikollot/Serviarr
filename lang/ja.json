@@ -529,5 +529,6 @@
     "err_too_many_attempts": "試行回数が多すぎます。次の時間後に再試行してください：",
     "err_minutes_suffix": "分",
     "err_update_failed": "更新エラー",
-	"export_list_btn": "リストをエクスポート"
+	"export_list_btn": "リストをエクスポート",
+"btn_download": "ダウンロード"
 }

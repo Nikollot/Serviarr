@@ -529,5 +529,6 @@
     "err_too_many_attempts": "Troppi tentativi. Riprova tra",
     "err_minutes_suffix": "min.",
     "err_update_failed": "Errore di aggiornamento"
-	"export_list_btn": "Esporta lista"
+	"export_list_btn": "Esporta lista",
+"btn_download": "Scaricare"
 }
