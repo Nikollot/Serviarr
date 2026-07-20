@@ -1,4 +1,4 @@
-const APP_VERSION = "1.3.1";
+const APP_VERSION = "1.3.2";
 const UPDATE_URL = "https://raw.githubusercontent.com/Nikollot/Serviarr/main/version.json";
 
 const DRIVER_ICONS = {docker:'🐳', sonarr:'📺',radarr:'🎬',prowlarr:'🔍',indexer:'🔍',transmission:'⬇',download:'⬇',jellyfin:'🎵',qbittorrent:'🌊',sabnzbd:'📥',lidarr:'🎶',readarr:'📚', iframe:'🌐', supervision:'📊'};
@@ -340,6 +340,7 @@ function showApp() {
 
     loadDriverOptions();
     loadAppsList();
+    displayVersionInSidebar();
     checkForUpdates();
 }
 
@@ -6236,46 +6237,58 @@ function downloadExportList() {
 
 // ── SYSTÈME DE MISE À JOUR ────────────────────────────────────────────────────
 async function checkForUpdates() {
-    if (!UPDATE_URL || UPDATE_URL.includes('...')) return; // Ignore si non configuré
+    if (!UPDATE_URL || UPDATE_URL.includes('...')) return;
 
     try {
-        const r = await fetch(UPDATE_URL, { cache: 'no-cache' });
+        // Le "?t=" empêche le cache (comme on l'a vu tout à l'heure)
+        const r = await fetch(UPDATE_URL + '?t=' + new Date().getTime(), { cache: 'no-store' });
         if (!r.ok) return;
         const data = await r.json();
 
-        // Si la version distante est différente de la version locale
         if (data.version && data.version !== APP_VERSION) {
-
-            // 1. Ajouter un point rouge clignotant sur les boutons "Paramètres"
-            const settingsBtns = document.querySelectorAll('[onclick*="settings"]');
-            settingsBtns.forEach(btn => {
-                if (!btn.querySelector('.update-dot')) {
-                    btn.innerHTML += `<span class="update-dot" style="width:8px; height:8px; background:var(--accent3); border-radius:50%; margin-left:auto; box-shadow:0 0 8px var(--accent3); animation: syncPulse 1.5s infinite;"></span>`;
-                }
-            });
-
-            // 2. Ajouter une belle bannière dans la page des paramètres
-            const settingsInner = document.querySelector('.settings-inner');
-            if (settingsInner && !document.getElementById('update-banner')) {
-                const banner = document.createElement('div');
-                banner.id = 'update-banner';
-                banner.style = "background:rgba(255,93,143,0.1); border:1px solid rgba(255,93,143,0.3); padding:15px 20px; border-radius:12px; margin-bottom:20px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;";
-                banner.innerHTML = `
-                <div>
-                <div style="color:var(--accent3); font-weight:bold; font-size:14px; margin-bottom:4px;">🚀 ${t('update_available')} (${data.version})</div>
-                <div style="color:var(--text); font-size:12px; opacity:0.8;">${data.changelog || t('update_changelog_default')}</div>
-                </div>
-                <a href="${data.url || '#'}" target="_blank" class="btn-sm danger" style="text-decoration:none; padding:8px 16px; border-radius:8px; font-weight:bold;">${t('btn_download_update')}</a>
-                `;
-
-                // On insère la bannière juste après le bouton Fermer
-                const closeBtn = settingsInner.querySelector('.settings-close-btn');
-                if (closeBtn) closeBtn.insertAdjacentElement('afterend', banner);
-                else settingsInner.insertBefore(banner, settingsInner.firstChild);
-            }
+            // Met à jour l'affichage dans le menu avec la nouvelle version
+            displayVersionInSidebar(data.version, data.url);
         }
     } catch (e) {
         console.log("Erreur lors de la vérification des mises à jour.");
+    }
+}
+
+// ── AFFICHAGE DE LA VERSION DANS LE MENU LATÉRAL ──────────────────────────────
+function displayVersionInSidebar(latestVersion = null, releaseUrl = '#') {
+    const sidebarFooter = document.querySelector('.sidebar-footer');
+    const sidebar = document.querySelector('.sidebar');
+    if (!sidebar) return;
+
+    // Cherche ou crée le conteneur de la version
+    let versionDiv = document.getElementById('sidebar-version-info');
+    if (!versionDiv) {
+        versionDiv = document.createElement('div');
+        versionDiv.id = 'sidebar-version-info';
+        versionDiv.style = "text-align: center; font-size: 11px; color: var(--muted); font-family: var(--mono); padding-top: 10px;";
+
+        if (sidebarFooter) {
+            sidebarFooter.appendChild(versionDiv);
+        } else {
+            versionDiv.style.marginTop = 'auto';
+            versionDiv.style.padding = '20px';
+            versionDiv.style.borderTop = '1px solid var(--border)';
+            sidebar.appendChild(versionDiv);
+        }
+    }
+
+    // Si une mise à jour est disponible, on affiche le bouton rouge
+    if (latestVersion && latestVersion !== APP_VERSION) {
+        versionDiv.innerHTML = `
+        <div>v${APP_VERSION}</div>
+        <a href="${releaseUrl}" target="_blank" style="display: block; margin-top: 8px; padding: 8px 10px; background: rgba(255,93,143,0.1); border: 1px solid rgba(255,93,143,0.3); color: var(--accent3); border-radius: 8px; text-decoration: none; font-weight: bold; transition: all 0.2s;" onmouseover="this.style.background='rgba(255,93,143,0.2)'" onmouseout="this.style.background='rgba(255,93,143,0.1)'">
+        🚀 ${t('update_available')} (${latestVersion})
+        </a>
+        `;
+    }
+    // Sinon, on affiche juste la version actuelle en gris
+    else {
+        versionDiv.innerHTML = `v${APP_VERSION}`;
     }
 }
 
