@@ -1,6 +1,5 @@
-const APP_VERSION = "1.3";
+const APP_VERSION = "1.3.1";
 const UPDATE_URL = "https://raw.githubusercontent.com/Nikollot/Serviarr/main/version.json";
-
 
 const DRIVER_ICONS = {docker:'🐳', sonarr:'📺',radarr:'🎬',prowlarr:'🔍',indexer:'🔍',transmission:'⬇',download:'⬇',jellyfin:'🎵',qbittorrent:'🌊',sabnzbd:'📥',lidarr:'🎶',readarr:'📚', iframe:'🌐', supervision:'📊'};
 let appsCache = [], editingId = null;
