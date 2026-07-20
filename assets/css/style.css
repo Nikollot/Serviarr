@@ -3,7 +3,7 @@
 	--accent: #4ade80;
     --accent-grad: linear-gradient(90deg, var(--radarr) 0%, var(--sonarr) 100%);
     --accent-grad-bg: linear-gradient(90deg, var(--radarr-bg) 0%, var(--sonarr-bg) 100%);
-    --accent2:#5dffd6; --accent3:#ff5d8f; --accent4:#a78bfa;
+    --accent2:#14b8a6; --accent3:#ff5d8f; --accent4:#a78bfa;
     --text:#e8eaf0; --muted:#6b7280;
     --mono:'Space Mono',monospace; --sans:'DM Sans',sans-serif;
     --radius:10px; --shadow:0 4px 24px rgba(0,0,0,.4);
@@ -79,9 +79,9 @@
 
 .sidebar-item:hover { background: var(--bg3); color: var(--text); }
 
-/* LE DÉGRADÉ EN CONTOUR + FOND TRANSPARENT SUR L'APPLICATION ACTIVE DU MENU */
+/* FOND TRANSPARENT SUR L'APPLICATION ACTIVE DU MENU (Sans bordure) */
 .sidebar-item.active {
-    background: var(--accent-grad-bg) padding-box, linear-gradient(var(--bg2), var(--bg2)) padding-box, var(--accent-grad) border-box !important;
+    background: var(--accent-grad-bg) !important;
     border: 1px solid transparent !important;
     color: var(--text) !important;
     font-weight: 700;
@@ -1872,10 +1872,10 @@ header {
 }
 
 
-.dl-badge-active  { background: var(--accent-bg);  color: var(--accent); }
-.dl-badge-seeding { background: rgba(93,255,214,0.13); color: var(--accent2); }
-.dl-badge-paused  { background: rgba(107,114,128,0.13);color: var(--muted); }
-.dl-badge-done    { background: rgba(93,255,214,0.13); color: var(--accent2); }
+.dl-badge-active  { background: var(--sonarr-bg); color: var(--sonarr); }
+.dl-badge-seeding { background: var(--accent-bg); color: var(--accent); }
+.dl-badge-paused  { background: rgba(107,114,128,0.13); color: var(--muted); }
+.dl-badge-done    { background: var(--accent-bg); color: var(--accent); }
 
 .dl-toolbar {
     display: flex;
@@ -2417,27 +2417,26 @@ z-index: 30005 !important;
 }
 
 /* =========================================================================
- * ── THEME "CONTOUR DÉGRADÉ" GLOBAL POUR TOUS LES BOUTONS ──
+ * ── STYLES DES BOUTONS (Fonds pleins et épurés) ──
  * ========================================================================= */
 
-/* 1. Boutons d'action principaux (Dégradé Serviarr) */
+/* 1. Boutons principaux (Action de validation, ajout, recherche...) */
 .btn-primary,
 .btn-search,
 .btn-add,
 .btn-modal-save,
 .btn-grab,
-.btn-torrent-add,
 .btn-detail.primary,
 .btn-sm.accent,
-.btn-app-link,
 #btn-bulk-toggle.active,
 #btn-add-tmdb,
 .btn-pill {
-    background: var(--accent-grad-bg) padding-box, linear-gradient(var(--bg2), var(--bg2)) padding-box, var(--accent-grad) border-box !important;
-    border: 1px solid transparent !important;
-    color: var(--text) !important;
-    box-shadow: none !important;
-    transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease !important;
+    background: var(--accent) !important;
+    border: 1px solid var(--accent) !important;
+    color: #000 !important; /* Texte noir pour contraster avec la couleur claire */
+    font-weight: 700;
+    box-shadow: 0 4px 10px var(--accent-bg);
+    transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
 }
 
 .btn-primary:hover,
@@ -2445,53 +2444,28 @@ z-index: 30005 !important;
 .btn-add:hover,
 .btn-modal-save:hover,
 .btn-grab:hover,
-.btn-torrent-add:hover,
 .btn-detail.primary:hover,
 .btn-sm.accent:hover,
-.btn-app-link:hover,
 #btn-bulk-toggle.active:hover,
 #btn-add-tmdb:hover,
 .btn-pill:hover {
-    transform: translateY(-2px) !important;
-    box-shadow: 0 6px 20px var(--accent-bg) !important;
-    opacity: 1 !important;
+    transform: translateY(-2px);
+    filter: brightness(1.1); /* Rend le bouton légèrement plus clair au survol */
+    box-shadow: 0 6px 15px var(--accent-bg);
 }
 
-/* 2. Boutons de Danger (Rouges) */
-.btn-detail.danger,
-.btn-sm.danger,
-.btn-confirm-delete,
-.action-btn.danger,
-.sheet-btn.danger {
-    background: rgba(255,93,143,0.08) padding-box, linear-gradient(var(--bg2), var(--bg2)) padding-box, var(--accent3) border-box !important;
-    border: 1px solid transparent !important;
-    color: var(--accent3) !important;
-    box-shadow: none !important;
-    transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease !important;
-}
-
-.btn-detail.danger:hover,
-.btn-sm.danger:hover,
-.btn-confirm-delete:hover,
-.action-btn.danger:hover,
-.sheet-btn.danger:hover {
-    transform: translateY(-2px) !important;
-    box-shadow: 0 6px 20px rgba(255,93,143,0.2) !important;
-    opacity: 1 !important;
-}
-
-/* 3. Boutons Secondaires (Gris) */
+/* 2. Boutons secondaires (Annuler, fermer, options...) */
 .btn-ghost,
 .btn-modal-cancel,
 .btn-detail.secondary,
 .btn-sm.secondary,
 .btn-confirm-cancel,
 .action-btn:not(.danger) {
-    background: rgba(255,255,255,0.02) padding-box, linear-gradient(var(--bg2), var(--bg2)) padding-box, var(--border) border-box !important;
-    border: 1px solid transparent !important;
+    background: var(--bg3) !important;
+    border: 1px solid var(--border) !important;
     color: var(--text) !important;
-    box-shadow: none !important;
-    transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease !important;
+    font-weight: 600;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease, border-color 0.2s ease;
 }
 
 .btn-ghost:hover,
@@ -2500,10 +2474,35 @@ z-index: 30005 !important;
 .btn-sm.secondary:hover,
 .btn-confirm-cancel:hover,
 .action-btn:not(.danger):hover {
-    transform: translateY(-2px) !important;
-    background: rgba(255,255,255,0.05) padding-box, linear-gradient(var(--bg2), var(--bg2)) padding-box, var(--muted) border-box !important;
-    box-shadow: 0 6px 20px rgba(0,0,0,0.2) !important;
+    transform: translateY(-2px);
+    background: var(--border) !important;
+    border-color: var(--muted) !important;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
 }
+
+/* 3. Boutons de Danger (Rouge pour les suppressions) */
+.btn-detail.danger,
+.btn-sm.danger,
+.btn-confirm-delete,
+.action-btn.danger,
+.sheet-btn.danger {
+    background: rgba(255, 93, 143, 0.1) !important;
+    border: 1px solid rgba(255, 93, 143, 0.3) !important;
+    color: var(--accent3) !important;
+    font-weight: 600;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.btn-detail.danger:hover,
+.btn-sm.danger:hover,
+.btn-confirm-delete:hover,
+.action-btn.danger:hover,
+.sheet-btn.danger:hover {
+    transform: translateY(-2px);
+    background: rgba(255, 93, 143, 0.2) !important;
+    box-shadow: 0 6px 15px rgba(255, 93, 143, 0.15);
+}
+
 
 /* FORCE LE DÉGRADÉ SUR TOUS LES CHAMPS DE RECHERCHE ET FORMULAIRES AU CLIC */
 .search-bar input:focus,
@@ -2584,5 +2583,25 @@ z-index: 30005 !important;
         width: 100% !important; /* Reprend toute la largeur sur mobile */
         padding: 10px 16px !important;
         height: auto;
+    }
+}
+
+/* =========================================================================
+ * ─ ─ BOUTON TÉLÉCHARGER (PROWLARR)
+ * ========================================================================= */
+.btn-prowlarr-dl {
+    width: auto !important;
+    flex-shrink: 0 !important;
+    padding: 6px 12px !important;
+    font-size: 12px !important;
+}
+
+/* Version Mobile (Écrans < 768px) */
+@media (max-width: 768px) {
+    .btn-prowlarr-dl .text-dl {
+        display: none; /* Cache le mot "Télécharger" sur mobile */
+    }
+    .btn-prowlarr-dl {
+        padding: 8px 12px !important; /* Ajuste les marges pour l'icône seule */
     }
 }

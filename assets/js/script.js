@@ -3919,9 +3919,9 @@ function getTransmissionStatus(code) {
         1: { text: t('status_check_wait'), color: '#ffa03c' },
         2: { text: t('status_checking'), color: '#ffa03c' },
         3: { text: t('status_dl_wait'), color: '#ffa03c' },
-        4: { text: t('status_downloading'), color: 'var(--accent)' },
-        5: { text: t('status_seed_wait'), color: 'var(--sonarr)' },
-        6: { text: t('status_seeding'), color: 'var(--accent2)' }
+        4: { text: t('status_downloading'), color: 'var(--sonarr)' }, /* 👈 Bleu : En cours de DL */
+        5: { text: t('status_seed_wait'), color: 'var(--muted)' },
+        6: { text: t('status_seeding'), color: 'var(--accent)' }      /* 👈 Vert doux : Terminé / En Seed */
     };
     return statuses[code] || { text: t('status_unknown'), color: 'var(--muted)' };
 }
@@ -4691,7 +4691,7 @@ function showDockerLogs(id, name) {
     </div>
     </h3>
     <div style="padding: 20px; overflow-y: auto; flex: 1; display: flex; flex-direction: column;">
-    <div id="docker-logs-content" style="background:#0a0c10; color:#00ff00; padding:15px; border-radius:8px; font-family:var(--mono); font-size:12px; flex:1; overflow-y:auto; white-space:pre-wrap; word-break:break-all;">
+    <div id="docker-logs-content" style="background:var(--bg3); color:var(--text); border:1px solid var(--border); padding:15px; border-radius:8px; font-family:var(--mono); font-size:12px; flex:1; overflow-y:auto; white-space:pre-wrap; word-break:break-all;">
     ⏳ ${t('docker_logs_loading')}
     </div>
     </div>
@@ -5300,7 +5300,10 @@ async function searchProwlarr() {
         const magnetOrTorrent = res.magnetUrl || res.downloadUrl || '';
 
         const downloadBtn = magnetOrTorrent
-        ? `<button class="btn-sm accent" onclick="sendToTransmission('${esc(magnetOrTorrent).replace(/'/g, "\\'")}', this)">⬇️ DL</button>`
+        ? `<button class="btn-primary btn-prowlarr-dl" onclick="sendToTransmission('${esc(magnetOrTorrent).replace(/'/g, "\\'")}', this)">
+            <span class="icon">⬇️</span>
+            <span class="text-dl">${t('btn_download') !== 'btn_download' ? t('btn_download') : 'Télécharger'}</span>
+           </button>`
         : '';
 
         html += `
