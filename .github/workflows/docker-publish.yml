@@ -1,4 +1,4 @@
-name: Build and Push Docker Image
+name: Build, Push and Release
 
 # Déclenche l'action à chaque push sur la branche main
 on:
@@ -7,34 +7,56 @@ on:
       - main # Si ta branche principale s'appelle 'master', remplace 'main' par 'master'
 
 jobs:
-  build-and-push:
+  build-and-release:
     runs-on: ubuntu-latest
+
+    # 🌟 INDISPENSABLE : Donne l'autorisation au script de créer une Release sur ton dépôt
+    permissions:
+      contents: write
 
     steps:
       # 1. Récupère le code de ton dépôt GitHub
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # 2. Lit la version dans version.json
-      - name: Get version from version.json
+      # 2. Lit la version ET le changelog dans version.json
+      - name: Get version and changelog
         id: get_version
         run: |
           VERSION=$(jq -r '.version' version.json)
           echo "VERSION=$VERSION" >> $GITHUB_ENV
           echo "La version trouvée est : $VERSION"
 
-      # 3. Prépare l'environnement Docker
+          # Extrait le changelog et remplace les <br> par de vrais sauts de ligne pour un bel affichage sur GitHub
+          jq -r '.changelog' version.json | sed 's/<br>/\n/g' > changelog.txt
+
+      # 3. Crée le Tag et la Release sur GitHub (s'ils n'existent pas déjà)
+      - name: Create GitHub Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Vérifie si le tag existe déjà pour ne pas faire planter le script
+          if ! gh release view "${{ env.VERSION }}" > /dev/null 2>&1; then
+            gh release create "${{ env.VERSION }}" \
+              --title "Version ${{ env.VERSION }}" \
+              --notes-file changelog.txt
+            echo "✅ Release ${{ env.VERSION }} créée avec succès !"
+          else
+            echo "⚠️ La release ${{ env.VERSION }} existe déjà, création ignorée."
+          fi
+
+      # 4. Prépare l'environnement Docker
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # 4. Se connecte à Docker Hub grâce à tes secrets
+      # 5. Se connecte à Docker Hub grâce à tes secrets
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_TOKEN }}
 
-      # 5. Construit et pousse l'image avec les deux tags (latest + version)
+      # 6. Construit et pousse l'image Docker avec les deux tags
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
