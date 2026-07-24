@@ -1,4 +1,4 @@
-const APP_VERSION = "1.3.3";
+const APP_VERSION = "1.4";
 const UPDATE_URL = "https://raw.githubusercontent.com/Nikollot/Serviarr/main/version.json";
 
 const DRIVER_ICONS = {docker:'🐳', sonarr:'📺',radarr:'🎬',prowlarr:'🔍',indexer:'🔍',transmission:'⬇',download:'⬇',jellyfin:'🎵',qbittorrent:'🌊',sabnzbd:'📥',lidarr:'🎶',readarr:'📚', iframe:'🌐', supervision:'📊'};
@@ -346,7 +346,16 @@ function showApp() {
 
 function showTab(name) {
     if (name === 'settings') {
-        document.getElementById('tab-settings').style.display = 'block';
+        const settingsTab = document.getElementById('tab-settings');
+
+        // 1. EFFET BASCULE (TOGGLE) : Si les paramètres sont déjà ouverts, on les ferme
+        if (settingsTab.style.display === 'block') {
+            hideSettings();
+            return;
+        }
+
+        // 2. Sinon, on les ouvre et on charge les données
+        settingsTab.style.display = 'block';
         loadTmdbConfig();
         loadPushConfig();
         loadWebhookUrl();
@@ -355,6 +364,23 @@ function showTab(name) {
         if (typeof loadDriverOptions === 'function') loadDriverOptions();
         if (typeof load2FAStatus === 'function') load2FAStatus();
         initSettingsAccordion();
+
+        // 3. CROIX DE FERMETURE : Accrochée en haut de la page, parfaitement alignée avec le titre
+        if (!document.getElementById('settings-floating-close')) {
+            const closeBtn = document.createElement('button');
+            closeBtn.id = 'settings-floating-close';
+            closeBtn.innerHTML = '✕';
+            closeBtn.setAttribute('onclick', 'hideSettings()');
+
+            // 🛠️ CORRECTION : top réduit à 60px et taille légèrement affinée (36x36px)
+            closeBtn.style.cssText = "position:absolute; top:60px; right:20px; width:36px; height:36px; border-radius:10px !important; background:var(--bg3) !important; border:1px solid var(--border) !important; color:var(--text) !important; font-size:16px !important; cursor:pointer; z-index:99999; display:flex; align-items:center; justify-content:center; padding:0 !important; margin:0 !important; box-shadow:0 4px 15px rgba(0,0,0,0.3);";
+
+            // Petit effet visuel au survol
+            closeBtn.onmouseover = () => closeBtn.style.background = 'var(--border)';
+            closeBtn.onmouseout = () => closeBtn.style.background = 'var(--bg3)';
+
+            settingsTab.appendChild(closeBtn);
+        }
     }
 }
 
@@ -1345,55 +1371,28 @@ function renderAppsListHtml() {
         return;
     }
 
-    let html = `
-    <style>
-    .app-item-row { display: grid; grid-template-columns: 1fr auto; grid-template-areas: "identity switch" "actions actions"; gap: 12px; padding: 15px 0; border-bottom: 1px solid rgba(255,255,255,0.05); transition: background 0.2s, border-radius 0.2s; }
-    .app-item-row:last-child { border-bottom: none; }
-    .app-item-identity { grid-area: identity; display: flex; align-items: center; gap: 14px; min-width: 0; }
-    .app-item-icon { font-size: 20px; display: flex; align-items: center; justify-content: center; width: 38px; height: 38px; background: var(--bg3); border-radius: 10px; flex-shrink: 0; }
-    .app-item-text { flex: 1; min-width: 0; }
-    .app-item-name { font-weight: bold; font-size: 15px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .app-item-driver { font-size: 11px; color: var(--muted); font-family: var(--mono); text-transform: lowercase; margin-top: 2px; }
-    .app-item-switch { grid-area: switch; display: flex; align-items: center; justify-content: flex-end; }
-    .app-item-actions { grid-area: actions; display: flex; justify-content: space-between; align-items: center; padding-left: 52px; }
-    .app-item-arrows, .app-item-btns { display: flex; gap: 16px; align-items: center; }
-    .app-item-btn { background: none; border: none; color: var(--muted); font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 6px; cursor: pointer; transition: color 0.2s; padding: 0; }
-    .app-item-btn:hover:not(:disabled) { color: var(--text); }
-    .app-item-btn.danger { color: var(--accent3); font-size: 15px; }
-    .app-item-btn.icon-only { font-size: 16px; }
-    @media (min-width: 768px) {
-        .app-item-row { grid-template-columns: 1fr auto auto; grid-template-areas: "identity actions switch"; padding: 10px 15px; align-items: center; border-bottom: 1px solid transparent; }
-        .app-item-row:hover { background: rgba(255, 255, 255, 0.04); border-radius: 12px; }
-        .app-item-actions { padding-left: 0; gap: 40px; }
-    }
-    </style>
-    `;
-
-    html += appsCache.map((app, index) => {
+    let html = appsCache.map((app, index) => {
         const isFirst = index === 0;
         const isLast = index === appsCache.length - 1;
 
         return `
         <div class="app-item-row">
-        <div class="app-item-identity">
         <div class="app-item-icon">${getAppIconHtml(app)}</div>
+
         <div class="app-item-text">
-        <div class="app-item-name">${esc(app.name)}</div>
+        <div class="app-item-name" title="${esc(app.name)}">${esc(app.name)}</div>
         <div class="app-item-driver">${esc(app.driver)}</div>
         </div>
-        </div>
-        <div class="app-item-switch">
-        <button class="toggle ${app.enabled ? 'on' : ''}" onclick="toggleApp('${app.id}', this)" style="margin:0;"></button>
-        </div>
+
         <div class="app-item-actions">
-        <div class="app-item-arrows">
-        <button class="app-item-btn icon-only" onclick="moveApp(-1, ${index})" ${isFirst ? 'disabled style="opacity:0.2;cursor:not-allowed;"' : ''} title="${t('btn_move_up')}">⬆️</button>
-        <button class="app-item-btn icon-only" onclick="moveApp(1, ${index})" ${isLast ? 'disabled style="opacity:0.2;cursor:not-allowed;"' : ''} title="${t('btn_move_down')}">⬇️</button>
-        </div>
-        <div class="app-item-btns">
-        <button class="app-item-btn" onclick="editApp('${app.id}')">⚙️ ${t('modal_edit_app')}</button>
+        <button class="app-item-btn" onclick="moveApp(-1, ${index})" ${isFirst ? 'disabled style="opacity:0.2;cursor:not-allowed;"' : ''} title="${t('btn_move_up')}">⬆️</button>
+        <button class="app-item-btn" onclick="moveApp(1, ${index})" ${isLast ? 'disabled style="opacity:0.2;cursor:not-allowed;"' : ''} title="${t('btn_move_down')}">⬇️</button>
+        <button class="app-item-btn" onclick="editApp('${app.id}')" title="Éditer">⚙️</button>
         <button class="app-item-btn danger" onclick="deleteApp('${app.id}', '${esc(app.name)}')" title="${t('detail_delete')}">🗑️</button>
         </div>
+
+        <div class="app-item-switch">
+        <button class="toggle ${app.enabled ? 'on' : ''}" onclick="toggleApp('${app.id}', this)" style="margin:0;"></button>
         </div>
         </div>`;
     }).join('');
@@ -1598,6 +1597,21 @@ async function loadDriverFields() {
     </div>
     </div>`;
 
+    // 🌟 NOUVEAU : Récupération robuste du raccourci avec editingId
+    let currentShortcut = '';
+    if (typeof editingId !== 'undefined' && editingId) {
+        try {
+            const shortcuts = JSON.parse(localStorage.getItem('serviarr_shortcuts')) || {};
+            currentShortcut = shortcuts[editingId] || '';
+        } catch(e) {}
+    }
+    html += `
+    <div class="form-row" style="margin-top:15px; border-top:1px solid var(--border); padding-top:15px;">
+    <label style="font-size:12px; font-weight:bold; color:var(--muted); text-transform:uppercase;">${t('app_shortcut_label')}</label>
+    <input type="text" id="modal-shortcut" name="shortcut" value="${esc(currentShortcut)}" placeholder="Ex: F" maxlength="1" style="width:100%; background:var(--bg3); border:1px solid var(--border); color:var(--text); border-radius:6px; padding:10px; font-size:14px; text-transform:uppercase; text-align:center; font-weight:bold;">
+    <div style="font-size:11px; color:var(--muted); margin-top:6px;">${t('app_shortcut_hint')}</div>
+    </div>`;
+
     container.innerHTML = html;
 
     // 🌟 SÉCURITÉ : Force le navigateur à appliquer la vraie valeur enregistrée dans l'application
@@ -1674,9 +1688,29 @@ async function saveApp() {
     const data = { name: document.getElementById('modal-name').value, driver: document.getElementById('modal-driver').value };
     if (editingId) data.id = editingId;
     document.querySelectorAll('#modal-fields input, #modal-fields select').forEach(el => { data[el.name] = el.value; });
+
+    // 🛡️ SÉCURITÉ : On capture la lettre tapée AVANT de communiquer avec le serveur
+    const shortcutInput = document.getElementById('modal-shortcut');
+    const shortcutValue = shortcutInput ? shortcutInput.value.toLowerCase() : '';
+
     if (!data.driver) { notify(t('modal_app_type_choose'), 'err'); return; }
+
     const r = await api('save_app', data);
-    if (r.ok) { notify(t('notif_saved'), 'ok'); closeModal(); loadAppsList(); }
+
+    if (r.ok) {
+        // 🌟 NOUVEAU : Sauvegarde fiable du raccourci dans le cache du navigateur
+        const targetId = editingId || r.id;
+        if (targetId) {
+            let shortcuts = {};
+            try { shortcuts = JSON.parse(localStorage.getItem('serviarr_shortcuts')) || {}; } catch(e) {}
+            shortcuts[targetId] = shortcutValue;
+            localStorage.setItem('serviarr_shortcuts', JSON.stringify(shortcuts));
+        }
+
+        notify(t('notif_saved'), 'ok');
+        closeModal();
+        loadAppsList();
+    }
     else notify(r.error || t('notif_error'), 'err');
 }
 
@@ -1870,6 +1904,12 @@ async function openMovieDetail(id) {
 
         <div style="width:100%; height:250px; background-image:url('${fanartUrl}'); background-size:cover; background-position:center 20%; position:relative;">
         <div style="position:absolute; inset:0; background:linear-gradient(to bottom, rgba(19, 22, 30, 0.2) 0%, var(--bg2) 100%);"></div>
+		${r.youtubeTrailerId ? `
+            <div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; z-index:5;">
+                <button onclick="openTrailerModal('${r.youtubeTrailerId}')" style="background:rgba(0,0,0,0.5); border:2px solid rgba(255,255,255,0.8); color:#fff; width:64px; height:64px; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all 0.2s; backdrop-filter:blur(4px); box-shadow:0 5px 15px rgba(0,0,0,0.5);" onmouseover="this.style.background='var(--accent)'; this.style.color='#000'; this.style.borderColor='var(--accent)'; this.style.transform='scale(1.1)';" onmouseout="this.style.background='rgba(0,0,0,0.5)'; this.style.color='#fff'; this.style.borderColor='rgba(255,255,255,0.8)'; this.style.transform='scale(1)';">
+                    <span style="font-size:24px; margin-left:6px;">▶</span>
+                </button>
+            </div>` : ''}
         </div>
 
         <div style="display:flex; gap:16px; padding:0 20px; margin-top:-70px; position:relative; z-index:10; align-items:flex-end;">
@@ -1997,6 +2037,12 @@ async function openTmdbMovieDetail(tmdbId) {
 
     <div style="width:100%; height:250px; background-image:url('${fanartUrl}'); background-size:cover; background-position:center 20%; position:relative;">
     <div style="position:absolute; inset:0; background:linear-gradient(to bottom, rgba(19, 22, 30, 0.2) 0%, var(--bg2) 100%);"></div>
+	${r.youtubeTrailerId ? `
+            <div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; z-index:5;">
+                <button onclick="openTrailerModal('${r.youtubeTrailerId}')" style="background:rgba(0,0,0,0.5); border:2px solid rgba(255,255,255,0.8); color:#fff; width:64px; height:64px; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all 0.2s; backdrop-filter:blur(4px); box-shadow:0 5px 15px rgba(0,0,0,0.5);" onmouseover="this.style.background='var(--accent)'; this.style.color='#000'; this.style.borderColor='var(--accent)'; this.style.transform='scale(1.1)';" onmouseout="this.style.background='rgba(0,0,0,0.5)'; this.style.color='#fff'; this.style.borderColor='rgba(255,255,255,0.8)'; this.style.transform='scale(1)';">
+                    <span style="font-size:24px; margin-left:6px;">▶</span>
+                </button>
+            </div>` : ''}
     </div>
 
     <div style="display:flex; gap:16px; padding:0 20px; margin-top:-70px; position:relative; z-index:10; align-items:flex-end;">
@@ -2067,6 +2113,12 @@ async function openTmdbSerieDetail(tmdbId) {
 
     <div style="width:100%; height:250px; background-image:url('${fanartUrl}'); background-size:cover; background-position:center 20%; position:relative;">
     <div style="position:absolute; inset:0; background:linear-gradient(to bottom, rgba(19, 22, 30, 0.2) 0%, var(--bg2) 100%);"></div>
+	${r.youtubeTrailerId ? `
+            <div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; z-index:5;">
+                <button onclick="openTrailerModal('${r.youtubeTrailerId}')" style="background:rgba(0,0,0,0.5); border:2px solid rgba(255,255,255,0.8); color:#fff; width:64px; height:64px; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all 0.2s; backdrop-filter:blur(4px); box-shadow:0 5px 15px rgba(0,0,0,0.5);" onmouseover="this.style.background='var(--sonarr)'; this.style.color='#000'; this.style.borderColor='var(--sonarr)'; this.style.transform='scale(1.1)';" onmouseout="this.style.background='rgba(0,0,0,0.5)'; this.style.color='#fff'; this.style.borderColor='rgba(255,255,255,0.8)'; this.style.transform='scale(1)';">
+                    <span style="font-size:24px; margin-left:6px;">▶</span>
+                </button>
+            </div>` : ''}
     </div>
 
     <div style="display:flex; gap:16px; padding:0 20px; margin-top:-70px; position:relative; z-index:10; align-items:flex-end;">
@@ -2557,6 +2609,12 @@ async function openSerieDetail(id) {
 
         <div style="width:100%; height:250px; background-image:url('${fanartUrl}'); background-size:cover; background-position:center 20%; position:relative;">
         <div style="position:absolute; inset:0; background:linear-gradient(to bottom, rgba(19, 22, 30, 0.2) 0%, var(--bg2) 100%);"></div>
+		${r.youtubeTrailerId ? `
+            <div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; z-index:5;">
+                <button onclick="openTrailerModal('${r.youtubeTrailerId}')" style="background:rgba(0,0,0,0.5); border:2px solid rgba(255,255,255,0.8); color:#fff; width:64px; height:64px; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all 0.2s; backdrop-filter:blur(4px); box-shadow:0 5px 15px rgba(0,0,0,0.5);" onmouseover="this.style.background='var(--sonarr)'; this.style.color='#000'; this.style.borderColor='var(--sonarr)'; this.style.transform='scale(1.1)';" onmouseout="this.style.background='rgba(0,0,0,0.5)'; this.style.color='#fff'; this.style.borderColor='rgba(255,255,255,0.8)'; this.style.transform='scale(1)';">
+                    <span style="font-size:24px; margin-left:6px;">▶</span>
+                </button>
+            </div>` : ''}
         </div>
 
         <div style="display:flex; gap:16px; padding:0 20px; margin-top:-70px; position:relative; z-index:10; align-items:flex-end;">
@@ -5074,6 +5132,7 @@ function renderNotifsData(r) {
     const grouped = [];
     const seriesMap = {};
 
+    // 1. Regroupement logique des épisodes d'une même série
     r.forEach(n => {
         if (n.type === 'serie') {
             if (seriesMap[n.id] !== undefined) {
@@ -5092,7 +5151,8 @@ function renderNotifsData(r) {
 
     list.innerHTML = '';
 
-    grouped.forEach(n => {
+    // 2. Fonction utilitaire pour générer le HTML d'une seule notification
+    const buildNotifHtml = (n) => {
         const targetUrl = n.type === 'movie' ? `films.php?movie=${n.id}` : `series.php?serie=${n.id}`;
         const dateObj = new Date(n.date);
         const dateStr = dateObj.toLocaleDateString(currentLocale(), {day: '2-digit', month: 'short', hour:'2-digit', minute:'2-digit'});
@@ -5115,7 +5175,7 @@ function renderNotifsData(r) {
         const fallbackIcon = n.type === 'movie' ? '🎬' : '📺';
         const fallbackHtml = `<div style="width:35px; height:50px; border-radius:6px; background:var(--bg); display:${n.poster ? 'none' : 'flex'}; align-items:center; justify-content:center; font-size:18px; flex-shrink:0; border:1px solid var(--border);">${fallbackIcon}</div>`;
 
-        list.innerHTML += `
+        return `
         <div onclick="window.location.href='${targetUrl}'" style="padding:12px 16px; display:flex; gap:12px; align-items:center; cursor:pointer; border-bottom:1px solid var(--border); transition:background 0.2s;" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background='transparent'">
         ${posterHtml}${fallbackHtml}
         <div style="flex:1; overflow:hidden;">
@@ -5124,7 +5184,29 @@ function renderNotifsData(r) {
         </div>
         </div>
         `;
-    });
+    };
+
+    // 3. Séparation : Les 5 premières et les autres
+    const MAX_VISIBLE = 5;
+    const visibleNotifs = grouped.slice(0, MAX_VISIBLE);
+    const hiddenNotifs = grouped.slice(MAX_VISIBLE);
+
+    // Génération du HTML pour les 5 premières
+    let finalHtml = visibleNotifs.map(buildNotifHtml).join('');
+
+    // 4. S'il reste des notifications, on ajoute un bloc caché et un bouton
+    if (hiddenNotifs.length > 0) {
+        finalHtml += `
+        <div id="notifs-expand-btn" onclick="event.stopPropagation(); document.getElementById('notifs-hidden-block').style.display='block'; this.style.display='none';" style="padding:12px; text-align:center; color:var(--text); font-size:12px; font-weight:bold; cursor:pointer; background:var(--bg3); transition:background 0.2s;" onmouseover="this.style.background='var(--border)'" onmouseout="this.style.background='var(--bg3)'">
+        ▼ Voir les ${hiddenNotifs.length} autres notifications
+        </div>
+        <div id="notifs-hidden-block" style="display:none; background:rgba(0,0,0,0.1);">
+        ${hiddenNotifs.map(buildNotifHtml).join('')}
+        </div>
+        `;
+    }
+
+    list.innerHTML = finalHtml;
 }
 
 document.addEventListener('click', (e) => {
@@ -6290,6 +6372,99 @@ function displayVersionInSidebar(latestVersion = null, releaseUrl = '#') {
     // Sinon, on affiche juste la version actuelle
     else {
         versionDiv.innerHTML = `v${APP_VERSION}`;
+    }
+}
+
+// ── RACCOURCIS CLAVIER DYNAMIQUES (HOTKEYS) ───────────────────────────────────
+document.addEventListener('keydown', function(event) {
+    // 1. SÉCURITÉ : On ignore si on écrit dans une barre de recherche
+    const activeElement = document.activeElement.tagName;
+    if (activeElement === 'INPUT' || activeElement === 'TEXTAREA' || activeElement === 'SELECT') {
+        return;
+    }
+
+    // 2. Si la touche "Alt" est pressée avec une lettre
+    if (event.altKey && event.key) {
+        const pressedKey = event.key.toLowerCase();
+
+        // Raccourcis fixes (Système)
+        if (pressedKey === 'd') { // Alt + D = Dashboard
+            event.preventDefault();
+            window.location.href = 'index.php';
+            return;
+        }
+        if (pressedKey === 'p') { // Alt + P = Paramètres
+            event.preventDefault();
+            if (typeof showTab === 'function') showTab('settings');
+            return;
+        }
+
+        // 3. Raccourcis dynamiques (Gérés par l'utilisateur)
+        if (typeof appsCache !== 'undefined') {
+            let shortcuts = {};
+            try { shortcuts = JSON.parse(localStorage.getItem('serviarr_shortcuts')) || {}; } catch(e) {}
+
+            // On cherche si une application active possède ce raccourci
+            const targetApp = appsCache.find(a => a.enabled && shortcuts[a.id] === pressedKey);
+
+            if (targetApp) {
+                event.preventDefault();
+                let href = '#';
+
+                if (targetApp.driver === 'radarr') href = 'films.php';
+                else if (targetApp.driver === 'sonarr') href = 'series.php';
+                else if (targetApp.driver === 'prowlarr' || targetApp.driver === 'indexer') href = 'indexer.php';
+                else if (targetApp.driver === 'transmission' || targetApp.driver === 'download') href = 'download.php';
+                else if (targetApp.driver === 'docker') href = 'docker.php';
+                else if (targetApp.driver === 'supervision') href = 'supervision.php';
+                else if (targetApp.driver === 'iframe') href = 'iframe.php?id=' + targetApp.id;
+
+                if (href !== '#') {
+                    window.location.href = href;
+                }
+            }
+        }
+    }
+});
+
+// ── LECTEUR YOUTUBE (BANDE-ANNONCE) ───────────────────────────────────────────
+function openTrailerModal(videoId) {
+    let modal = document.getElementById('modal-trailer');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'modal-trailer';
+        
+        // 🛠️ CORRECTION : On force le centrage absolu avec Flexbox directement en CSS
+        modal.style.cssText = 'display:none; position:fixed; inset:0; background:rgba(0,0,0,0.9); z-index:999999; align-items:center; justify-content:center; padding:15px; backdrop-filter:blur(5px);';
+        
+        // Ferme la modale si on clique à l'extérieur de la vidéo
+        modal.addEventListener('click', e => { 
+            if (e.target === modal) closeTrailerModal(); 
+        });
+        document.body.appendChild(modal);
+    }
+    
+    // On injecte un iframe YouTube optimisé
+    modal.innerHTML = `
+    <div class="modal-box" style="width: 800px; max-width: 100%; padding: 0; background: #000; border-radius: 12px; overflow: hidden; position: relative; box-shadow: 0 10px 40px rgba(0,0,0,0.8);">
+        <div style="display:flex; justify-content:flex-end; position:absolute; top:10px; right:10px; z-index:10;">
+            <button onclick="closeTrailerModal()" style="background:rgba(0,0,0,0.6); border:1px solid rgba(255,255,255,0.3); color:#fff; width:34px; height:34px; border-radius:50%; cursor:pointer; font-weight:bold; transition: background 0.2s;" onmouseover="this.style.background='rgba(255,93,143,0.8)'" onmouseout="this.style.background='rgba(0,0,0,0.6)'">✕</button>
+        </div>
+        <div style="position:relative; padding-bottom:56.25%; height:0; overflow:hidden;">
+            <iframe id="trailer-iframe" style="position:absolute; top:0; left:0; width:100%; height:100%; border:none;" src="https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&showinfo=0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+        </div>
+    </div>`;
+    
+    // 🛠️ CORRECTION : On utilise 'flex' pour centrer l'écran
+    modal.style.display = 'flex';
+}
+
+function closeTrailerModal() {
+    const modal = document.getElementById('modal-trailer');
+    if (modal) {
+        const iframe = document.getElementById('trailer-iframe');
+        if (iframe) iframe.src = ''; // 🛑 Coupe la vidéo
+        modal.style.display = 'none'; // Cache la modale
     }
 }
 

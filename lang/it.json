@@ -531,5 +531,7 @@
     "err_update_failed": "Errore di aggiornamento",
     "export_list_btn": "Esporta lista",
     "btn_download": "Scaricare",
-    "update_available": "Nuovo aggiornamento disponibile"
+    "update_available": "Nuovo aggiornamento disponibile",
+    "app_shortcut_label": "Scorciatoia da tastiera (Alt + Tasto)",
+    "app_shortcut_hint": "Lascia vuoto per disattivare. La scorciatoia finale sarà <b>Alt + [Il tuo tasto]</b>."
 }

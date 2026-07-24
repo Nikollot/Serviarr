@@ -531,5 +531,7 @@
     "err_update_failed": "Erreur de mise à jour",
     "export_list_btn": "Exporter une liste",
     "btn_download": "Télécharger",
-    "update_available": "Nouvelle mise à jour disponible"
+    "update_available": "Nouvelle mise à jour disponible",
+    "app_shortcut_label": "Raccourci Clavier (Alt + Touche)",
+    "app_shortcut_hint": "Laissez vide pour désactiver. Le raccourci final sera <b>Alt + [Votre touche]</b>."
 }

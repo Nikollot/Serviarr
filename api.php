@@ -1677,7 +1677,8 @@ if ($action === 'movie_detail') {
         'physicalRelease' => $mv['physicalRelease'] ?? null,
         'download_info'   => $download_info,
         'titleSlug'       => $mv['titleSlug'] ?? '',
-        'appUrl'          => rtrim($radarr['url'], '/')
+        'appUrl'          => rtrim($radarr['url'], '/'),
+		'youtubeTrailerId'=> $mv['youTubeTrailerId'] ?? null
     ], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_IGNORE);
     exit;
 }
@@ -1932,7 +1933,8 @@ if ($action === 'serie_detail') {
         'added'     => $added,
         'cast'      => $cast,
         'titleSlug' => $s['titleSlug'] ?? '',
-        'appUrl'    => rtrim($sonarr['url'], '/')
+        'appUrl'    => rtrim($sonarr['url'], '/'),
+		'youtubeTrailerId'=> $s['youTubeTrailerId'] ?? null
     ], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_IGNORE);
     exit;
 }
@@ -3666,8 +3668,10 @@ if ($action === 'webhook_notif') {
     $sonarr = find_app_by_driver($cfg, 'sonarr');
 
     $image = null;
-    $tag = 'sys_notif'; // 🌟 NOUVEAU : Identifiant unique par défaut
+    $tag = 'sys_notif';
     $clickUrl = '/';
+    $seasonNum = 0;       // 👈 AJOUT
+    $seriesTitle = '';    // 👈 AJOUT
 
     $formatSize = function($bytes) {
         if (!$bytes) return 'Inconnu';
@@ -3727,19 +3731,23 @@ if ($action === 'webhook_notif') {
 
     } elseif (isset($input['series'])) {
         $s = $input['series'];
-        $title = "📺 " . $s['title'];
+        $seriesTitle = $s['title']; // 👈 AJOUT (on mémorise le nom pour le JS)
+        $title = "📺 " . $seriesTitle;
         $body = $actionText . "\n";
 
-        // 🌟 NOUVEAU : On crée un Tag lié à l'ID de la série
         $tag = 'serie_' . $s['id'];
         $clickUrl = 'series.php?serie=' . $s['id'];
 
         if (isset($input['episodes']) && count($input['episodes']) > 0) {
             $ep = $input['episodes'][0];
-            $saison = sprintf("%02d", $ep['seasonNumber'] ?? 0);
+            $seasonNum = $ep['seasonNumber'] ?? 0; // 👈 AJOUT (on mémorise la saison pour le JS)
+
+            $saison = sprintf("%02d", $seasonNum);
             $episode = sprintf("%02d", $ep['episodeNumber'] ?? 0);
             $title .= " - S{$saison}E{$episode}";
             $body .= "Épisode : " . ($ep['title'] ?? 'Inconnu') . "\n";
+
+            $tag .= '_ep_' . ($ep['id'] ?? 0);
         }
 
         if ($eventType === 'Grab' && isset($input['release'])) {
@@ -3807,7 +3815,13 @@ if ($action === 'webhook_notif') {
             'title' => $title,
             'body'  => $body,
             'tag'   => $tag,
-            'url'   => $clickUrl
+            'url'   => $clickUrl,
+            'mediaType'    => isset($s) ? 'serie' : (isset($m) ? 'movie' : 'system'),
+            'seriesId'     => $s['id'] ?? 0,
+            'seasonNumber' => $seasonNum,
+            'seriesTitle'  => $seriesTitle,
+            // 🌟 NOUVEAU : On envoie le titre brut du film
+            'movieTitle'   => isset($m) ? $m['title'] : ''
         ];
         if ($image) {
             $notificationData['icon']  = $image;

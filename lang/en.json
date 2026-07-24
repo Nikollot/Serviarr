@@ -531,5 +531,7 @@
     "err_update_failed": "Update error",
     "export_list_btn": "Export list",
     "btn_download": "Download",
-    "update_available": "New update available"
+    "update_available": "New update available",
+    "app_shortcut_label": "Keyboard Shortcut (Alt + Key)",
+    "app_shortcut_hint": "Leave blank to disable. Final shortcut will be <b>Alt + [Your key]</b>."
 }

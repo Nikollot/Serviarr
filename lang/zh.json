@@ -531,5 +531,7 @@
     "err_update_failed": "更新出错",
     "export_list_btn": "导出列表",
     "btn_download": "下载",
-    "update_available": "有新的更新可用"
+    "update_available": "有新的更新可用",
+    "app_shortcut_label": "键盘快捷键 (Alt + 按键)",
+    "app_shortcut_hint": "留空以禁用。最终的快捷键将是 <b>Alt + [您的按键]</b>。"
 }

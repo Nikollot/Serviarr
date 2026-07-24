@@ -531,5 +531,7 @@
     "err_update_failed": "更新エラー",
     "export_list_btn": "リストをエクスポート",
     "btn_download": "ダウンロード",
-    "update_available": "新しいアップデートが利用可能です"
+    "update_available": "新しいアップデートが利用可能です",
+    "app_shortcut_label": "キーボードショートカット (Alt + キー)",
+    "app_shortcut_hint": "無効にするには空白のままにしてください。最終的なショートカットは <b>Alt + [あなたのキー]</b> になります。"
 }

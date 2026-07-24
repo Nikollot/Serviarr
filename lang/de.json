@@ -531,5 +531,7 @@
     "err_update_failed": "Fehler beim Aktualisieren",
     "export_list_btn": "Liste exportieren",
     "btn_download": "Herunterladen",
-    "update_available": "Neues Update verfügbar"
+    "update_available": "Neues Update verfügbar",
+    "app_shortcut_label": "Tastaturkürzel (Alt + Taste)",
+    "app_shortcut_hint": "Leer lassen zum Deaktivieren. Das endgültige Kürzel lautet <b>Alt + [Ihre Taste]</b>."
 }

@@ -531,5 +531,7 @@
     "err_update_failed": "Error de actualización",
     "export_list_btn": "Exportar lista",
     "btn_download": "Descargar",
-    "update_available": "Nueva actualización disponible"
+    "update_available": "Nueva actualización disponible",
+    "app_shortcut_label": "Atajo de teclado (Alt + Tecla)",
+    "app_shortcut_hint": "Déjalo en blanco para desactivar. El atajo final será <b>Alt + [Tu tecla]</b>."
 }
