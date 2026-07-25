@@ -41,6 +41,28 @@ if (!function_exists('t')) {
         return $translations[$key] ?? $key;
     }
 }
+
+// ── TMDB : langue/région dynamiques selon la langue de l'app ──
+// Évite que les contenus TMDB (synopsis, titres, découverte) restent en
+// français quel que soit l'idiome choisi par l'utilisateur.
+function tmdb_lang_code() {
+    global $lang;
+    $map = [
+        'fr' => 'fr-FR', 'en' => 'en-US', 'es' => 'es-ES', 'de' => 'de-DE',
+        'it' => 'it-IT', 'zh' => 'zh-CN', 'ja' => 'ja-JP',
+    ];
+    return $map[$lang] ?? 'fr-FR';
+}
+function tmdb_region_code() {
+    global $lang;
+    $map = [
+        'fr' => 'FR', 'en' => 'US', 'es' => 'ES', 'de' => 'DE',
+        'it' => 'IT', 'zh' => 'CN', 'ja' => 'JP',
+    ];
+    return $map[$lang] ?? 'FR';
+}
+$TMDB_LANG   = tmdb_lang_code();
+$TMDB_REGION = tmdb_region_code();
 // ─────────────────────────────────
 
 $config_file = __DIR__ . '/data/config.json';
@@ -422,7 +444,7 @@ if ($action === 'verify_login_2fa') {
         echo json_encode(['ok' => true]);
     } else {
         register_failed_attempt($lockout_key);
-        echo json_encode(['error' => 'Code 2FA incorrect']);
+        echo json_encode(['error' => t('err_2fa_code_incorrect')]);
     }
     exit;
 }
@@ -568,7 +590,8 @@ if ($action === 'get_apps') {
 
 if ($action === 'driver_fields') {
     $driver = preg_replace('/[^a-z0-9_]/', '', strtolower($_GET['driver'] ?? ''));
-    $file   = __DIR__ . "/drivers/$driver.php";
+    // On ajoute _driver au nom du fichier
+    $file   = __DIR__ . "/drivers/{$driver}_driver.php";
     if (!file_exists($file)) { echo json_encode(['error' => t('err_driver_unknown')]); exit; }
     require_once $file;
     $fn = $driver . '_fields';
@@ -578,8 +601,10 @@ if ($action === 'driver_fields') {
 
 if ($action === 'list_drivers') {
     $drivers = [];
-    foreach (glob(__DIR__ . '/drivers/*.php') as $f) {
-        $name = basename($f, '.php');
+    // On ne cherche que les fichiers finissant par _driver.php
+    foreach (glob(__DIR__ . '/drivers/*_driver.php') as $f) {
+        // On nettoie le nom pour garder uniquement l'ID (ex: "docker" au lieu de "docker_driver")
+        $name = str_replace('_driver', '', basename($f, '.php'));
         $drivers[] = ['id' => $name, 'name' => ucfirst($name)];
     }
     echo json_encode(['drivers' => $drivers]);
@@ -591,7 +616,8 @@ if ($action === 'save_app') {
     $driver = preg_replace('/[^a-z0-9_]/', '', strtolower($_POST['driver'] ?? ''));
     $id     = $_POST['id'] ?? ('app_' . uniqid());
     $name   = trim($_POST['name'] ?? ucfirst($driver));
-    $file   = __DIR__ . "/drivers/$driver.php";
+    // On ajoute _driver au nom du fichier
+    $file   = __DIR__ . "/drivers/{$driver}_driver.php";
     if (!file_exists($file)) { echo json_encode(['error' => t('err_driver_unknown')]); exit; }
     require_once $file;
     $fn     = $driver . '_fields';
@@ -647,7 +673,8 @@ if ($action === 'app_status') {
     if (!isset($cfg['apps'][$id])) { echo json_encode(['error' => t('err_app_not_found')]); exit; }
     $app    = $cfg['apps'][$id];
     $driver = preg_replace('/[^a-z0-9_]/', '', $app['driver']);
-    $file   = __DIR__ . "/drivers/$driver.php";
+    // On ajoute _driver au nom du fichier
+    $file   = __DIR__ . "/drivers/{$driver}_driver.php";
     if (!file_exists($file)) { echo json_encode(['error' => t('err_driver_not_found')]); exit; }
     require_once $file;
     $fn = $driver . '_status';
@@ -699,10 +726,10 @@ if ($action === 'actor_credits') {
     }
 
     // 1. Recherche de l'acteur pour récupérer son ID TMDB original
-    $search_url = "https://api.themoviedb.org/3/search/person?api_key=" . $tmdb_key . "&query=" . urlencode($name) . "&language=fr-FR";
+    $search_url = "https://api.themoviedb.org/3/search/person?api_key=" . $tmdb_key . "&query=" . urlencode($name) . "&language=" . $TMDB_LANG;
     $search_res = http_get_secure($search_url);
     if (isset($search_res['_error']) || empty($search_res['results'])) {
-        echo json_encode(['error' => 'Acteur introuvable sur TMDB.']);
+        echo json_encode(['error' => t('err_actor_not_found_tmdb')]);
         exit;
     }
 
@@ -710,7 +737,7 @@ if ($action === 'actor_credits') {
     $person_id = $person['id'];
 
     // 2. Récupération des crédits combinés (Films et Séries)
-    $credits_url = "https://api.themoviedb.org/3/person/" . $person_id . "/combined_credits?api_key=" . $tmdb_key . "&language=fr-FR";
+    $credits_url = "https://api.themoviedb.org/3/person/" . $person_id . "/combined_credits?api_key=" . $tmdb_key . "&language=" . $TMDB_LANG;
     $credits_res = http_get_secure($credits_url);
     if (isset($credits_res['_error'])) {
         echo json_encode(['error' => t('err_filmography_failed')]);
@@ -762,7 +789,7 @@ if ($action === 'actor_credits') {
     foreach ($cast_credits as $c) {
         $media_type = $c['media_type'] ?? 'movie';
         $tmdbId = $c['id'];
-        $title = $c['title'] ?? $c['name'] ?? 'Inconnu';
+        $title = $c['title'] ?? $c['name'] ?? t('word_unknown');
         $release_date = $c['release_date'] ?? $c['first_air_date'] ?? '';
         $year = $release_date ? substr($release_date, 0, 4) : '';
         $character = $c['character'] ?? '';
@@ -1291,7 +1318,7 @@ if ($action === 'tmdb_movie_detail') {
     // On demande à Radarr de chercher les infos du film sur TMDB
     $lookup = arr_get($radarr, "/api/v3/movie/lookup/tmdb?tmdbId=$tmdbId");
     if (isset($lookup['_error']) || empty($lookup['title'])) {
-        echo json_encode(['error' => 'Film introuvable via l\'API Radarr']); exit;
+        echo json_encode(['error' => t('err_movie_not_found_radarr')]); exit;
     }
 
     $poster_url = null;
@@ -1492,7 +1519,7 @@ if ($action === 'library_movies') {
 
     $output = json_encode(['movies' => $movies, 'total' => $total], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_IGNORE);
     if ($output === false) {
-        echo json_encode(['error' => 'Erreur fatale de conversion : ' . json_last_error_msg()]);
+        echo json_encode(['error' => t('err_conversion_fatal') . ' ' . json_last_error_msg()]);
     } else {
         echo $output;
     }
@@ -1862,7 +1889,7 @@ if ($action === 'serie_detail') {
         $tmdb_id = $find_data['tv_results'][0]['id'] ?? null;
 
         if ($tmdb_id) {
-            $credits_url = "https://api.themoviedb.org/3/tv/{$tmdb_id}/credits?api_key={$tmdb_api_key}&language=fr-FR";
+            $credits_url = "https://api.themoviedb.org/3/tv/{$tmdb_id}/credits?api_key={$tmdb_api_key}&language={$TMDB_LANG}";
             $ch = curl_init($credits_url);
             curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_SSL_VERIFYPEER => true, CURLOPT_TIMEOUT => 5]);
             $credits_raw = curl_exec($ch);
@@ -2235,7 +2262,7 @@ if ($action === 'proxy_fetch') {
     $url = $_GET['url'] ?? '';
 
     if (!$url || !filter_var($url, FILTER_VALIDATE_URL)) {
-        echo json_encode(['error' => 'URL invalide']);
+        echo json_encode(['error' => t('err_url_invalid')]);
         exit;
     }
 
@@ -2360,7 +2387,7 @@ if ($action === 'movies_dashboard') {
 
         // B. Compléter "À venir"
         $today = date('Y-m-d');
-        $tmdbUpcomingUrl = "https://api.themoviedb.org/3/discover/movie?api_key={$tmdbKey}&language=fr-FR&region=FR&sort_by=popularity.desc&primary_release_date.gte={$today}&with_release_type=2|3";
+        $tmdbUpcomingUrl = "https://api.themoviedb.org/3/discover/movie?api_key={$tmdbKey}&language={$TMDB_LANG}&region={$TMDB_REGION}&sort_by=popularity.desc&primary_release_date.gte={$today}&with_release_type=2|3";
 
         $chUp = curl_init($tmdbUpcomingUrl);
         curl_setopt_array($chUp, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 3]);
@@ -2389,7 +2416,7 @@ if ($action === 'movies_dashboard') {
         if (count($allMovies) > 0) {
             $baseList = !empty($downloaded) ? $downloaded : $allMovies;
             $randomMovie = $baseList[array_rand($baseList)];
-            $tmdbUrl = "https://api.themoviedb.org/3/movie/{$randomMovie['tmdbId']}/recommendations?api_key={$tmdbKey}&language=fr-FR&page=1";
+            $tmdbUrl = "https://api.themoviedb.org/3/movie/{$randomMovie['tmdbId']}/recommendations?api_key={$tmdbKey}&language={$TMDB_LANG}&page=1";
 
             $chTmdb = curl_init($tmdbUrl);
             curl_setopt_array($chTmdb, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 5]);
@@ -2410,7 +2437,7 @@ if ($action === 'movies_dashboard') {
         }
 
         // ── POPULAIRES ──
-        $urlPop = "https://api.themoviedb.org/3/discover/movie?api_key={$tmdbKey}&language=fr-FR&region=FR&sort_by=popularity.desc&vote_count.gte=10";
+        $urlPop = "https://api.themoviedb.org/3/discover/movie?api_key={$tmdbKey}&language={$TMDB_LANG}&region={$TMDB_REGION}&sort_by=popularity.desc&vote_count.gte=10";
         $ch = curl_init($urlPop);
         curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 3]);
         $res = curl_exec($ch);
@@ -2561,7 +2588,7 @@ if ($action === 'series_dashboard') {
 
         // A. NOUVELLES SÉRIES À VENIR
         $today = date('Y-m-d');
-        $urlUp = "https://api.themoviedb.org/3/discover/tv?api_key={$tmdbKey}&language=fr-FR&sort_by=popularity.desc&first_air_date.gte={$today}";
+        $urlUp = "https://api.themoviedb.org/3/discover/tv?api_key={$tmdbKey}&language={$TMDB_LANG}&sort_by=popularity.desc&first_air_date.gte={$today}";
         $chUp = curl_init($urlUp);
         curl_setopt_array($chUp, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 3]);
         $resUp = curl_exec($chUp);
@@ -2586,7 +2613,7 @@ if ($action === 'series_dashboard') {
         }
 
         // B. SÉRIES POPULAIRES
-        $urlPop = "https://api.themoviedb.org/3/discover/tv?api_key={$tmdbKey}&language=fr-FR&sort_by=popularity.desc&vote_count.gte=10";
+        $urlPop = "https://api.themoviedb.org/3/discover/tv?api_key={$tmdbKey}&language={$TMDB_LANG}&sort_by=popularity.desc&vote_count.gte=10";
         $chPop = curl_init($urlPop);
         curl_setopt_array($chPop, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 3]);
         $resPop = curl_exec($chPop);
@@ -2664,12 +2691,12 @@ if ($action === 'bulk_media_action') {
 
     clear_media_caches($type);
     log_activity($bulkAction === 'delete' ? 'bulk_delete' : 'bulk_monitor', $type, null,
-                 "{$success} élément(s) sur " . count($ids) . " (" . $bulkAction . ")");
+                 "{$success} " . t('word_items_of') . " " . count($ids) . " (" . $bulkAction . ")");
 
     if ($success > 0) {
         echo json_encode(['ok' => true, 'success' => $success, 'failed' => $failed]);
     } else {
-        echo json_encode(['error' => 'Aucune action n\'a pu être effectuée', 'failed' => $failed]);
+        echo json_encode(['error' => t('err_no_action_taken'), 'failed' => $failed]);
     }
     exit;
 }
@@ -2776,7 +2803,7 @@ if ($action === 'movie_collection') {
     }
 
     if (!$target_collection) {
-        echo json_encode(['error' => 'Collection introuvable dans Radarr.']); exit;
+        echo json_encode(['error' => t('err_collection_not_found_radarr')]); exit;
     }
 
     // 3. Récupère la bibliothèque pour croiser les données (savoir ce qu'on a déjà)
@@ -3295,7 +3322,7 @@ if ($action === 'add_torrent') {
         if ($is_share) { header('Location: /'); exit; }
 
         if ($result === true) {
-            log_activity('add_torrent', 'torrent', null, $has_file ? 'Fichier .torrent' : $magnet_link);
+            log_activity('add_torrent', 'torrent', null, $has_file ? t('torrent_file_label') : $magnet_link);
             echo json_encode(['ok' => true]);
         } else {
             $error_msg = is_string($result) ? $result : 'Erreur lors de l\'ajout';
@@ -3371,7 +3398,7 @@ if ($action === 'reorder_apps') {
         exit;
     }
 
-    echo json_encode(['error' => 'Ordre invalide']);
+    echo json_encode(['error' => t('err_invalid_order')]);
     exit;
 }
 
@@ -3856,7 +3883,7 @@ if ($action === 'save_push_sub') {
         file_put_contents(__DIR__ . '/data/push_subscription.json', $sub);
         echo json_encode(['success' => true]);
     } else {
-        echo json_encode(['error' => 'No sub data']);
+        echo json_encode(['error' => t('err_no_sub_data')]);
     }
     exit;
 }
@@ -3869,11 +3896,11 @@ if ($action === 'prowlarr_indexers') {
     $app = find_app_by_driver($cfg, 'indexer');
 
     if (!$app) {
-        echo json_encode(['error' => 'L\'indexeur n\'est pas configuré dans les paramètres.']);
+        echo json_encode(['error' => t('err_indexer_not_configured')]);
         exit;
     }
 
-    require_once __DIR__ . '/drivers/indexer.php';
+    require_once __DIR__ . '/drivers/indexer_driver.php';
     $client = $app['client'] ?? 'prowlarr';
 
     if ($client === 'jackett') {
@@ -3935,7 +3962,7 @@ if ($action === 'prowlarr_search') {
     $indexer = $_GET['indexer'] ?? '0';
     $category = (int)($_GET['category'] ?? 0);
 
-    require_once __DIR__ . '/drivers/indexer.php';
+    require_once __DIR__ . '/drivers/indexer_driver.php';
     $client = $app['client'] ?? 'prowlarr';
 
     if ($client === 'jackett') {
@@ -4181,7 +4208,7 @@ if ($action === 'import_backup') {
     $backup = json_decode($content, true);
 
     if (!$backup || !isset($backup['backend'])) {
-        echo json_encode(['error' => 'Fichier de sauvegarde invalide ou corrompu']);
+        echo json_encode(['error' => t('err_backup_file_invalid')]);
         exit;
     }
 
@@ -4223,4 +4250,5 @@ if ($action === 'export_media_list') {
     exit;
 }
 
-echo json_encode(['error' => 'Action inconnue: ' . $action]);
+
+echo json_encode(['error' => t('err_unknown_action') . ' ' . $action]);

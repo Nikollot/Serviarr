@@ -29,7 +29,7 @@ if (file_exists($config_path)) {
         <?php if ($prowlarr_url !== '#'): ?>
         <a href="<?= htmlspecialchars($prowlarr_url) ?>" target="_blank" class="btn-app-link">
             <span class="icon">🌐</span>
-            <span class="btn-torrent-text">Ouvrir <?= htmlspecialchars($app_name) ?></span>
+            <span class="btn-torrent-text"><?= t('btn_open') ?> <?= htmlspecialchars($app_name) ?></span>
         </a>
         <?php endif; ?>
     </div>

@@ -6,7 +6,7 @@
 
 function indexer_fields() {
     return [
-        ['key' => 'client', 'label' => 'Logiciel Indexeur', 'type' => 'select', 'options' => [
+        ['key' => 'client', 'label' => t('driver_label_indexer_client'), 'type' => 'select', 'options' => [
             ['value' => 'prowlarr', 'label' => 'Prowlarr'],
             ['value' => 'jackett', 'label' => 'Jackett'],
         ]],
@@ -24,7 +24,7 @@ function indexer_status($cfg) {
         case 'jackett':  return _status_jackett($cfg);
         case 'newznab':  return _status_newznab($cfg);
         case 'spotweb':  return _status_spotweb($cfg);
-        default:         return ['ok' => false, 'error' => 'Indexeur non supporté'];
+        default:         return ['ok' => false, 'error' => function_exists('t') ? t('err_indexer_not_supported') : 'Indexeur non supporté'];
     }
 }
 
@@ -34,7 +34,7 @@ function prowlarr_request($cfg, $endpoint) {
     $ch = curl_init($url);
     curl_setopt_array($ch, [
         CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_TIMEOUT => 8,
+        CURLOPT_TIMEOUT => 60,
         CURLOPT_HTTPHEADER => ['X-Api-Key: ' . ($cfg['api_key'] ?? '')],
         CURLOPT_SSL_VERIFYPEER => false,
         CURLOPT_FOLLOWLOCATION => true, // 👈 LIGNE AJOUTÉE ICI
@@ -44,11 +44,11 @@ function prowlarr_request($cfg, $endpoint) {
     $err = curl_error($ch);
     curl_close($ch);
 
-    if ($code === 401) return ['_error' => 'Clé API Prowlarr invalide ou manquante'];
-    if ($err) return ['_error' => 'Erreur de connexion : ' . $err];
-    if ($code !== 200) return ['_error' => 'Erreur HTTP ' . $code . ($res ? ' — ' . substr(strip_tags($res), 0, 300) : '')];
+    if ($code === 401) return ['_error' => function_exists('t') ? t('err_api_key_prowlarr_invalid') : 'Clé API Prowlarr invalide ou manquante'];
+    if ($err) return ['_error' => (function_exists('t') ? t('error_connection') : 'Erreur de connexion') . ' : ' . $err];
+    if ($code !== 200) return ['_error' => (function_exists('t') ? t('err_http_prefix') : 'Erreur HTTP') . ' ' . $code . ($res ? ' — ' . substr(strip_tags($res), 0, 300) : '')];
 
-    return json_decode($res, true) ?? ['_error' => 'Réponse invalide de Prowlarr'];
+    return json_decode($res, true) ?? ['_error' => function_exists('t') ? t('err_prowlarr_invalid_response') : 'Réponse invalide de Prowlarr'];
 }
 
 function _status_prowlarr($cfg) {
@@ -138,10 +138,10 @@ function jackett_request($cfg, $endpoint) {
 
     if (file_exists($cookie_file)) unlink($cookie_file);
 
-    if ($err) return ['_error' => 'Erreur réseau : ' . $err];
-    if ($code !== 200) return ['_error' => 'Erreur ' . $code . ': ' . substr(strip_tags($res), 0, 100)];
+    if ($err) return ['_error' => (function_exists('t') ? t('notif_network_error') : 'Erreur réseau') . ' : ' . $err];
+    if ($code !== 200) return ['_error' => (function_exists('t') ? t('err_http_prefix') : 'Erreur') . ' ' . $code . ': ' . substr(strip_tags($res), 0, 100)];
     
-    return json_decode($res, true) ?? ['_error' => 'Pas de JSON'];
+    return json_decode($res, true) ?? ['_error' => function_exists('t') ? t('err_jackett_no_json') : 'Pas de JSON'];
 }
 
 function _status_jackett($cfg) {
@@ -179,7 +179,7 @@ function _status_jackett($cfg) {
         'ok' => true,
         'stats' => [
             ['label' => function_exists('t') ? t('prowlarr_indexers') : 'Indexeurs', 'value' => $total],
-            ['label' => function_exists('t') ? t('api_active_plural') : 'Configurés', 'value' => $enabled],
+            ['label' => function_exists('t') ? t('jackett_configured_label') : 'Configurés', 'value' => $enabled],
         ],
         'items' => $items,
     ];

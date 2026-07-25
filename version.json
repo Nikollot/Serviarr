@@ -1,5 +1,5 @@
 {
-  "version": "1.4",
-  "changelog": "- add keyboard shortcut</br> - multi notification push</br> - correction parameter appli add</br> - notification web modification</br> - add Trailers",
+  "version": "1.4.1",
+  "changelog": "###Updates</br></br>- change buttons on detail pages on mobile</br>- remove some persistent brut text",
   "url": "https://github.com/Nikollot/Serviarr/releases/latest"
 }

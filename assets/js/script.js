@@ -1,4 +1,4 @@
-const APP_VERSION = "1.4";
+const APP_VERSION = "1.4.1";
 const UPDATE_URL = "https://raw.githubusercontent.com/Nikollot/Serviarr/main/version.json";
 
 const DRIVER_ICONS = {docker:'🐳', sonarr:'📺',radarr:'🎬',prowlarr:'🔍',indexer:'🔍',transmission:'⬇',download:'⬇',jellyfin:'🎵',qbittorrent:'🌊',sabnzbd:'📥',lidarr:'🎶',readarr:'📚', iframe:'🌐', supervision:'📊'};
@@ -167,7 +167,7 @@ async function executeBulkAction(action) {
             const r = await api('torrent_action', {
                 method: action,
                 ids: JSON.stringify(ids),
-                'delete-local-data': deleteFiles ? 'true' : 'false'
+                                'delete-local-data': deleteFiles ? 'true' : 'false'
             });
             notify(r.ok ? t('bulk_done').replace('{n}', ids.length) : (r.error || t('notif_error')), r.ok ? 'ok' : 'err');
             exitBulkMode();
@@ -177,8 +177,8 @@ async function executeBulkAction(action) {
         if (action === 'torrent-remove') {
             showConfirmModal(
                 t('bulk_delete_title'),
-                t('bulk_delete_msg').replace('{n}', ids.length),
-                () => runTorrentAction(true)
+                             t('bulk_delete_msg').replace('{n}', ids.length),
+                             () => runTorrentAction(true)
             );
         } else {
             runTorrentAction(false);
@@ -191,8 +191,8 @@ async function executeBulkAction(action) {
         const r = await api('bulk_media_action', {
             type,
             ids: JSON.stringify(ids),
-            bulkAction: action,
-            deleteFiles: deleteFiles ? '1' : '0'
+                            bulkAction: action,
+                            deleteFiles: deleteFiles ? '1' : '0'
         });
         if (r.ok) {
             notify(t('bulk_done').replace('{n}', r.success ?? ids.length), 'ok');
@@ -203,15 +203,15 @@ async function executeBulkAction(action) {
         if (type === 'movie') loadMovies(); else loadSeries();
     };
 
-    if (action === 'delete') {
-        showConfirmModal(
-            t('bulk_delete_title'),
-            t('bulk_delete_msg').replace('{n}', ids.length),
-            () => runIt(true)
-        );
-    } else {
-        runIt(false);
-    }
+        if (action === 'delete') {
+            showConfirmModal(
+                t('bulk_delete_title'),
+                             t('bulk_delete_msg').replace('{n}', ids.length),
+                             () => runIt(true)
+            );
+        } else {
+            runIt(false);
+        }
 }
 
 // Fonction universelle pour gérer l'affichage des icônes
@@ -664,7 +664,7 @@ async function loadRecentDownloads() {
     if (!items.length) { panel.innerHTML = `<p style="color:var(--muted);font-size:13px;">${t('no_recent_dl')}</p>`; return; }
     panel.innerHTML = '<div class="recent-list">' + items.map(it => `
     <div class="recent-item">
-    <span class="recent-badge ${it.type}">${it.type === 'movie' ? t('type_movie') : t('type_serie')}</span>
+    <span class="recent-badge ${it.type}">${it.type === 'film' ? t('type_movie') : t('type_serie')}</span>
     <span class="recent-title" title="${esc(it.title)}">${esc(it.title)}</span>
     <span class="recent-meta">${esc(it.quality)} · ${esc(it.date)}</span>
     </div>`).join('') + '</div>';
@@ -891,7 +891,7 @@ function makeMovieCard(mv, isSearch) {
     if (!monitored && !isSearch) div.classList.add('unmonitored');
     const bulkCheckbox = (!isSearch) ? `
     <div class="bulk-select-checkbox ${bulkSelectMode ? 'visible' : ''}" onclick="event.stopPropagation(); toggleBulkSelect(${mv.id})">
-        <input type="checkbox" ${bulkSelectedIds.has(mv.id) ? 'checked' : ''} readonly>
+    <input type="checkbox" ${bulkSelectedIds.has(mv.id) ? 'checked' : ''} readonly>
     </div>` : '';
     if (bulkSelectedIds.has(mv.id)) div.classList.add('bulk-selected');
     div.innerHTML = `
@@ -1075,7 +1075,7 @@ function makeSerieCard(s, isSearch) {
     if (!monitored && !isSearch) div.classList.add('unmonitored');
     const bulkCheckbox = (!isSearch) ? `
     <div class="bulk-select-checkbox ${bulkSelectMode ? 'visible' : ''}" onclick="event.stopPropagation(); toggleBulkSelect(${s.id})">
-        <input type="checkbox" ${bulkSelectedIds.has(s.id) ? 'checked' : ''} readonly>
+    <input type="checkbox" ${bulkSelectedIds.has(s.id) ? 'checked' : ''} readonly>
     </div>` : '';
     if (bulkSelectedIds.has(s.id)) div.classList.add('bulk-selected');
     div.innerHTML = `
@@ -1256,7 +1256,7 @@ async function confirmAddMedia() {
                 btn.style.opacity = '1';
                 btn.style.pointerEvents = 'auto';
                 btn.setAttribute('onclick', openClickAction);
-                const badge = btn.querySelector('div[style*="Non ajouté"]');
+                const badge = btn.querySelector('.not-planned-badge');
                 if (badge) badge.style.display = 'none';
                 const icon = btn.querySelector('span[style*="color:#ffa03c"]');
                 if (icon) {
@@ -1387,7 +1387,7 @@ function renderAppsListHtml() {
         <div class="app-item-actions">
         <button class="app-item-btn" onclick="moveApp(-1, ${index})" ${isFirst ? 'disabled style="opacity:0.2;cursor:not-allowed;"' : ''} title="${t('btn_move_up')}">⬆️</button>
         <button class="app-item-btn" onclick="moveApp(1, ${index})" ${isLast ? 'disabled style="opacity:0.2;cursor:not-allowed;"' : ''} title="${t('btn_move_down')}">⬇️</button>
-        <button class="app-item-btn" onclick="editApp('${app.id}')" title="Éditer">⚙️</button>
+        <button class="app-item-btn" onclick="editApp('${app.id}')" title="${t('edit_title')}">⚙️</button>
         <button class="app-item-btn danger" onclick="deleteApp('${app.id}', '${esc(app.name)}')" title="${t('detail_delete')}">🗑️</button>
         </div>
 
@@ -1638,12 +1638,12 @@ async function fetchFavicon() {
     const urlInput = document.querySelector('#modal-fields input[name="url"]');
     const iconInput = document.getElementById('modal-icon_url');
 
-    if (!urlInput || urlInput.value.trim() === '') { notify('Erreur URL', "err"); return; }
+    if (!urlInput || urlInput.value.trim() === '') { notify(t('err_url_missing'), "err"); return; }
     let urlStr = urlInput.value.trim();
-    if (urlStr.includes('.sock')) { notify('URL Socket invalide', "err"); return; }
+    if (urlStr.includes('.sock')) { notify(t('err_url_socket_invalid'), "err"); return; }
     if (!urlStr.startsWith('http://') && !urlStr.startsWith('https://')) urlStr = 'http://' + urlStr;
 
-        try { new URL(urlStr); } catch (e) { notify('URL invalide', "err"); return; }
+        try { new URL(urlStr); } catch (e) { notify(t('err_url_invalid'), "err"); return; }
 
         notify(t('search_started'), "ok");
 
@@ -1899,82 +1899,108 @@ async function openMovieDetail(id) {
         </div>` : '';
 
         content.innerHTML = `
+        <style>
+        .action-buttons-mobile { display: none !important; }
+        .action-buttons-desktop { display: flex !important; }
+        @media (max-width: 768px) {
+            .action-buttons-mobile { display: flex !important; }
+            .action-buttons-desktop { display: none !important; }
+        }
+        </style>
         <div style="position:relative; width:100%; min-height:100vh; background:var(--bg2);">
         <button onclick="closeMovieDetail()" style="position:absolute; top:15px; left:15px; background:var(--bg3); color:var(--text); border:1px solid var(--border); padding:8px 16px; border-radius:8px; cursor:pointer; font-weight:600; font-size:13px; z-index:100; box-shadow:0 4px 15px rgba(0,0,0,0.6); display:inline-flex; align-items:center; gap:6px;">⬅ ${t('detail_back')}</button>
 
         <div style="width:100%; height:250px; background-image:url('${fanartUrl}'); background-size:cover; background-position:center 20%; position:relative;">
         <div style="position:absolute; inset:0; background:linear-gradient(to bottom, rgba(19, 22, 30, 0.2) 0%, var(--bg2) 100%);"></div>
-		${r.youtubeTrailerId ? `
+        ${r.youtubeTrailerId ? `
             <div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; z-index:5;">
-                <button onclick="openTrailerModal('${r.youtubeTrailerId}')" style="background:rgba(0,0,0,0.5); border:2px solid rgba(255,255,255,0.8); color:#fff; width:64px; height:64px; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all 0.2s; backdrop-filter:blur(4px); box-shadow:0 5px 15px rgba(0,0,0,0.5);" onmouseover="this.style.background='var(--accent)'; this.style.color='#000'; this.style.borderColor='var(--accent)'; this.style.transform='scale(1.1)';" onmouseout="this.style.background='rgba(0,0,0,0.5)'; this.style.color='#fff'; this.style.borderColor='rgba(255,255,255,0.8)'; this.style.transform='scale(1)';">
-                    <span style="font-size:24px; margin-left:6px;">▶</span>
-                </button>
+            <button onclick="openTrailerModal('${r.youtubeTrailerId}')" style="background:rgba(0,0,0,0.5); border:2px solid rgba(255,255,255,0.8); color:#fff; width:64px; height:64px; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all 0.2s; backdrop-filter:blur(4px); box-shadow:0 5px 15px rgba(0,0,0,0.5);" onmouseover="this.style.background='var(--accent)'; this.style.color='#000'; this.style.borderColor='var(--accent)'; this.style.transform='scale(1.1)';" onmouseout="this.style.background='rgba(0,0,0,0.5)'; this.style.color='#fff'; this.style.borderColor='rgba(255,255,255,0.8)'; this.style.transform='scale(1)';">
+            <span style="font-size:24px; margin-left:6px;">▶</span>
+            </button>
             </div>` : ''}
-        </div>
-
-        <div style="display:flex; gap:16px; padding:0 20px; margin-top:-70px; position:relative; z-index:10; align-items:flex-end;">
-        ${posterUrl ? `<img src="${posterUrl}" style="width:115px; height:170px; border-radius:12px; box-shadow:0 6px 20px rgba(0,0,0,0.6); object-fit:cover; flex-shrink:0; border:1px solid rgba(255,255,255,0.1);">` : `<div style="width:115px; height:170px; background:var(--bg3); border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:40px; box-shadow:0 6px 20px rgba(0,0,0,0.6); border:1px solid rgba(255,255,255,0.1); flex-shrink:0;">🎬</div>`}
-
-        <div style="padding-bottom:5px; flex:1; min-width:0;">
-        <div id="movie-status-badge" style="display:inline-block; font-size:10px; font-weight:bold; padding:3px 8px; border-radius:6px; background:var(--bg3); border:1px solid var(--border); color:${statusColor}; margin-bottom:6px;">${statusText}</div>
-        <h2 style="font-size:22px; font-weight:800; line-height:1.2; margin:0 0 6px 0; color:var(--text); text-overflow:ellipsis; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;">${esc(r.title)}
-		<!-- LE BOUTON STYLE "BTN-APP-LINK" EST ICI -->
-        ${r.appUrl && r.titleSlug ? `<a href="${r.appUrl}/movie/${r.titleSlug}" target="_blank" class="btn-app-link" style="margin-left:auto; padding:6px 12px; font-size:11px; border-radius:6px; box-shadow:none;">
-        <span class="icon" style="font-size:14px;">🌐</span>
-        <span class="btn-app-link-text">${t('films_open_radarr')}</span>
-        </a>` : ''}
-		</h2>
-
-        <div style="font-size:12px; color:var(--muted); display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
-        <span>${r.year}</span>
-        ${runtime ? `<span>• ${runtime}</span>` : ''}
-        ${r.rating ? `<span style="background:rgba(255,255,255,0.08); padding:1px 6px; border-radius:4px; color:var(--text);">⭐ ${r.rating}</span>` : ''}
-        <span style="cursor:pointer; display:flex; align-items:center;" onclick="toggleMonitor(${id}, 'movie', ${!r.monitored}, this)" title="Surveiller">
-        ${r.monitored ? ICON_MONITORED : ICON_UNMONITORED}
-        </span>
-
-        
-
-        </div>
-        </div>
-        </div>
-
-        <div style="display:flex; gap:10px; padding:20px; overflow-x:auto; scrollbar-width:none; border-bottom:1px solid var(--border); margin-bottom:20px;">
-        <button style="background:var(--bg3); border:1px solid var(--border); color:var(--text); padding:8px 16px; border-radius:20px; font-size:13px; font-weight:600; white-space:nowrap; cursor:pointer; flex-shrink:0; display:flex; gap:6px; align-items:center;" onclick="movieSearchAuto(${r.id}, this)">🔍 ${t('detail_auto_search')}</button>
-        <button style="background:var(--bg3); border:1px solid var(--border); color:var(--text); padding:8px 16px; border-radius:20px; font-size:13px; font-weight:600; white-space:nowrap; cursor:pointer; flex-shrink:0; display:flex; gap:6px; align-items:center;" onclick="openMovieReleases(${r.id}, '${safeTitle}')">👤 ${t('detail_search_releases')}</button>
-        <button style="background:var(--bg3); border:1px solid var(--border); color:var(--text); padding:8px 16px; border-radius:20px; font-size:13px; font-weight:600; white-space:nowrap; cursor:pointer; flex-shrink:0; display:flex; gap:6px; align-items:center;" onclick="refreshMedia(${r.id}, 'movie', this)">🔄 ${t('detail_refresh')}</button>
-        <button style="background:var(--bg3); border:1px solid var(--border); color:var(--text); padding:8px 16px; border-radius:20px; font-size:13px; font-weight:600; white-space:nowrap; cursor:pointer; flex-shrink:0; display:flex; gap:6px; align-items:center;" onclick="openEditMediaModal(${r.id}, 'movie')">⚙️ ${t('modal_edit_radarr')}</button>
-        <button style="background:rgba(255,93,143,0.1); border:1px solid rgba(255,93,143,0.3); color:var(--accent3); padding:8px 16px; border-radius:20px; font-size:13px; font-weight:600; white-space:nowrap; cursor:pointer; flex-shrink:0; display:flex; gap:6px; align-items:center;" onclick="deleteMedia(${r.id}, 'movie', '${safeTitle}')">🗑️ ${t('detail_delete')}</button>
-        </div>
-
-        <div style="padding:0 20px 40px 20px;">
-        <div style="font-size:12px; color:var(--muted); margin-bottom:20px; display:flex; justify-content:space-between;">
-        <span>${genres}</span>
-        <span>📅 ${t('sort_added')} : ${r.added || t('status_unknown')}</span>
-        </div>
-
-        ${fileHtml}
-        ${releaseDatesHtml}
-
-        <h3 style="margin:0 0 10px 0; font-size:16px; color:var(--text);">${t('detail_overview')}</h3>
-        <p style="font-size:13.5px; line-height:1.6; color:#a0a5b5; margin:0 0 25px 0;">${esc(r.overview) || t('no_movie_found')}</p>
-
-        ${r.collection ? `
-            <div onclick="openMovieCollection('${esc(r.collection.title).replace(/'/g, "\\'")}', ${r.id}, ${r.collection.tmdbId || 0})"
-            style="margin-bottom:25px; padding:15px; background:var(--bg3); border:1px solid var(--border); border-left:4px solid var(--radarr); border-radius:12px; display:flex; align-items:center; gap:15px; cursor:pointer;">
-            <span style="font-size:24px;">🎞️</span>
-            <div style="flex:1;">
-            <div style="font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:2px;">${t('detail_collection')}</div>
-            <div style="font-size:14px; font-weight:bold; color:var(--text);">${esc(r.collection.title)}</div>
             </div>
-            <span style="color:var(--muted); font-size:20px;">›</span>
-            </div>` : ''}
 
-            ${castHtml}
+            <div style="display:flex; gap:16px; padding:0 20px; margin-top:-70px; position:relative; z-index:10; align-items:flex-end;">
+            ${posterUrl ? `<img src="${posterUrl}" style="width:115px; height:170px; border-radius:12px; box-shadow:0 6px 20px rgba(0,0,0,0.6); object-fit:cover; flex-shrink:0; border:1px solid rgba(255,255,255,0.1);">` : `<div style="width:115px; height:170px; background:var(--bg3); border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:40px; box-shadow:0 6px 20px rgba(0,0,0,0.6); border:1px solid rgba(255,255,255,0.1); flex-shrink:0;">🎬</div>`}
+
+            <div style="padding-bottom:5px; flex:1; min-width:0;">
+            <div id="movie-status-badge" style="display:inline-block; font-size:10px; font-weight:bold; padding:3px 8px; border-radius:6px; background:var(--bg3); border:1px solid var(--border); color:${statusColor}; margin-bottom:6px;">${statusText}</div>
+            <h2 style="font-size:22px; font-weight:800; line-height:1.2; margin:0 0 6px 0; color:var(--text); text-overflow:ellipsis; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;">${esc(r.title)}
+            ${r.appUrl && r.titleSlug ? `<a href="${r.appUrl}/movie/${r.titleSlug}" target="_blank" class="btn-app-link" style="margin-left:auto; padding:6px 12px; font-size:11px; border-radius:6px; box-shadow:none;">
+            <span class="icon" style="font-size:14px;">🌐</span>
+            <span class="btn-app-link-text">${t('films_open_radarr')}</span>
+            </a>` : ''}
+            </h2>
+
+            <div style="font-size:12px; color:var(--muted); display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+            <span>${r.year}</span>
+            ${runtime ? `<span>• ${runtime}</span>` : ''}
+            ${r.rating ? `<span style="background:rgba(255,255,255,0.08); padding:1px 6px; border-radius:4px; color:var(--text);">⭐ ${r.rating}</span>` : ''}
+            <span style="cursor:pointer; display:flex; align-items:center;" onclick="toggleMonitor(${id}, 'movie', ${!r.monitored}, this)" title="Surveiller">
+            ${r.monitored ? ICON_MONITORED : ICON_UNMONITORED}
+            </span>
             </div>
-            </div>`;
+            </div>
+            </div>
 
-            animateContentSlideIn(content);
+            <!-- 💻 VERSION PC (Ancienne version avec texte) -->
+            <div class="action-buttons-desktop" style="gap:10px; padding:20px; overflow-x:auto; scrollbar-width:none; border-bottom:1px solid var(--border); margin-bottom:20px;">
+            <button style="background:var(--bg3); border:1px solid var(--border); color:var(--text); padding:8px 16px; border-radius:20px; font-size:13px; font-weight:600; white-space:nowrap; cursor:pointer; flex-shrink:0; display:flex; gap:6px; align-items:center; transition:background 0.2s;" onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background='var(--bg3)'" onclick="movieSearchAuto(${r.id}, this)">🔍 ${t('detail_auto_search')}</button>
+            <button style="background:var(--bg3); border:1px solid var(--border); color:var(--text); padding:8px 16px; border-radius:20px; font-size:13px; font-weight:600; white-space:nowrap; cursor:pointer; flex-shrink:0; display:flex; gap:6px; align-items:center; transition:background 0.2s;" onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background='var(--bg3)'" onclick="openMovieReleases(${r.id}, '${safeTitle}')">👤 ${t('detail_search_releases')}</button>
+            <button style="background:var(--bg3); border:1px solid var(--border); color:var(--text); padding:8px 16px; border-radius:20px; font-size:13px; font-weight:600; white-space:nowrap; cursor:pointer; flex-shrink:0; display:flex; gap:6px; align-items:center; transition:background 0.2s;" onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background='var(--bg3)'" onclick="refreshMedia(${r.id}, 'movie', this)">🔄 ${t('detail_refresh')}</button>
+            <button style="background:var(--bg3); border:1px solid var(--border); color:var(--text); padding:8px 16px; border-radius:20px; font-size:13px; font-weight:600; white-space:nowrap; cursor:pointer; flex-shrink:0; display:flex; gap:6px; align-items:center; transition:background 0.2s;" onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background='var(--bg3)'" onclick="openEditMediaModal(${r.id}, 'movie')">⚙️ ${t('modal_edit_radarr')}</button>
+            <button style="background:rgba(255,93,143,0.1); border:1px solid rgba(255,93,143,0.3); color:var(--accent3); padding:8px 16px; border-radius:20px; font-size:13px; font-weight:600; white-space:nowrap; cursor:pointer; flex-shrink:0; display:flex; gap:6px; align-items:center; transition:background 0.2s;" onmouseover="this.style.background='rgba(255,93,143,0.2)'" onmouseout="this.style.background='rgba(255,93,143,0.1)'" onclick="deleteMedia(${r.id}, 'movie', '${safeTitle}')">🗑️ ${t('detail_delete')}</button>
+            </div>
+
+            <!-- 📱 VERSION MOBILE (Icônes rondes avec loupe déroulante) -->
+            <div class="action-buttons-mobile" style="justify-content:center; gap:20px; padding:15px 20px; border-bottom:1px solid var(--border); margin-bottom:20px; position:relative;">
+
+            <div style="position:relative;">
+            <button style="background:var(--bg2); border:1px solid var(--border); border-radius:50%; color:var(--text); width:48px; height:48px; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:20px; box-shadow:0 4px 10px rgba(0,0,0,0.2);" onclick="const m=document.getElementById('movie-search-menu-mobile'); m.style.display=m.style.display==='none'?'flex':'none';">🔍</button>
+
+            <div id="movie-search-menu-mobile" style="display:none; position:absolute; top:calc(100% + 10px); left:0; background:var(--bg3); border:1px solid var(--border); border-radius:12px; padding:8px; flex-direction:column; gap:8px; box-shadow:0 10px 30px rgba(0,0,0,0.6); z-index:100; min-width:200px;">
+            <button style="background:var(--bg2); border:1px solid var(--border); border-radius:8px; color:var(--text); padding:12px; cursor:pointer; font-size:13px; font-weight:600; display:flex; align-items:center; gap:10px;" onclick="document.getElementById('movie-search-menu-mobile').style.display='none'; movieSearchAuto(${r.id}, this)">
+            <span style="font-size:18px;">🤖</span> ${t('detail_auto_search')}
+            </button>
+            <button style="background:var(--bg2); border:1px solid var(--border); border-radius:8px; color:var(--text); padding:12px; cursor:pointer; font-size:13px; font-weight:600; display:flex; align-items:center; gap:10px;" onclick="document.getElementById('movie-search-menu-mobile').style.display='none'; openMovieReleases(${r.id}, '${safeTitle}')">
+            <span style="font-size:18px;">👤</span> ${t('detail_search_manual')}
+            </button>
+            </div>
+            </div>
+
+            <button style="background:var(--bg2); border:1px solid var(--border); border-radius:50%; color:var(--text); width:48px; height:48px; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:20px; box-shadow:0 4px 10px rgba(0,0,0,0.2);" onclick="refreshMedia(${r.id}, 'movie', this)" title="${t('detail_refresh')}">🔄</button>
+            <button style="background:var(--bg2); border:1px solid var(--border); border-radius:50%; color:var(--text); width:48px; height:48px; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:20px; box-shadow:0 4px 10px rgba(0,0,0,0.2);" onclick="openEditMediaModal(${r.id}, 'movie')" title="${t('modal_edit_radarr')}">⚙️</button>
+            <button style="background:rgba(255,93,143,0.05); border:1px solid rgba(255,93,143,0.2); border-radius:50%; color:var(--accent3); width:48px; height:48px; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:20px; box-shadow:0 4px 10px rgba(0,0,0,0.2);" onclick="deleteMedia(${r.id}, 'movie', '${safeTitle}')" title="${t('detail_delete')}">🗑️</button>
+            </div>
+
+            <div style="padding:0 20px 40px 20px;">
+            <div style="font-size:12px; color:var(--muted); margin-bottom:20px; display:flex; justify-content:space-between;">
+            <span>${genres}</span>
+            <span>📅 ${t('sort_added')} : ${r.added || t('status_unknown')}</span>
+            </div>
+
+            ${fileHtml}
+            ${releaseDatesHtml}
+
+            <h3 style="margin:0 0 10px 0; font-size:16px; color:var(--text);">${t('detail_overview')}</h3>
+            <p style="font-size:13.5px; line-height:1.6; color:#a0a5b5; margin:0 0 25px 0;">${esc(r.overview) || t('no_movie_found')}</p>
+
+            ${r.collection ? `
+                <div onclick="openMovieCollection('${esc(r.collection.title).replace(/'/g, "\\'")}', ${r.id}, ${r.collection.tmdbId || 0})"
+                style="margin-bottom:25px; padding:15px; background:var(--bg3); border:1px solid var(--border); border-left:4px solid var(--radarr); border-radius:12px; display:flex; align-items:center; gap:15px; cursor:pointer;">
+                <span style="font-size:24px;">🎞️</span>
+                <div style="flex:1;">
+                <div style="font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:2px;">${t('detail_collection')}</div>
+                <div style="font-size:14px; font-weight:bold; color:var(--text);">${esc(r.collection.title)}</div>
+                </div>
+                <span style="color:var(--muted); font-size:20px;">›</span>
+                </div>` : ''}
+
+                ${castHtml}
+                </div>
+                </div>`;
+
+                animateContentSlideIn(content);
 }
 
 // ── FICHE TMDB DÉCOUVERTE (Film non possédé) ──────────────────────────────────
@@ -2037,44 +2063,44 @@ async function openTmdbMovieDetail(tmdbId) {
 
     <div style="width:100%; height:250px; background-image:url('${fanartUrl}'); background-size:cover; background-position:center 20%; position:relative;">
     <div style="position:absolute; inset:0; background:linear-gradient(to bottom, rgba(19, 22, 30, 0.2) 0%, var(--bg2) 100%);"></div>
-	${r.youtubeTrailerId ? `
-            <div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; z-index:5;">
-                <button onclick="openTrailerModal('${r.youtubeTrailerId}')" style="background:rgba(0,0,0,0.5); border:2px solid rgba(255,255,255,0.8); color:#fff; width:64px; height:64px; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all 0.2s; backdrop-filter:blur(4px); box-shadow:0 5px 15px rgba(0,0,0,0.5);" onmouseover="this.style.background='var(--accent)'; this.style.color='#000'; this.style.borderColor='var(--accent)'; this.style.transform='scale(1.1)';" onmouseout="this.style.background='rgba(0,0,0,0.5)'; this.style.color='#fff'; this.style.borderColor='rgba(255,255,255,0.8)'; this.style.transform='scale(1)';">
-                    <span style="font-size:24px; margin-left:6px;">▶</span>
-                </button>
-            </div>` : ''}
-    </div>
+    ${r.youtubeTrailerId ? `
+        <div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; z-index:5;">
+        <button onclick="openTrailerModal('${r.youtubeTrailerId}')" style="background:rgba(0,0,0,0.5); border:2px solid rgba(255,255,255,0.8); color:#fff; width:64px; height:64px; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all 0.2s; backdrop-filter:blur(4px); box-shadow:0 5px 15px rgba(0,0,0,0.5);" onmouseover="this.style.background='var(--accent)'; this.style.color='#000'; this.style.borderColor='var(--accent)'; this.style.transform='scale(1.1)';" onmouseout="this.style.background='rgba(0,0,0,0.5)'; this.style.color='#fff'; this.style.borderColor='rgba(255,255,255,0.8)'; this.style.transform='scale(1)';">
+        <span style="font-size:24px; margin-left:6px;">▶</span>
+        </button>
+        </div>` : ''}
+        </div>
 
-    <div style="display:flex; gap:16px; padding:0 20px; margin-top:-70px; position:relative; z-index:10; align-items:flex-end;">
-    ${posterUrl ? `<img src="${posterUrl}" style="width:115px; height:170px; border-radius:12px; box-shadow:0 6px 20px rgba(0,0,0,0.6); object-fit:cover; flex-shrink:0; border:1px solid rgba(255,255,255,0.1);">` : `<div style="width:115px; height:170px; background:var(--bg3); border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:40px; box-shadow:0 6px 20px rgba(0,0,0,0.6); border:1px solid rgba(255,255,255,0.1); flex-shrink:0;">🎬</div>`}
+        <div style="display:flex; gap:16px; padding:0 20px; margin-top:-70px; position:relative; z-index:10; align-items:flex-end;">
+        ${posterUrl ? `<img src="${posterUrl}" style="width:115px; height:170px; border-radius:12px; box-shadow:0 6px 20px rgba(0,0,0,0.6); object-fit:cover; flex-shrink:0; border:1px solid rgba(255,255,255,0.1);">` : `<div style="width:115px; height:170px; background:var(--bg3); border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:40px; box-shadow:0 6px 20px rgba(0,0,0,0.6); border:1px solid rgba(255,255,255,0.1); flex-shrink:0;">🎬</div>`}
 
-    <div style="padding-bottom:5px; flex:1; min-width:0;">
-    <div style="display:inline-block; font-size:10px; font-weight:bold; padding:3px 8px; border-radius:6px; background:rgba(255, 160, 60, 0.1); border:1px solid rgba(255, 160, 60, 0.3); color:#ffa03c; margin-bottom:6px;">${t('badge_discover')}</div>
-    <h2 style="font-size:22px; font-weight:800; line-height:1.2; margin:0 0 6px 0; color:var(--text); text-overflow:ellipsis; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;">${esc(r.title)}</h2>
+        <div style="padding-bottom:5px; flex:1; min-width:0;">
+        <div style="display:inline-block; font-size:10px; font-weight:bold; padding:3px 8px; border-radius:6px; background:rgba(255, 160, 60, 0.1); border:1px solid rgba(255, 160, 60, 0.3); color:#ffa03c; margin-bottom:6px;">${t('badge_discover')}</div>
+        <h2 style="font-size:22px; font-weight:800; line-height:1.2; margin:0 0 6px 0; color:var(--text); text-overflow:ellipsis; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;">${esc(r.title)}</h2>
 
-    <div style="font-size:12px; color:var(--muted); display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
-    <span>${r.year}</span>
-    ${runtime ? `<span>• ${runtime}</span>` : ''}
-    ${r.rating ? `<span style="background:rgba(255,255,255,0.08); padding:1px 6px; border-radius:4px; color:var(--text);">⭐ ${r.rating}</span>` : ''}
-    </div>
-    </div>
-    </div>
+        <div style="font-size:12px; color:var(--muted); display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+        <span>${r.year}</span>
+        ${runtime ? `<span>• ${runtime}</span>` : ''}
+        ${r.rating ? `<span style="background:rgba(255,255,255,0.08); padding:1px 6px; border-radius:4px; color:var(--text);">⭐ ${r.rating}</span>` : ''}
+        </div>
+        </div>
+        </div>
 
-    <div style="display:flex; gap:10px; padding:20px; overflow-x:auto; scrollbar-width:none; border-bottom:1px solid var(--border); margin-bottom:20px;">
-    <button id="btn-add-tmdb" style="background:var(--accent); border:none; color:#000; padding:10px 20px; border-radius:20px; font-size:14px; font-weight:800; white-space:nowrap; cursor:pointer; flex-shrink:0; display:flex; gap:6px; align-items:center; box-shadow:0 4px 10px var(--accent-bg);;" onclick="promptAddMedia('movie', ${tmdbId}, '${safeTitle}', this, 'tmdb')">＋ ${t('add_radarr')}</button>
-    <a href="https://www.themoviedb.org/movie/${tmdbId}" target="_blank" style="background:var(--bg3); border:1px solid var(--border); color:var(--text); padding:10px 20px; border-radius:20px; font-size:14px; font-weight:600; white-space:nowrap; cursor:pointer; flex-shrink:0; display:flex; gap:6px; align-items:center; text-decoration:none;">TMDB ↗</a>
-    ${imdbBtn} </div>
+        <div style="display:flex; gap:10px; padding:20px; overflow-x:auto; scrollbar-width:none; border-bottom:1px solid var(--border); margin-bottom:20px;">
+        <button id="btn-add-tmdb" style="background:var(--accent); border:none; color:#000; padding:10px 20px; border-radius:20px; font-size:14px; font-weight:800; white-space:nowrap; cursor:pointer; flex-shrink:0; display:flex; gap:6px; align-items:center; box-shadow:0 4px 10px var(--accent-bg);;" onclick="promptAddMedia('movie', ${tmdbId}, '${safeTitle}', this, 'tmdb')">＋ ${t('add_radarr')}</button>
+        <a href="https://www.themoviedb.org/movie/${tmdbId}" target="_blank" style="background:var(--bg3); border:1px solid var(--border); color:var(--text); padding:10px 20px; border-radius:20px; font-size:14px; font-weight:600; white-space:nowrap; cursor:pointer; flex-shrink:0; display:flex; gap:6px; align-items:center; text-decoration:none;">TMDB ↗</a>
+        ${imdbBtn} </div>
 
-    <div style="padding:0 20px 40px 20px;">
-    <div style="font-size:12px; color:var(--muted); margin-bottom:20px;">
-    <span>${genres}</span>
-    </div>
-    ${releaseDatesHtml}
-    <h3 style="margin:0 0 10px 0; font-size:16px; color:var(--text);">${t('detail_overview')}</h3>
-    <p style="font-size:13.5px; line-height:1.6; color:#a0a5b5; margin:0 0 25px 0;">${esc(r.overview) || t('no_movie_found')}</p>
-    </div>
-    </div>`;
-    animateContentSlideIn(content);
+        <div style="padding:0 20px 40px 20px;">
+        <div style="font-size:12px; color:var(--muted); margin-bottom:20px;">
+        <span>${genres}</span>
+        </div>
+        ${releaseDatesHtml}
+        <h3 style="margin:0 0 10px 0; font-size:16px; color:var(--text);">${t('detail_overview')}</h3>
+        <p style="font-size:13.5px; line-height:1.6; color:#a0a5b5; margin:0 0 25px 0;">${esc(r.overview) || t('no_movie_found')}</p>
+        </div>
+        </div>`;
+        animateContentSlideIn(content);
 }
 
 // ── FICHE TMDB DÉCOUVERTE (Série non possédée) ────────────────────────────────
@@ -2113,49 +2139,49 @@ async function openTmdbSerieDetail(tmdbId) {
 
     <div style="width:100%; height:250px; background-image:url('${fanartUrl}'); background-size:cover; background-position:center 20%; position:relative;">
     <div style="position:absolute; inset:0; background:linear-gradient(to bottom, rgba(19, 22, 30, 0.2) 0%, var(--bg2) 100%);"></div>
-	${r.youtubeTrailerId ? `
-            <div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; z-index:5;">
-                <button onclick="openTrailerModal('${r.youtubeTrailerId}')" style="background:rgba(0,0,0,0.5); border:2px solid rgba(255,255,255,0.8); color:#fff; width:64px; height:64px; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all 0.2s; backdrop-filter:blur(4px); box-shadow:0 5px 15px rgba(0,0,0,0.5);" onmouseover="this.style.background='var(--sonarr)'; this.style.color='#000'; this.style.borderColor='var(--sonarr)'; this.style.transform='scale(1.1)';" onmouseout="this.style.background='rgba(0,0,0,0.5)'; this.style.color='#fff'; this.style.borderColor='rgba(255,255,255,0.8)'; this.style.transform='scale(1)';">
-                    <span style="font-size:24px; margin-left:6px;">▶</span>
-                </button>
-            </div>` : ''}
-    </div>
+    ${r.youtubeTrailerId ? `
+        <div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; z-index:5;">
+        <button onclick="openTrailerModal('${r.youtubeTrailerId}')" style="background:rgba(0,0,0,0.5); border:2px solid rgba(255,255,255,0.8); color:#fff; width:64px; height:64px; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all 0.2s; backdrop-filter:blur(4px); box-shadow:0 5px 15px rgba(0,0,0,0.5);" onmouseover="this.style.background='var(--sonarr)'; this.style.color='#000'; this.style.borderColor='var(--sonarr)'; this.style.transform='scale(1.1)';" onmouseout="this.style.background='rgba(0,0,0,0.5)'; this.style.color='#fff'; this.style.borderColor='rgba(255,255,255,0.8)'; this.style.transform='scale(1)';">
+        <span style="font-size:24px; margin-left:6px;">▶</span>
+        </button>
+        </div>` : ''}
+        </div>
 
-    <div style="display:flex; gap:16px; padding:0 20px; margin-top:-70px; position:relative; z-index:10; align-items:flex-end;">
-    ${posterUrl ? `<img src="${posterUrl}" style="width:115px; height:170px; border-radius:12px; box-shadow:0 6px 20px rgba(0,0,0,0.6); object-fit:cover; flex-shrink:0; border:1px solid rgba(255,255,255,0.1);">` : `<div style="width:115px; height:170px; background:var(--bg3); border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:40px; box-shadow:0 6px 20px rgba(0,0,0,0.6); border:1px solid rgba(255,255,255,0.1); flex-shrink:0;">📺</div>`}
+        <div style="display:flex; gap:16px; padding:0 20px; margin-top:-70px; position:relative; z-index:10; align-items:flex-end;">
+        ${posterUrl ? `<img src="${posterUrl}" style="width:115px; height:170px; border-radius:12px; box-shadow:0 6px 20px rgba(0,0,0,0.6); object-fit:cover; flex-shrink:0; border:1px solid rgba(255,255,255,0.1);">` : `<div style="width:115px; height:170px; background:var(--bg3); border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:40px; box-shadow:0 6px 20px rgba(0,0,0,0.6); border:1px solid rgba(255,255,255,0.1); flex-shrink:0;">📺</div>`}
 
-    <div style="padding-bottom:5px; flex:1; min-width:0;">
-    <div style="display:inline-block; font-size:10px; font-weight:bold; padding:3px 8px; border-radius:6px; background:rgba(255, 160, 60, 0.1); border:1px solid rgba(255, 160, 60, 0.3); color:#ffa03c; margin-bottom:6px;">${t('badge_discover')}</div>
-    <h2 style="font-size:22px; font-weight:800; line-height:1.2; margin:0 0 6px 0; color:var(--text); text-overflow:ellipsis; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;">${esc(r.title)}</h2>
+        <div style="padding-bottom:5px; flex:1; min-width:0;">
+        <div style="display:inline-block; font-size:10px; font-weight:bold; padding:3px 8px; border-radius:6px; background:rgba(255, 160, 60, 0.1); border:1px solid rgba(255, 160, 60, 0.3); color:#ffa03c; margin-bottom:6px;">${t('badge_discover')}</div>
+        <h2 style="font-size:22px; font-weight:800; line-height:1.2; margin:0 0 6px 0; color:var(--text); text-overflow:ellipsis; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;">${esc(r.title)}</h2>
 
-    <div style="font-size:12px; color:var(--muted); display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
-    <span>${r.year}</span>
-    ${r.network ? `<span>• ${esc(r.network)}</span>` : ''}
-    ${r.rating ? `<span style="background:rgba(255,255,255,0.08); padding:1px 6px; border-radius:4px; color:var(--text);">⭐ ${r.rating}</span>` : ''}
-    </div>
-    </div>
-    </div>
+        <div style="font-size:12px; color:var(--muted); display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+        <span>${r.year}</span>
+        ${r.network ? `<span>• ${esc(r.network)}</span>` : ''}
+        ${r.rating ? `<span style="background:rgba(255,255,255,0.08); padding:1px 6px; border-radius:4px; color:var(--text);">⭐ ${r.rating}</span>` : ''}
+        </div>
+        </div>
+        </div>
 
-    <div style="display:flex; gap:10px; padding:20px; overflow-x:auto; scrollbar-width:none; border-bottom:1px solid var(--border); margin-bottom:20px;">
-    <button id="btn-add-tmdb" style="background:var(--sonarr); border:none; color:#000; padding:10px 20px; border-radius:20px; font-size:14px; font-weight:800; white-space:nowrap; cursor:pointer; flex-shrink:0; display:flex; gap:6px; align-items:center; box-shadow:0 4px 10px rgba(0,202,255,0.3);" onclick="promptAddMedia('serie', ${tmdbId}, '${safeTitle}', this, 'tmdb')">＋ ${t('add_sonarr')}</button>
-    <a href="https://www.themoviedb.org/tv/${tmdbId}" target="_blank" style="background:var(--bg3); border:1px solid var(--border); color:var(--text); padding:10px 20px; border-radius:20px; font-size:14px; font-weight:600; white-space:nowrap; cursor:pointer; flex-shrink:0; display:flex; gap:6px; align-items:center; text-decoration:none;">TMDB ↗</a>
-    ${imdbBtn} </div>
+        <div style="display:flex; gap:10px; padding:20px; overflow-x:auto; scrollbar-width:none; border-bottom:1px solid var(--border); margin-bottom:20px;">
+        <button id="btn-add-tmdb" style="background:var(--sonarr); border:none; color:#000; padding:10px 20px; border-radius:20px; font-size:14px; font-weight:800; white-space:nowrap; cursor:pointer; flex-shrink:0; display:flex; gap:6px; align-items:center; box-shadow:0 4px 10px rgba(0,202,255,0.3);" onclick="promptAddMedia('serie', ${tmdbId}, '${safeTitle}', this, 'tmdb')">＋ ${t('add_sonarr')}</button>
+        <a href="https://www.themoviedb.org/tv/${tmdbId}" target="_blank" style="background:var(--bg3); border:1px solid var(--border); color:var(--text); padding:10px 20px; border-radius:20px; font-size:14px; font-weight:600; white-space:nowrap; cursor:pointer; flex-shrink:0; display:flex; gap:6px; align-items:center; text-decoration:none;">TMDB ↗</a>
+        ${imdbBtn} </div>
 
-    <div style="padding:0 20px 40px 20px;">
-    <div style="font-size:12px; color:var(--muted); margin-bottom:20px; display:flex; justify-content:space-between;">
-    <span>${genres}</span>
-    </div>
+        <div style="padding:0 20px 40px 20px;">
+        <div style="font-size:12px; color:var(--muted); margin-bottom:20px; display:flex; justify-content:space-between;">
+        <span>${genres}</span>
+        </div>
 
-    <div style="display:flex; justify-content:space-between; align-items:center; background:var(--bg3); padding:12px 15px; border-radius:12px; border:1px solid var(--border); margin-bottom:20px;">
-    <span style="font-size:13px; font-weight:bold; color:var(--text);">${r.seasons} Saisons</span>
-    <span style="font-size:12px; color:var(--muted);">Infos TMDB</span>
-    </div>
+        <div style="display:flex; justify-content:space-between; align-items:center; background:var(--bg3); padding:12px 15px; border-radius:12px; border:1px solid var(--border); margin-bottom:20px;">
+        <span style="font-size:13px; font-weight:bold; color:var(--text);">${r.seasons} Saisons</span>
+        <span style="font-size:12px; color:var(--muted);">Infos TMDB</span>
+        </div>
 
-    <h3 style="margin:0 0 10px 0; font-size:16px; color:var(--text);">${t('detail_overview')}</h3>
-    <p style="font-size:13.5px; line-height:1.6; color:#a0a5b5; margin:0 0 25px 0;">${esc(r.overview) || t('no_series_found')}</p>
-    </div>
-    </div>`;
-    animateContentSlideIn(content);
+        <h3 style="margin:0 0 10px 0; font-size:16px; color:var(--text);">${t('detail_overview')}</h3>
+        <p style="font-size:13.5px; line-height:1.6; color:#a0a5b5; margin:0 0 25px 0;">${esc(r.overview) || t('no_series_found')}</p>
+        </div>
+        </div>`;
+        animateContentSlideIn(content);
 }
 
 
@@ -2190,7 +2216,7 @@ async function openMovieCollection(collectionTitle, fromMovieId, collectionTmdbI
         : `promptAddMedia('movie', ${mv.tmdbId}, '${safeTitle}', this)`;
 
         const dimStyle    = notInLib ? 'opacity:.55;' : '';
-        const badge       = notInLib ? `<div style="position:absolute;top:8px;right:8px;background:rgba(0,0,0,.75);border:1px solid var(--border);border-radius:6px;padding:3px 8px;font-size:10px;color:var(--muted);">${t('not_planned')}</div>` : '';
+        const badge       = notInLib ? `<div class="not-planned-badge" style="position:absolute;top:8px;right:8px;background:rgba(0,0,0,.75);border:1px solid var(--border);border-radius:6px;padding:3px 8px;font-size:10px;color:var(--muted);">${t('not_planned')}</div>` : '';
         return `
         <div onclick="${clickAction}" id="col-card-${mv.tmdbId}"
         style="position:relative;border-radius:10px;overflow:hidden;cursor:pointer;background:var(--bg3);transition:transform .2s,box-shadow .2s;"
@@ -2232,8 +2258,8 @@ async function openMovieCollection(collectionTitle, fromMovieId, collectionTmdbI
     <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
     <div style="font-size:22px;font-weight:800;">${esc(collectionTitle)}</div>
     ${window.currentCollectionUnmonitored.length > 0
-        ? `<button class="btn-pill" onclick="promptAddCollection('${esc(collectionTitle).replace(/'/g, "\\'")}')" style="font-weight:bold; padding:8px 16px; border-radius:8px; cursor:pointer; font-size:13px;">＋ Ajouter la collection (${window.currentCollectionUnmonitored.length})</button>`
-        : `<span style="color:var(--accent2); font-weight:bold; font-size:12px; padding:4px 8px; background:rgba(93,255,214,0.1); border-radius:6px; border:1px solid rgba(93,255,214,0.3);">✓ Collection complète</span>`
+        ? `<button class="btn-pill" onclick="promptAddCollection('${esc(collectionTitle).replace(/'/g, "\\'")}')" style="font-weight:bold; padding:8px 16px; border-radius:8px; cursor:pointer; font-size:13px;">＋ ${t('collection_add_btn')} (${window.currentCollectionUnmonitored.length})</button>`
+        : `<span style="color:var(--accent2); font-weight:bold; font-size:12px; padding:4px 8px; background:rgba(93,255,214,0.1); border-radius:6px; border:1px solid rgba(93,255,214,0.3);">✓ ${t('collection_complete')}</span>`
     }
     </div>
 
@@ -2367,7 +2393,7 @@ async function confirmAddCollection() {
     }
 
     modal.classList.remove('open');
-    notify(`Collection ajoutée : ${successCount}/${total} films`, 'ok');
+    notify(`${t('collection_added_success')} : ${successCount}/${total} ${t('word_movies').toLowerCase()}`, 'ok');
 
     // On rafraîchit la page de la collection pour voir les nouveaux statuts (Tout passera en "Coché")
     if (currentActiveCollection) {
@@ -2595,9 +2621,13 @@ async function openSerieDetail(id) {
         content.innerHTML = `
         <style>
         .mobile-season-actions-toggle { display: none; }
+        .action-buttons-mobile { display: none !important; }
+        .action-buttons-desktop { display: flex !important; }
         @media (max-width: 768px) {
             .desktop-season-actions { display: none !important; }
             .mobile-season-actions-toggle { display: flex !important; }
+            .action-buttons-mobile { display: flex !important; }
+            .action-buttons-desktop { display: none !important; }
         }
         .mobile-menu-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 99998; opacity: 0; transition: opacity 0.3s; backdrop-filter: blur(2px); }
         .mobile-menu-overlay.open { opacity: 1; }
@@ -2609,106 +2639,110 @@ async function openSerieDetail(id) {
 
         <div style="width:100%; height:250px; background-image:url('${fanartUrl}'); background-size:cover; background-position:center 20%; position:relative;">
         <div style="position:absolute; inset:0; background:linear-gradient(to bottom, rgba(19, 22, 30, 0.2) 0%, var(--bg2) 100%);"></div>
-		${r.youtubeTrailerId ? `
+        ${r.youtubeTrailerId ? `
             <div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; z-index:5;">
-                <button onclick="openTrailerModal('${r.youtubeTrailerId}')" style="background:rgba(0,0,0,0.5); border:2px solid rgba(255,255,255,0.8); color:#fff; width:64px; height:64px; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all 0.2s; backdrop-filter:blur(4px); box-shadow:0 5px 15px rgba(0,0,0,0.5);" onmouseover="this.style.background='var(--sonarr)'; this.style.color='#000'; this.style.borderColor='var(--sonarr)'; this.style.transform='scale(1.1)';" onmouseout="this.style.background='rgba(0,0,0,0.5)'; this.style.color='#fff'; this.style.borderColor='rgba(255,255,255,0.8)'; this.style.transform='scale(1)';">
-                    <span style="font-size:24px; margin-left:6px;">▶</span>
-                </button>
+            <button onclick="openTrailerModal('${r.youtubeTrailerId}')" style="background:rgba(0,0,0,0.5); border:2px solid rgba(255,255,255,0.8); color:#fff; width:64px; height:64px; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all 0.2s; backdrop-filter:blur(4px); box-shadow:0 5px 15px rgba(0,0,0,0.5);" onmouseover="this.style.background='var(--sonarr)'; this.style.color='#000'; this.style.borderColor='var(--sonarr)'; this.style.transform='scale(1.1)';" onmouseout="this.style.background='rgba(0,0,0,0.5)'; this.style.color='#fff'; this.style.borderColor='rgba(255,255,255,0.8)'; this.style.transform='scale(1)';">
+            <span style="font-size:24px; margin-left:6px;">▶</span>
+            </button>
             </div>` : ''}
-        </div>
+            </div>
 
-        <div style="display:flex; gap:16px; padding:0 20px; margin-top:-70px; position:relative; z-index:10; align-items:flex-end;">
-        ${posterUrl ? `<img src="${posterUrl}" style="width:115px; height:170px; border-radius:12px; box-shadow:0 6px 20px rgba(0,0,0,0.6); object-fit:cover; flex-shrink:0; border:1px solid rgba(255,255,255,0.1);">` : `<div style="width:115px; height:170px; background:var(--bg3); border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:40px; box-shadow:0 6px 20px rgba(0,0,0,0.6); border:1px solid rgba(255,255,255,0.1); flex-shrink:0;">📺</div>`}
+            <div style="display:flex; gap:16px; padding:0 20px; margin-top:-70px; position:relative; z-index:10; align-items:flex-end;">
+            ${posterUrl ? `<img src="${posterUrl}" style="width:115px; height:170px; border-radius:12px; box-shadow:0 6px 20px rgba(0,0,0,0.6); object-fit:cover; flex-shrink:0; border:1px solid rgba(255,255,255,0.1);">` : `<div style="width:115px; height:170px; background:var(--bg3); border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:40px; box-shadow:0 6px 20px rgba(0,0,0,0.6); border:1px solid rgba(255,255,255,0.1); flex-shrink:0;">📺</div>`}
 
-        <div style="padding-bottom:5px; flex:1; min-width:0;">
-        <div id="movie-status-badge" style="display:inline-block; font-size:10px; font-weight:bold; padding:3px 8px; border-radius:6px; background:var(--bg3); border:1px solid var(--border); color:${statusColor}; margin-bottom:6px;">${r.pct}% • ${statusText}</div>
-        <h2 style="font-size:22px; font-weight:800; line-height:1.2; margin:0 0 6px 0; color:var(--text); text-overflow:ellipsis; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;">${esc(r.title)}
-		<!-- LE BOUTON STYLE "BTN-APP-LINK" EST ICI -->
-        ${r.appUrl && r.titleSlug ? `<a href="${r.appUrl}/series/${r.titleSlug}" target="_blank" class="btn-app-link" style="margin-left:auto; padding:6px 12px; font-size:11px; border-radius:6px; box-shadow:none;">
-        <span class="icon" style="font-size:14px;">🌐</span>
-        <span class="btn-app-link-text">${t('films_open_sonarr')}</span>
-        </a>` : ''}
-		</h2>
-        <div style="font-size:12px; color:var(--muted); display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
-        <span>${r.year}</span>
-        ${r.network ? `<span>• ${esc(r.network)}</span>` : ''}
-        ${r.rating ? `<span style="background:rgba(255,255,255,0.08); padding:1px 6px; border-radius:4px; color:var(--text);">⭐ ${r.rating}</span>` : ''}
-        <span style="cursor:pointer; display:flex; align-items:center;" onclick="toggleMonitor(${r.id}, 'serie', ${!r.monitored}, this)" title="Surveiller">${r.monitored ? ICON_MONITORED : ICON_UNMONITORED}</span>
+            <div style="padding-bottom:5px; flex:1; min-width:0;">
+            <div id="movie-status-badge" style="display:inline-block; font-size:10px; font-weight:bold; padding:3px 8px; border-radius:6px; background:var(--bg3); border:1px solid var(--border); color:${statusColor}; margin-bottom:6px;">${r.pct}% • ${statusText}</div>
+            <h2 style="font-size:22px; font-weight:800; line-height:1.2; margin:0 0 6px 0; color:var(--text); text-overflow:ellipsis; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;">${esc(r.title)}
+            ${r.appUrl && r.titleSlug ? `<a href="${r.appUrl}/series/${r.titleSlug}" target="_blank" class="btn-app-link" style="margin-left:auto; padding:6px 12px; font-size:11px; border-radius:6px; box-shadow:none;">
+            <span class="icon" style="font-size:14px;">🌐</span>
+            <span class="btn-app-link-text">${t('films_open_sonarr')}</span>
+            </a>` : ''}
+            </h2>
+            <div style="font-size:12px; color:var(--muted); display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+            <span>${r.year}</span>
+            ${r.network ? `<span>• ${esc(r.network)}</span>` : ''}
+            ${r.rating ? `<span style="background:rgba(255,255,255,0.08); padding:1px 6px; border-radius:4px; color:var(--text);">⭐ ${r.rating}</span>` : ''}
+            <span style="cursor:pointer; display:flex; align-items:center;" onclick="toggleMonitor(${r.id}, 'serie', ${!r.monitored}, this)" title="Surveiller">${r.monitored ? ICON_MONITORED : ICON_UNMONITORED}</span>
+            </div>
+            </div>
+            </div>
 
-        
+            <!-- 💻 VERSION PC (Ancienne version avec texte) -->
+            <div class="action-buttons-desktop" style="gap:10px; padding:20px; overflow-x:auto; scrollbar-width:none; border-bottom:1px solid var(--border); margin-bottom:20px;">
+            <button style="background:var(--bg3); border:1px solid var(--border); color:var(--text); padding:8px 16px; border-radius:20px; font-size:13px; font-weight:600; white-space:nowrap; cursor:pointer; flex-shrink:0; display:flex; gap:6px; align-items:center; transition:background 0.2s;" onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background='var(--bg3)'" onclick="refreshMedia(${r.id}, 'serie', this)">🔄 ${t('detail_refresh')}</button>
+            <button style="background:var(--bg3); border:1px solid var(--border); color:var(--text); padding:8px 16px; border-radius:20px; font-size:13px; font-weight:600; white-space:nowrap; cursor:pointer; flex-shrink:0; display:flex; gap:6px; align-items:center; transition:background 0.2s;" onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background='var(--bg3)'" onclick="openEditMediaModal(${r.id}, 'serie')">⚙️ ${t('modal_edit_sonarr')}</button>
+            <button style="background:rgba(255,93,143,0.1); border:1px solid rgba(255,93,143,0.3); color:var(--accent3); padding:8px 16px; border-radius:20px; font-size:13px; font-weight:600; white-space:nowrap; cursor:pointer; flex-shrink:0; display:flex; gap:6px; align-items:center; transition:background 0.2s;" onmouseover="this.style.background='rgba(255,93,143,0.2)'" onmouseout="this.style.background='rgba(255,93,143,0.1)'" onclick="deleteMedia(${r.id}, 'serie', '${safeTitle}')">🗑️ ${t('detail_delete')}</button>
+            </div>
 
-        </div>
-        </div>
-        </div>
+            <!-- 📱 VERSION MOBILE (Icônes rondes centrées) -->
+            <div class="action-buttons-mobile" style="justify-content:center; gap:20px; padding:15px 20px; border-bottom:1px solid var(--border); margin-bottom:20px;">
+            <button style="background:var(--bg2); border:1px solid var(--border); border-radius:50%; color:var(--text); width:48px; height:48px; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:20px; box-shadow:0 4px 10px rgba(0,0,0,0.2);" onclick="refreshMedia(${r.id}, 'serie', this)" title="${t('detail_refresh')}">🔄</button>
+            <button style="background:var(--bg2); border:1px solid var(--border); border-radius:50%; color:var(--text); width:48px; height:48px; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:20px; box-shadow:0 4px 10px rgba(0,0,0,0.2);" onclick="openEditMediaModal(${r.id}, 'serie')" title="${t('modal_edit_sonarr')}">⚙️</button>
+            <button style="background:rgba(255,93,143,0.05); border:1px solid rgba(255,93,143,0.2); border-radius:50%; color:var(--accent3); width:48px; height:48px; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:20px; box-shadow:0 4px 10px rgba(0,0,0,0.2);" onclick="deleteMedia(${r.id}, 'serie', '${safeTitle}')" title="${t('detail_delete')}">🗑️</button>
+            </div>
 
-        <div style="display:flex; gap:10px; padding:20px; overflow-x:auto; scrollbar-width:none; border-bottom:1px solid var(--border); margin-bottom:20px;">
-        <button style="background:var(--bg3); border:1px solid var(--border); color:var(--text); padding:8px 16px; border-radius:20px; font-size:13px; font-weight:600; white-space:nowrap; cursor:pointer; flex-shrink:0; display:flex; gap:6px; align-items:center;" onclick="refreshMedia(${r.id}, 'serie', this)">🔄 ${t('detail_refresh')}</button>
-        <button style="background:var(--bg3); border:1px solid var(--border); color:var(--text); padding:8px 16px; border-radius:20px; font-size:13px; font-weight:600; white-space:nowrap; cursor:pointer; flex-shrink:0; display:flex; gap:6px; align-items:center;" onclick="openEditMediaModal(${r.id}, 'serie')">⚙️ ${t('modal_edit_sonarr')}</button>
-        <button style="background:rgba(255,93,143,0.1); border:1px solid rgba(255,93,143,0.3); color:var(--accent3); padding:8px 16px; border-radius:20px; font-size:13px; font-weight:600; white-space:nowrap; cursor:pointer; flex-shrink:0; display:flex; gap:6px; align-items:center;" onclick="deleteMedia(${r.id}, 'serie', '${safeTitle}')">🗑️ ${t('detail_delete')}</button>
-        </div>
+            <div style="padding:0 20px 40px 20px;">
+            <div style="font-size:12px; color:var(--muted); margin-bottom:20px; display:flex; justify-content:space-between;">
+            <span>${genres}</span>
+            <span>📅 ${t('sort_added')} : ${r.added || t('status_unknown')}</span>
+            </div>
 
-        <div style="padding:0 20px 40px 20px;">
-        <div style="font-size:12px; color:var(--muted); margin-bottom:20px; display:flex; justify-content:space-between;">
-        <span>${genres}</span>
-        <span>📅 ${t('sort_added')} : ${r.added || t('status_unknown')}</span>
-        </div>
+            <div style="display:flex; justify-content:space-between; align-items:center; background:var(--bg3); padding:12px 15px; border-radius:12px; border:1px solid var(--border); margin-bottom:20px;">
+            <span style="font-size:13px; font-weight:bold; color:var(--text);">${(r.seasons||[]).length} ${t('detail_seasons')}</span>
+            <span style="font-size:12px; font-family:var(--mono); color:var(--sonarr); font-weight:bold;">${haveEpisodes} / ${totalEpisodes} Eps <span style="color:var(--muted); font-weight:normal;">${formatBytes(totalSerieSize) ? '('+formatBytes(totalSerieSize)+')' : ''}</span></span>
+            </div>
 
-        <div style="display:flex; justify-content:space-between; align-items:center; background:var(--bg3); padding:12px 15px; border-radius:12px; border:1px solid var(--border); margin-bottom:20px;">
-        <span style="font-size:13px; font-weight:bold; color:var(--text);">${(r.seasons||[]).length} ${t('detail_seasons')}</span>
-        <span style="font-size:12px; font-family:var(--mono); color:var(--sonarr); font-weight:bold;">${haveEpisodes} / ${totalEpisodes} Eps <span style="color:var(--muted); font-weight:normal;">${formatBytes(totalSerieSize) ? '('+formatBytes(totalSerieSize)+')' : ''}</span></span>
-        </div>
+            ${nextEpBannerHtml}
+            ${seasonsHtml}
 
-        ${nextEpBannerHtml}
-        ${seasonsHtml}
+            <h3 style="margin:0 0 10px 0; font-size:16px; color:var(--text);">${t('detail_overview')}</h3>
+            <p style="font-size:13.5px; line-height:1.6; color:#a0a5b5; margin:0 0 25px 0;">${esc(r.overview) || t('no_series_found')}</p>
+            ${castHtml}
+            </div>
+            ${seasonBottomSheetsHtml}
+            </div>`;
 
-        <h3 style="margin:0 0 10px 0; font-size:16px; color:var(--text);">${t('detail_overview')}</h3>
-        <p style="font-size:13.5px; line-height:1.6; color:#a0a5b5; margin:0 0 25px 0;">${esc(r.overview) || t('no_series_found')}</p>
-        ${castHtml}
-        </div>
-        ${seasonBottomSheetsHtml}
-        </div>`;
+            animateContentSlideIn(content);
 
-        animateContentSlideIn(content);
+            clearInterval(window.serieProgressInterval);
+            window.serieProgressInterval = setInterval(async () => {
+                const modal = document.getElementById('modal-serie');
+                if (!modal || modal.style.display === 'none') {
+                    clearInterval(window.serieProgressInterval);
+                    return;
+                }
 
-        clearInterval(window.serieProgressInterval);
-        window.serieProgressInterval = setInterval(async () => {
-            const modal = document.getElementById('modal-serie');
-            if (!modal || modal.style.display === 'none') {
-                clearInterval(window.serieProgressInterval);
-                return;
-            }
+                const qRes = await api('queue_status&type=serie&id=' + id, {}, 'GET');
+                if (qRes.ok && qRes.queue) {
+                    const containers = document.querySelectorAll('[id^="ep-progress-container-"]');
 
-            const qRes = await api('queue_status&type=serie&id=' + id, {}, 'GET');
-            if (qRes.ok && qRes.queue) {
-                const containers = document.querySelectorAll('[id^="ep-progress-container-"]');
+                    containers.forEach(container => {
+                        const epId = container.id.replace('ep-progress-container-', '');
+                        const info = qRes.queue.episodes ? qRes.queue.episodes[epId] : null;
+                        const labelSpan = document.getElementById(`ep-status-label-${epId}`);
+                        const badgeWrap = document.getElementById(`ep-badge-wrap-${epId}`);
 
-                containers.forEach(container => {
-                    const epId = container.id.replace('ep-progress-container-', '');
-                    const info = qRes.queue.episodes ? qRes.queue.episodes[epId] : null;
-                    const labelSpan = document.getElementById(`ep-status-label-${epId}`);
-                    const badgeWrap = document.getElementById(`ep-badge-wrap-${epId}`);
+                        if (info) {
+                            container.innerHTML = `
+                            <div style="position:absolute; bottom:0; left:0; height:3px; background:rgba(0,0,0,0.2); width:100%;">
+                            <div style="height:100%; width:${info.pct}%; background:var(--accent); transition:width 1.5s linear;"></div>
+                            </div>`;
 
-                    if (info) {
-                        container.innerHTML = `
-                        <div style="position:absolute; bottom:0; left:0; height:3px; background:rgba(0,0,0,0.2); width:100%;">
-                        <div style="height:100%; width:${info.pct}%; background:var(--accent); transition:width 1.5s linear;"></div>
-                        </div>`;
-
-                        if(labelSpan) labelSpan.innerHTML = `<span style="color: var(--accent); font-weight:bold;">⬇ ${info.pct}%</span>`;
-                        if(badgeWrap) {
-                            badgeWrap.style.background = 'var(--accent-bg)';
-                            badgeWrap.style.border = '1px solid var(--accent)';
-                            badgeWrap.style.color = 'var(--accent)';
+                            if(labelSpan) labelSpan.innerHTML = `<span style="color: var(--accent); font-weight:bold;">⬇ ${info.pct}%</span>`;
+                            if(badgeWrap) {
+                                badgeWrap.style.background = 'var(--accent-bg)';
+                                badgeWrap.style.border = '1px solid var(--accent)';
+                                badgeWrap.style.color = 'var(--accent)';
+                            }
+                            container.dataset.wasDownloading = "true";
                         }
-                        container.dataset.wasDownloading = "true";
-                    }
-                    else if (container.dataset.wasDownloading === "true") {
-                        clearInterval(window.serieProgressInterval);
-                        openSerieDetail(id);
-                    }
-                });
-            }
-        }, 2000);
+                        else if (container.dataset.wasDownloading === "true") {
+                            clearInterval(window.serieProgressInterval);
+                            openSerieDetail(id);
+                        }
+                    });
+                }
+            }, 2000);
 }
 
 window.toggleEpisodeActions = function(epId, element) {
@@ -3469,7 +3503,7 @@ async function openEditMediaModal(id, type) {
 
     <div id="edit-tags-badges" style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:8px;"></div>
 
-    <input type="text" id="edit-tags-input" placeholder="Ajouter..." style="width:100%; padding:10px; background:var(--bg); border:1px solid var(--border); color:var(--text); border-radius:6px;" autocomplete="off">
+    <input type="text" id="edit-tags-input" placeholder="${t('tag_add_placeholder', {fallback:'Ajouter...'})}" style="width:100%; padding:10px; background:var(--bg); border:1px solid var(--border); color:var(--text); border-radius:6px;" autocomplete="off">
 
     <div id="edit-tags-suggestions" style="position:absolute; left:0; right:0; top:100%; background:var(--bg2); border:1px solid var(--border); border-radius:6px; max-height:160px; overflow-y:auto; z-index:10005; display:none; box-shadow:0 6px 16px rgba(0,0,0,0.4); margin-top:4px;"></div>
     </div>
@@ -3874,11 +3908,11 @@ async function loadActivityLog() {
         const detail = e.detail ? `<span style="color:var(--muted);">— ${esc(e.detail)}</span>` : '';
         return `
         <div style="display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid var(--border); font-size:13px;">
-            <span style="font-size:16px; flex-shrink:0;">${icon}</span>
-            <span style="flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
-                <strong>${esc(label)}</strong> ${detail}
-            </span>
-            <span style="color:var(--muted); font-size:11px; flex-shrink:0;">${activityRelativeTime(e.ts)}</span>
+        <span style="font-size:16px; flex-shrink:0;">${icon}</span>
+        <span style="flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+        <strong>${esc(label)}</strong> ${detail}
+        </span>
+        <span style="color:var(--muted); font-size:11px; flex-shrink:0;">${activityRelativeTime(e.ts)}</span>
         </div>`;
     }).join('');
 }
@@ -4066,7 +4100,7 @@ function renderTorrents() {
 
     if (torrents.length === 0) {
         // J'ai légèrement adapté le message vide pour que ça ait du sens si la recherche ne trouve rien
-        container.innerHTML = `<div class="empty-state"><div class="icon">🔍</div><h3>Aucun torrent trouvé</h3></div>`;
+        container.innerHTML = `<div class="empty-state"><div class="icon">🔍</div><h3>${t('torrent_none_found')}</h3></div>`;
         return;
     }
 
@@ -4085,7 +4119,7 @@ function renderTorrents() {
 
         const bulkCheckbox = `
         <div class="bulk-select-checkbox ${bulkSelectMode ? 'visible' : ''}" style="top:8px; left:8px;" onclick="event.stopPropagation(); toggleBulkSelect('${tInfo.id}')">
-            <input type="checkbox" ${bulkSelectedIds.has(tInfo.id) ? 'checked' : ''} readonly>
+        <input type="checkbox" ${bulkSelectedIds.has(tInfo.id) ? 'checked' : ''} readonly>
         </div>`;
 
         html += `
@@ -4521,27 +4555,27 @@ async function openTorrentDetail(id) {
 
     <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px 10px; margin-bottom:24px; padding:16px; background:var(--bg2); border:1px solid var(--border); border-radius:var(--radius);">
     <div>
-    <div style="font-size:11px; color:var(--muted); margin-bottom:4px; display:flex; align-items:center; gap:6px;">⬇️ TÉLÉCHARGÉ</div>
+    <div style="font-size:11px; color:var(--muted); margin-bottom:4px; display:flex; align-items:center; gap:6px; text-transform:uppercase;">⬇️ ${t('torrent_downloaded')}</div>
     <div style="font-size:14px; font-weight:600;">${downloaded} / ${size}</div>
     </div>
     <div>
-    <div style="font-size:11px; color:var(--muted); margin-bottom:4px; display:flex; align-items:center; gap:6px;">⬆️ ENVOYÉ (RATIO)</div>
+    <div style="font-size:11px; color:var(--muted); margin-bottom:4px; display:flex; align-items:center; gap:6px; text-transform:uppercase;">⬆️ ${t('torrent_uploaded')}</div>
     <div style="font-size:14px; font-weight:600;">${uploaded} (${ratio})</div>
     </div>
     <div>
-    <div style="font-size:11px; color:var(--muted); margin-bottom:4px; display:flex; align-items:center; gap:6px;">⏱️ TEMPS RESTANT</div>
+    <div style="font-size:11px; color:var(--muted); margin-bottom:4px; display:flex; align-items:center; gap:6px; text-transform:uppercase;">⏱️ ${t('time_remaining')}</div>
     <div style="font-size:14px; font-weight:600;">${eta}</div>
     </div>
     <div>
-    <div style="font-size:11px; color:var(--muted); margin-bottom:4px; display:flex; align-items:center; gap:6px;">👥 PAIRS (S/L)</div>
+    <div style="font-size:11px; color:var(--muted); margin-bottom:4px; display:flex; align-items:center; gap:6px; text-transform:uppercase;">👥 ${t('torrent_peers_label')}</div>
     <div style="font-size:14px; font-weight:600;">${totalPeers} (${seeders} / ${leechers})</div>
     </div>
     <div>
-    <div style="font-size:11px; color:var(--muted); margin-bottom:4px; display:flex; align-items:center; gap:6px;">📅 AJOUTÉ LE</div>
+    <div style="font-size:11px; color:var(--muted); margin-bottom:4px; display:flex; align-items:center; gap:6px; text-transform:uppercase;">📅 ${t('torrent_added_on')}</div>
     <div style="font-size:14px; font-weight:600;">${addedDateStr}</div>
     </div>
     <div style="min-width:0;">
-    <div style="font-size:11px; color:var(--muted); margin-bottom:4px; display:flex; align-items:center; gap:6px;">🌐 TRACKER</div>
+    <div style="font-size:11px; color:var(--muted); margin-bottom:4px; display:flex; align-items:center; gap:6px; text-transform:uppercase;">🌐 ${t('torrent_trackers')}</div>
     <div style="font-size:14px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${trackersStr}">${trackersStr}</div>
     </div>
     </div>
@@ -4736,7 +4770,7 @@ function showDockerLogs(id, name) {
         modal.className = 'modal-bg';
         modal.style.zIndex = '10005';
         document.body.appendChild(modal);
-        modal.addEventListener('click', e => { 
+        modal.addEventListener('click', e => {
             if (e.target === modal) {
                 modal.classList.remove('open');
                 if (window.dockerLogsInterval) clearInterval(window.dockerLogsInterval);
@@ -4749,8 +4783,8 @@ function showDockerLogs(id, name) {
     <h3 style="margin:0; border-bottom:1px solid var(--border); padding: 15px 20px; display:flex; justify-content:space-between; align-items:center; flex-shrink:0; background: var(--bg2);">
     <span style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">📝 ${t('docker_logs_title', {name: esc(name)})}</span>
     <div style="display:flex; align-items:center; gap:10px;">
-        <span id="docker-logs-spinner" style="font-size:12px; color:var(--muted); opacity:0; transition:opacity 0.2s; animation: syncPulse 1.2s infinite;">↻</span>
-        <button onclick="document.getElementById('modal-docker-logs').classList.remove('open'); if(window.dockerLogsInterval) clearInterval(window.dockerLogsInterval);" class="btn-circle" style="flex-shrink:0; background:var(--bg3); border:1px solid var(--border); color:var(--text); width:32px; height:32px; border-radius:8px; cursor:pointer;">✕</button>
+    <span id="docker-logs-spinner" style="font-size:12px; color:var(--muted); opacity:0; transition:opacity 0.2s; animation: syncPulse 1.2s infinite;">↻</span>
+    <button onclick="document.getElementById('modal-docker-logs').classList.remove('open'); if(window.dockerLogsInterval) clearInterval(window.dockerLogsInterval);" class="btn-circle" style="flex-shrink:0; background:var(--bg3); border:1px solid var(--border); color:var(--text); width:32px; height:32px; border-radius:8px; cursor:pointer;">✕</button>
     </div>
     </h3>
     <div style="padding: 20px; overflow-y: auto; flex: 1; display: flex; flex-direction: column;">
@@ -4760,7 +4794,7 @@ function showDockerLogs(id, name) {
     </div>
     </div>`;
     modal.classList.add('open');
-    
+
     if (window.dockerLogsInterval) clearInterval(window.dockerLogsInterval);
 
     const fetchLogs = () => {
@@ -4768,7 +4802,7 @@ function showDockerLogs(id, name) {
             clearInterval(window.dockerLogsInterval);
             return;
         }
-        
+
         const spinner = document.getElementById('docker-logs-spinner');
         if (spinner) spinner.style.opacity = '1';
 
@@ -4776,10 +4810,10 @@ function showDockerLogs(id, name) {
             if (spinner) spinner.style.opacity = '0';
             const content = document.getElementById('docker-logs-content');
             if (!content) return;
-            
+
             // Auto-scroll si on est déjà en bas
             const isAtBottom = content.scrollHeight - content.clientHeight <= content.scrollTop + 20;
-            
+
             if (r.success) {
                 content.innerHTML = r.logs || t('docker_no_result');
                 if (isAtBottom) content.scrollTop = content.scrollHeight;
@@ -4788,7 +4822,7 @@ function showDockerLogs(id, name) {
             }
         });
     };
-    
+
     fetchLogs();
     window.dockerLogsInterval = setInterval(fetchLogs, 3000); // Actualisation toutes les 3s
 }
@@ -4801,7 +4835,7 @@ function showDockerStats(id, name) {
         modal.className = 'modal-bg';
         modal.style.zIndex = '10005';
         document.body.appendChild(modal);
-        modal.addEventListener('click', e => { 
+        modal.addEventListener('click', e => {
             if (e.target === modal) {
                 modal.classList.remove('open');
                 if (window.dockerStatsInterval) clearInterval(window.dockerStatsInterval);
@@ -4814,8 +4848,8 @@ function showDockerStats(id, name) {
     <h3 style="margin:0; border-bottom:1px solid var(--border); padding: 15px 20px; display:flex; justify-content:space-between; align-items:center; flex-shrink:0; background: var(--bg2);">
     <span style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">📊 ${t('docker_stats_title', {name: esc(name)})}</span>
     <div style="display:flex; align-items:center; gap:10px;">
-        <span id="docker-stats-spinner" style="font-size:12px; color:var(--muted); opacity:0; transition:opacity 0.2s; animation: syncPulse 1.2s infinite;">↻</span>
-        <button onclick="document.getElementById('modal-docker-stats').classList.remove('open'); if(window.dockerStatsInterval) clearInterval(window.dockerStatsInterval);" class="btn-circle" style="flex-shrink:0; background:var(--bg3); border:1px solid var(--border); color:var(--text); width:32px; height:32px; border-radius:8px; cursor:pointer;">✕</button>
+    <span id="docker-stats-spinner" style="font-size:12px; color:var(--muted); opacity:0; transition:opacity 0.2s; animation: syncPulse 1.2s infinite;">↻</span>
+    <button onclick="document.getElementById('modal-docker-stats').classList.remove('open'); if(window.dockerStatsInterval) clearInterval(window.dockerStatsInterval);" class="btn-circle" style="flex-shrink:0; background:var(--bg3); border:1px solid var(--border); color:var(--text); width:32px; height:32px; border-radius:8px; cursor:pointer;">✕</button>
     </div>
     </h3>
     <div id="docker-stats-content" style="padding: 20px; overflow-y: auto; flex: 1; text-align:center; color:var(--muted);">
@@ -4823,7 +4857,7 @@ function showDockerStats(id, name) {
     </div>
     </div>`;
     modal.classList.add('open');
-    
+
     if (window.dockerStatsInterval) clearInterval(window.dockerStatsInterval);
 
     const fetchStats = () => {
@@ -4831,15 +4865,15 @@ function showDockerStats(id, name) {
             clearInterval(window.dockerStatsInterval);
             return;
         }
-        
+
         const spinner = document.getElementById('docker-stats-spinner');
         if (spinner) spinner.style.opacity = '1';
-        
+
         api('docker_stats&id=' + id, {}, 'GET').then(r => {
             if (spinner) spinner.style.opacity = '0';
             const content = document.getElementById('docker-stats-content');
             if (!content) return;
-            
+
             if (r.success) {
                 content.innerHTML = `
                 <div style="display:flex; flex-direction:column; gap:20px;">
@@ -4871,7 +4905,7 @@ function showDockerStats(id, name) {
             }
         });
     };
-    
+
     fetchStats();
     window.dockerStatsInterval = setInterval(fetchStats, 2000); // Actualisation toutes les 2s
 }
@@ -4903,7 +4937,7 @@ async function load2FAStatus() {
         <div style="color:var(--accent2); font-weight:bold;">${t('2fa_enabled', {fallback:'2FA activé'})}</div>
         <div style="font-size:12px; color:var(--muted);">${t('2fa_protected', {fallback:'Compte protégé'})}</div>
         </div>
-        <button class="btn-sm danger" onclick="disable2FA()">Désactiver</button>
+        <button class="btn-sm danger" onclick="disable2FA()">${t('btn_disable_2fa', {fallback:'Désactiver'})}</button>
         </div>
         `;
     } else {
@@ -4914,7 +4948,7 @@ async function load2FAStatus() {
         <div style="color:var(--text); font-weight:bold;">${t('2fa_disabled', {fallback:'2FA désactivé'})}</div>
         <div style="font-size:12px; color:var(--muted);">${t('2fa_unprotected', {fallback:'Compte vulnérable'})}</div>
         </div>
-        <button class="btn-sm accent" onclick="startSetup2FA()">Activer</button>
+        <button class="btn-sm accent" onclick="startSetup2FA()">${t('btn_enable_2fa', {fallback:'Activer'})}</button>
         </div>
 
         <div id="setup-2fa-box" style="display:none; margin-top:15px; padding:20px; background:var(--bg3); border:1px solid var(--border); border-radius:10px; text-align:center;">
@@ -4924,7 +4958,7 @@ async function load2FAStatus() {
         <p style="font-size:13px; color:var(--text); margin-bottom:10px;">${t('2fa_step2', {fallback:'Entrez le code'})}</p>
         <div style="display:flex; gap:10px; justify-content:center;">
         <input type="text" id="confirm-2fa-code" placeholder="123456" maxlength="6" style="width:120px; text-align:center; font-size:16px; letter-spacing:2px; font-weight:bold; background:var(--bg2); border:1px solid var(--border); color:var(--text); border-radius:var(--radius);">
-        <button class="btn-primary" onclick="confirmSetup2FA()">Valider</button>
+        <button class="btn-primary" onclick="confirmSetup2FA()">${t('btn_validate', {fallback:'Valider'})}</button>
         </div>
         </div>
         `;
@@ -5089,7 +5123,7 @@ async function toggleNotifMenu() {
 
 async function loadNotifMenuData() {
     const list = document.getElementById('notif-list');
-    
+
     // 1. Essayer d'afficher immédiatement depuis le cache
     const cached = localStorage.getItem('serviarr_notifs_cache');
     let hasCache = false;
@@ -5102,7 +5136,7 @@ async function loadNotifMenuData() {
             }
         } catch(e) {}
     }
-    
+
     if (!hasCache) {
         list.innerHTML = `<div style="padding:15px; text-align:center; color:var(--muted); font-size:13px;">${t('notif_loading')}</div>`;
     }
@@ -5110,7 +5144,7 @@ async function loadNotifMenuData() {
     // 2. Fetch en arrière plan pour mettre à jour
     try {
         const r = await api('get_notifications_list', {}, 'GET');
-        
+
         if (!r || r.length === 0) {
             if (!hasCache) list.innerHTML = `<div style="padding:15px; text-align:center; color:var(--muted); font-size:13px;">${t('no_recent_dl')}</div>`;
             return;
@@ -5198,7 +5232,7 @@ function renderNotifsData(r) {
     if (hiddenNotifs.length > 0) {
         finalHtml += `
         <div id="notifs-expand-btn" onclick="event.stopPropagation(); document.getElementById('notifs-hidden-block').style.display='block'; this.style.display='none';" style="padding:12px; text-align:center; color:var(--text); font-size:12px; font-weight:bold; cursor:pointer; background:var(--bg3); transition:background 0.2s;" onmouseover="this.style.background='var(--border)'" onmouseout="this.style.background='var(--bg3)'">
-        ▼ Voir les ${hiddenNotifs.length} autres notifications
+        ▼ ${t('notifs_show_more').replace('{n}', hiddenNotifs.length)}
         </div>
         <div id="notifs-hidden-block" style="display:none; background:rgba(0,0,0,0.1);">
         ${hiddenNotifs.map(buildNotifHtml).join('')}
@@ -5278,11 +5312,11 @@ async function loadProwlarrIndexers() {
 
         // Utilisation du bleu cyan pour ON, et rouge pour OFF (barre latérale)
         const barColor = isActive ? 'var(--accent)' : 'var(--accent3)';
-        
+
         // Pastilles translucides très propres, sans bordure
-        const badgeStyle = isActive 
-            ? 'background: var(--accent-bg); color: var(--accent); border: none;' 
-            : 'background: rgba(255,93,143, 0.15); color: var(--accent3); border: none;';
+        const badgeStyle = isActive
+        ? 'background: var(--accent-bg); color: var(--accent); border: none;'
+        : 'background: rgba(255,93,143, 0.15); color: var(--accent3); border: none;';
 
         html += `
         <div style="background:var(--bg3); padding:20px; border-radius:16px; border:1px solid var(--border); box-shadow:0 4px 15px rgba(0,0,0,0.2); position:relative; overflow:hidden;">
@@ -5303,7 +5337,7 @@ async function loadProwlarrIndexers() {
         </div>
         </div>`;
     });
-	
+
 
     html += '</div>';
     container.innerHTML = html;
@@ -5388,9 +5422,9 @@ async function searchProwlarr() {
 
         const downloadBtn = magnetOrTorrent
         ? `<button class="btn-primary btn-prowlarr-dl" onclick="sendToTransmission('${esc(magnetOrTorrent).replace(/'/g, "\\'")}', this)">
-            <span class="icon">⬇️</span>
-            <span class="text-dl">${t('btn_download') !== 'btn_download' ? t('btn_download') : 'Télécharger'}</span>
-           </button>`
+        <span class="icon">⬇️</span>
+        <span class="text-dl">${t('btn_download') !== 'btn_download' ? t('btn_download') : 'Télécharger'}</span>
+        </button>`
         : '';
 
         html += `
@@ -5401,7 +5435,7 @@ async function searchProwlarr() {
         </div>
         <div style="display:flex; flex-wrap:wrap; gap:10px; font-size:12px; align-items:center;">
         <span style="color:var(--accent); background:var(--accent-bg); padding:2px 6px; border-radius:4px; font-weight:bold; border:none;">${esc(res.indexer)}</span>
-		<span style="color:var(--muted);">📁 ${size}</span>
+        <span style="color:var(--muted);">📁 ${size}</span>
         <span style="color:var(--muted);">🌱 ${res.seeders || 0} / 🧛 ${res.leechers || 0}</span>
         <span style="color:var(--muted);">📅 ${ageInDays} j</span>
         </div>
@@ -5730,13 +5764,13 @@ function openImportListModal(type) {
         <span onclick="document.getElementById('modal-import-list').style.display='none'" style="cursor:pointer; color:var(--muted); font-size:24px; line-height:1;">&times;</span>
         </div>
         <div id="import-list-step1" style="padding: 20px; overflow-y: auto; flex: 1;">
-        
+
         <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:10px; flex-wrap:wrap; gap:10px;">
-            <p style="color:var(--muted); font-size:13px; margin:0;">${t('import_list_hint')}</p>
-            <button class="btn-sm" onclick="document.getElementById('import-file-upload').click()" style="background:var(--bg3); color:var(--text); border:1px solid var(--border); padding:6px 12px; border-radius:6px; cursor:pointer; display:flex; align-items:center; gap:6px;">
-                📂 Charger un fichier .txt
-            </button>
-            <input type="file" id="import-file-upload" accept=".txt" style="display:none;" onchange="handleImportFileUpload(event)">
+        <p style="color:var(--muted); font-size:13px; margin:0;">${t('import_list_hint')}</p>
+        <button class="btn-sm" onclick="document.getElementById('import-file-upload').click()" style="background:var(--bg3); color:var(--text); border:1px solid var(--border); padding:6px 12px; border-radius:6px; cursor:pointer; display:flex; align-items:center; gap:6px;">
+        📂 Charger un fichier .txt
+        </button>
+        <input type="file" id="import-file-upload" accept=".txt" style="display:none;" onchange="handleImportFileUpload(event)">
         </div>
 
         <textarea id="import-list-textarea" rows="8" style="width:100%; background:var(--bg3); border:1px solid var(--border); color:var(--text); border-radius:8px; padding:12px; font-size:14px; resize:vertical;" placeholder="${t('import_list_placeholder')}"></textarea>
@@ -5817,18 +5851,18 @@ function renderImportResults() {
     container.innerHTML = _importResults.map((r, i) => {
         if (!r.found) {
             return `<div style="display:flex; align-items:center; gap:10px; padding:8px; background:var(--bg3); border-radius:8px; opacity:0.6;">
-                <span style="font-size:18px;">❓</span>
-                <span style="flex:1; font-size:13px;">${esc(r.term)}</span>
-                <span style="font-size:11px; color:var(--accent3);">${t('import_list_not_found')}</span>
+            <span style="font-size:18px;">❓</span>
+            <span style="flex:1; font-size:13px;">${esc(r.term)}</span>
+            <span style="font-size:11px; color:var(--accent3);">${t('import_list_not_found')}</span>
             </div>`;
         }
         const disabled = r.in_lib;
         const checked = _importSelected.has(i);
         return `<div style="display:flex; align-items:center; gap:10px; padding:8px; background:var(--bg3); border-radius:8px; ${disabled ? 'opacity:0.5;' : ''}">
-            <input type="checkbox" ${checked ? 'checked' : ''} ${disabled ? 'disabled' : ''} onchange="toggleImportItem(${i})" style="width:18px; height:18px; accent-color:var(--accent); flex-shrink:0;">
-            ${r.poster ? `<img src="${esc(r.poster)}" style="width:32px; height:48px; object-fit:cover; border-radius:4px; flex-shrink:0;">` : '<div style="width:32px;height:48px;flex-shrink:0;"></div>'}
-            <span style="flex:1; font-size:13px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${esc(r.title)} ${r.year ? `(${r.year})` : ''}</span>
-            ${disabled ? `<span style="font-size:11px; color:var(--accent);">${t('already_added')}</span>` : ''}
+        <input type="checkbox" ${checked ? 'checked' : ''} ${disabled ? 'disabled' : ''} onchange="toggleImportItem(${i})" style="width:18px; height:18px; accent-color:var(--accent); flex-shrink:0;">
+        ${r.poster ? `<img src="${esc(r.poster)}" style="width:32px; height:48px; object-fit:cover; border-radius:4px; flex-shrink:0;">` : '<div style="width:32px;height:48px;flex-shrink:0;"></div>'}
+        <span style="flex:1; font-size:13px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${esc(r.title)} ${r.year ? `(${r.year})` : ''}</span>
+        ${disabled ? `<span style="font-size:11px; color:var(--accent);">${t('already_added')}</span>` : ''}
         </div>`;
     }).join('');
 
@@ -6187,18 +6221,18 @@ window.forceSyncNotifs = async function() {
         syncIndicator.style.opacity = '1';
         syncIndicator.style.animation = 'syncPulse 1.2s infinite';
     }
-    
+
     localStorage.removeItem('serviarr_notifs_cache');
     const list = document.getElementById('notif-list');
     if (list) list.innerHTML = `<div style="padding:15px; text-align:center; color:var(--muted); font-size:13px;">${t('notif_loading')}</div>`;
-    
+
     await loadNotifMenuData();
 };
 
 async function loadNotifMenuData() {
     const list = document.getElementById('notif-list');
     const syncIndicator = document.getElementById('notif-sync-indicator');
-    
+
     const cached = localStorage.getItem('serviarr_notifs_cache');
     let hasCache = false;
     if (cached) {
@@ -6210,7 +6244,7 @@ async function loadNotifMenuData() {
             }
         } catch(e) {}
     }
-    
+
     if (!hasCache) {
         list.innerHTML = `<div style="padding:15px; text-align:center; color:var(--muted); font-size:13px;">${t('notif_loading')}</div>`;
     }
@@ -6219,7 +6253,7 @@ async function loadNotifMenuData() {
 
     try {
         const r = await api('get_notifications_list', {}, 'GET');
-        
+
         if (!r || r.length === 0) {
             if (!hasCache) list.innerHTML = `<div style="padding:15px; text-align:center; color:var(--muted); font-size:13px;">${t('no_recent_dl')}</div>`;
             return;
@@ -6248,18 +6282,18 @@ async function openExportListModal(type) {
         <div id="modal-export-list" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:999999; align-items:center; justify-content:center; padding:20px; backdrop-filter:blur(5px);">
         <div style="background:var(--bg2); width:100%; max-width:600px; border:1px solid var(--border); border-radius:12px; display:flex; flex-direction:column; box-shadow:0 10px 40px rgba(0,0,0,0.5); overflow:hidden;">
         <div style="display:flex; justify-content:space-between; align-items:center; padding: 15px 20px; border-bottom: 1px solid var(--border); background:var(--bg2);">
-        <h3 id="export-list-title" style="margin:0; color:var(--text); font-size:18px;">Exporter une liste</h3>
+        <h3 id="export-list-title" style="margin:0; color:var(--text); font-size:18px;">${t('export_modal_title')}</h3>
         <span onclick="document.getElementById('modal-export-list').style.display='none'" style="cursor:pointer; color:var(--muted); font-size:24px; line-height:1;">&times;</span>
         </div>
         <div style="padding: 20px; display:flex; flex-direction:column;">
-        <p id="export-list-hint" style="color:var(--muted); font-size:13px; margin-bottom:10px;">Chargement en cours...</p>
+        <p id="export-list-hint" style="color:var(--muted); font-size:13px; margin-bottom:10px;">${t('export_loading')}</p>
         <textarea id="export-list-textarea" rows="12" style="width:100%; background:var(--bg3); border:1px solid var(--border); color:var(--text); border-radius:8px; padding:12px; font-size:14px; resize:vertical; font-family:var(--mono);" readonly></textarea>
-        
+
         <div id="export-actions" style="display:flex; gap:10px; margin-top:15px; display:none;">
-            <button class="btn-primary" style="flex:1; background:var(--bg3); color:var(--text); border:1px solid var(--border);" onclick="copyExportList()">📋 Copier</button>
-            <button class="btn-primary" style="flex:1; background:var(--accent2); color:#000; border:none;" onclick="downloadExportList()">💾 Enregistrer (.txt)</button>
+        <button class="btn-primary" style="flex:1; background:var(--bg3); color:var(--text); border:1px solid var(--border);" onclick="copyExportList()">📋 ${t('btn_copy')}</button>
+        <button class="btn-primary" style="flex:1; background:var(--accent2); color:#000; border:none;" onclick="downloadExportList()">💾 ${t('btn_save_txt')}</button>
         </div>
-        
+
         </div>
         </div>
         </div>`;
@@ -6271,19 +6305,19 @@ async function openExportListModal(type) {
     // On stocke le type de média pour générer le nom du fichier
     document.getElementById('export-list-textarea').dataset.type = type;
 
-    document.getElementById('export-list-title').textContent = type === 'movie' ? 'Exporter les films' : 'Exporter les séries';
-    document.getElementById('export-list-textarea').value = 'Chargement en cours...';
-    document.getElementById('export-list-hint').textContent = 'Veuillez patienter pendant la génération de la liste...';
+    document.getElementById('export-list-title').textContent = type === 'movie' ? t('export_movies_title') : t('export_series_title');
+    document.getElementById('export-list-textarea').value = t('export_loading');
+    document.getElementById('export-list-hint').textContent = t('export_wait_hint');
     document.getElementById('export-actions').style.display = 'none';
     modal.style.display = 'flex';
 
     const r = await api(`export_media_list&type=${type}`, {}, 'GET');
     if (r.error) {
         document.getElementById('export-list-textarea').value = r.error;
-        document.getElementById('export-list-hint').textContent = 'Erreur lors de l\'export.';
+        document.getElementById('export-list-hint').textContent = t('export_error');
     } else {
         document.getElementById('export-list-textarea').value = r.text;
-        document.getElementById('export-list-hint').textContent = `${r.count} identifiants IMDb exportés avec succès.`;
+        document.getElementById('export-list-hint').textContent = t('export_success').replace('{n}', r.count);
         document.getElementById('export-actions').style.display = 'flex';
     }
 }
@@ -6292,27 +6326,27 @@ function copyExportList() {
     const textarea = document.getElementById('export-list-textarea');
     textarea.select();
     document.execCommand('copy');
-    notify('Copié dans le presse-papier !', 'ok');
+    notify(t('copied_clipboard'), 'ok');
 }
 
 function downloadExportList() {
     const textarea = document.getElementById('export-list-textarea');
     const type = textarea.dataset.type === 'movie' ? 'films' : 'series';
-    
+
     // Génère la date du jour (ex: 2026-07-17)
     const date = new Date().toISOString().split('T')[0];
     const filename = `export_imdb_${type}_${date}.txt`;
-    
+
     // Création du fichier "virtuel" et téléchargement
     const blob = new Blob([textarea.value], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
-    
+
     const a = document.createElement('a');
     a.href = url;
     a.download = filename;
     document.body.appendChild(a);
     a.click();
-    
+
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
 }
@@ -6433,28 +6467,28 @@ function openTrailerModal(videoId) {
     if (!modal) {
         modal = document.createElement('div');
         modal.id = 'modal-trailer';
-        
+
         // 🛠️ CORRECTION : On force le centrage absolu avec Flexbox directement en CSS
         modal.style.cssText = 'display:none; position:fixed; inset:0; background:rgba(0,0,0,0.9); z-index:999999; align-items:center; justify-content:center; padding:15px; backdrop-filter:blur(5px);';
-        
+
         // Ferme la modale si on clique à l'extérieur de la vidéo
-        modal.addEventListener('click', e => { 
-            if (e.target === modal) closeTrailerModal(); 
+        modal.addEventListener('click', e => {
+            if (e.target === modal) closeTrailerModal();
         });
-        document.body.appendChild(modal);
+            document.body.appendChild(modal);
     }
-    
+
     // On injecte un iframe YouTube optimisé
     modal.innerHTML = `
     <div class="modal-box" style="width: 800px; max-width: 100%; padding: 0; background: #000; border-radius: 12px; overflow: hidden; position: relative; box-shadow: 0 10px 40px rgba(0,0,0,0.8);">
-        <div style="display:flex; justify-content:flex-end; position:absolute; top:10px; right:10px; z-index:10;">
-            <button onclick="closeTrailerModal()" style="background:rgba(0,0,0,0.6); border:1px solid rgba(255,255,255,0.3); color:#fff; width:34px; height:34px; border-radius:50%; cursor:pointer; font-weight:bold; transition: background 0.2s;" onmouseover="this.style.background='rgba(255,93,143,0.8)'" onmouseout="this.style.background='rgba(0,0,0,0.6)'">✕</button>
-        </div>
-        <div style="position:relative; padding-bottom:56.25%; height:0; overflow:hidden;">
-            <iframe id="trailer-iframe" style="position:absolute; top:0; left:0; width:100%; height:100%; border:none;" src="https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&showinfo=0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
-        </div>
+    <div style="display:flex; justify-content:flex-end; position:absolute; top:10px; right:10px; z-index:10;">
+    <button onclick="closeTrailerModal()" style="background:rgba(0,0,0,0.6); border:1px solid rgba(255,255,255,0.3); color:#fff; width:34px; height:34px; border-radius:50%; cursor:pointer; font-weight:bold; transition: background 0.2s;" onmouseover="this.style.background='rgba(255,93,143,0.8)'" onmouseout="this.style.background='rgba(0,0,0,0.6)'">✕</button>
+    </div>
+    <div style="position:relative; padding-bottom:56.25%; height:0; overflow:hidden;">
+    <iframe id="trailer-iframe" style="position:absolute; top:0; left:0; width:100%; height:100%; border:none;" src="https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&showinfo=0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+    </div>
     </div>`;
-    
+
     // 🛠️ CORRECTION : On utilise 'flex' pour centrer l'écran
     modal.style.display = 'flex';
 }
