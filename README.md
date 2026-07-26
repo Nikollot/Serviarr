@@ -121,9 +121,9 @@ services:
 ### `docker run` Example
 ```run
 docker run -d \
-  --name serviarr_test2 \
+  --name serviarr \
   -p 80:80 \
-  -v /mnt/Data/Fichiers/Services/serviarr_test2/data:/var/www/html/data \
+  -v ./data:/var/www/html/data \
   -v /var/run/docker.sock:/var/run/docker.sock \
   --restart unless-stopped \
   nikollot/serviarr:latest
