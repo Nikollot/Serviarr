@@ -118,6 +118,17 @@ services:
     restart: unless-stopped      
 ```
 
+### `docker run` Example
+```run
+docker run -d \
+  --name serviarr_test2 \
+  -p 80:80 \
+  -v /mnt/Data/Fichiers/Services/serviarr_test2/data:/var/www/html/data \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  --restart unless-stopped \
+  nikollot/serviarr:latest
+```
+
 > Remember to enable `AllowOverride All` so that the `.htaccess` files of the project (which protect the `data/` folder) are properly processed by Apache — this is not the case by default on the `php:apache` image.
 
 ## Deployment Recommendations
