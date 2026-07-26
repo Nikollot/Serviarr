@@ -71,3 +71,12 @@ jobs:
             nikollot/serviarr:latest
             nikollot/serviarr:${{ env.VERSION }}
 
+      # 8. Met à jour la description sur Docker Hub avec le README.md de GitHub
+      - name: Update Docker Hub Description
+        uses: peter-evans/dockerhub-description@v4
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_TOKEN }}
+          repository: nikollot/serviarr
+          readme-filepath: ./README.md
+
