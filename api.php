@@ -744,37 +744,49 @@ if ($action === 'actor_credits') {
         exit;
     }
 
-    // 3. Indexation locale des films Radarr existants par TMDB ID pour un croisement instantané
+    // 3. Indexation locale des films Radarr (Utilisation du CACHE ultra-rapide)
     $local_movies = [];
-    $radarr = find_app_by_driver($cfg, 'radarr');
-    if ($radarr) {
-        $radarr_data = arr_get($radarr, '/api/v3/movie');
-        if (is_array($radarr_data) && !isset($radarr_data['_error'])) {
-            foreach ($radarr_data as $m) {
-                if (isset($m['tmdbId'])) {
-                    $local_movies[$m['tmdbId']] = ['id' => $m['id'], 'hasFile' => $m['hasFile'] ?? false];
-                }
+    $cache_movies = __DIR__ . '/data/.cache_library_movies.json';
+    
+    if (file_exists($cache_movies)) {
+        $radarr_data = json_decode(file_get_contents($cache_movies), true);
+    } else {
+        $radarr = find_app_by_driver($cfg, 'radarr');
+        $radarr_data = $radarr ? arr_get($radarr, '/api/v3/movie') : [];
+    }
+    
+    if (is_array($radarr_data) && !isset($radarr_data['_error'])) {
+        foreach ($radarr_data as $m) {
+            if (!empty($m['tmdbId'])) {
+                $local_movies[$m['tmdbId']] = ['id' => $m['id'], 'hasFile' => $m['hasFile'] ?? false];
             }
         }
     }
 
-    // 4. Indexation locale des séries Sonarr (par TMDB ID et Titre nettoyé)
+    // 4. Indexation locale des séries Sonarr (Utilisation du CACHE ultra-rapide)
     $local_series_by_title = [];
     $local_series_by_tmdb = [];
-    $sonarr = find_app_by_driver($cfg, 'sonarr');
-    if ($sonarr) {
-        $sonarr_data = arr_get($sonarr, '/api/v3/series');
-        if (is_array($sonarr_data) && !isset($sonarr_data['_error'])) {
-            foreach ($sonarr_data as $s) {
-                $has_file = ($s['statistics']['sizeOnDisk'] ?? 0) > 0;
+    $cache_series = __DIR__ . '/data/.cache_library_series.json';
+    
+    if (file_exists($cache_series)) {
+        $sonarr_data = json_decode(file_get_contents($cache_series), true);
+    } else {
+        $sonarr = find_app_by_driver($cfg, 'sonarr');
+        $sonarr_data = $sonarr ? arr_get($sonarr, '/api/v3/series') : [];
+    }
 
-                // Si ton Sonarr est assez récent pour nous donner l'ID TMDB
-                if (!empty($s['tmdbId'])) {
-                    $local_series_by_tmdb[$s['tmdbId']] = ['id' => $s['id'], 'hasFile' => $has_file];
-                }
+    if (is_array($sonarr_data) && !isset($sonarr_data['_error'])) {
+        foreach ($sonarr_data as $s) {
+            // Compatibilité : dans le cache c'est 'sizeOnDisk', depuis l'API c'est dans ['statistics']['sizeOnDisk']
+            $size = $s['statistics']['sizeOnDisk'] ?? $s['sizeOnDisk'] ?? 0;
+            $has_file = $size > 0;
 
-                // Fallback de sécurité robuste avec le titre
-                $slug = strtolower(preg_replace('/[^a-z0-9]/', '', $s['title'] ?? ''));
+            if (!empty($s['tmdbId'])) {
+                $local_series_by_tmdb[$s['tmdbId']] = ['id' => $s['id'], 'hasFile' => $has_file];
+            }
+
+            $slug = strtolower(preg_replace('/[^a-z0-9]/', '', $s['title'] ?? ''));
+            if ($slug) {
                 $local_series_by_title[$slug] = ['id' => $s['id'], 'hasFile' => $has_file];
             }
         }
@@ -1554,6 +1566,7 @@ if ($action === 'library_series') {
             $all_series[] = [
                 'id'         => $s['id'],
                 'tvdbId'     => $s['tvdbId'] ?? null,
+				'tmdbId'     => $s['tmdbId'] ?? null,
                 'title'      => $s['title'] ?? '?',
                 'year'       => $s['year'] ?? '',
                 'rating'     => round($s['ratings']['value'] ?? 0, 1),
