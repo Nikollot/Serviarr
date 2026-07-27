@@ -551,7 +551,7 @@ function showDayEvents(key, date) {
         let posterUrl = ev.poster || '';
         if (posterUrl && !posterUrl.startsWith('http')) posterUrl = `api.php?action=proxy_image&driver=radarr&url=${encodeURIComponent(posterUrl)}`;
 
-        const badge = ev.grabbed ? `<span class="day-event-badge grabbed">✅ ${t('cal_available')}</span>` : `<span class="day-event-badge pending">⏳ ${t('cal_waiting')}</span>`;
+        const badge = ev.grabbed ? `<span class="day-event-badge grabbed">✓ ${t('cal_available')}</span>` : `<span class="day-event-badge pending">⏳ ${t('cal_waiting')}</span>`;
         const releaseLabel = ev.releaseType?.includes('Cinéma') ? `🎬 ${t('rel_cinema')}` : ev.releaseType?.includes('Digital') ? `💻 ${t('rel_digital')}` : ev.releaseType?.includes('Physique') ? `📦 ${t('rel_physical')}` : '';
         const releaseColor = ev.releaseType?.includes('Cinéma') ? 'var(--radarr)' : ev.releaseType?.includes('Digital') ? 'var(--sonarr)' : ev.releaseType?.includes('Physique') ? 'var(--accent2)' : 'var(--muted)';
         const releaseTag = releaseLabel ? `<span style="font-size:10px;font-weight:700;color:${releaseColor};background:${releaseColor}22;border:1px solid ${releaseColor}44;padding:2px 7px;border-radius:10px;">${releaseLabel}</span>` : '';
