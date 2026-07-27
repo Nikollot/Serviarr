@@ -2774,3 +2774,11 @@ button.app-item-btn.danger { color: var(--accent3) !important; }
     button.app-item-btn { font-size: 18px !important; padding: 8px !important; }
     .app-item-name { font-size: 15px; }
 }
+
+/* Masquer le bouton de sélection multiple sur les écrans de smartphone */
+@media (max-width: 768px) {
+    #btn-bulk-toggle {
+        display: none !important;
+    }
+}
+
