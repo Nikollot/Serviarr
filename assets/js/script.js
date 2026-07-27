@@ -1,4 +1,4 @@
-const APP_VERSION = "1.4.3";
+const APP_VERSION = "1.4.4";
 const UPDATE_URL = "https://raw.githubusercontent.com/Nikollot/Serviarr/main/version.json";
 
 const DRIVER_ICONS = {docker:'🐳', sonarr:'📺',radarr:'🎬',prowlarr:'🔍',indexer:'🔍',transmission:'⬇',download:'⬇',jellyfin:'🎵',qbittorrent:'🌊',sabnzbd:'📥',lidarr:'🎶',readarr:'📚', iframe:'🌐', supervision:'📊'};
@@ -3309,21 +3309,9 @@ function sortMovies(criteria) {
         _moviesSortAsc = (criteria === 'title');
     }
 
-    _moviesSortOpen = false;
-    const menu = document.getElementById('movies-sort-menu');
-    if (menu) {
-        menu.classList.remove('open');
-        menu.querySelectorAll('.sort-menu-item').forEach(el => {
-            const match = el.textContent.replace(/ [↑↓]$/, '').toLowerCase() === criteria.toLowerCase()
-            || el.textContent.replace(/ [↑↓]$/, '') === criteria;
-            el.classList.toggle('active', match);
-            if (match) {
-                el.textContent = el.textContent.replace(/ [↑↓]$/, '') + (_moviesSortAsc ? ' ↑' : ' ↓');
-            } else {
-                el.textContent = el.textContent.replace(/ [↑↓]$/, '');
-            }
-        });
-    }
+    // Met à jour la liste déroulante au cas où on inverse le tri sans changer de critère
+    const sel = document.getElementById('movies-sort-select');
+    if (sel) sel.value = criteria;
 
     const sorted = applySortToMovies([..._moviesAllData]);
     const grid = document.getElementById('movies-grid');
@@ -3408,24 +3396,12 @@ function sortSeries(criteria) {
         _seriesSortAsc = !_seriesSortAsc;
     } else {
         _seriesSortCriteria = criteria;
-        _seriesSortAsc = (criteria === 'title' || criteria === 'network' || criteria === 'status');
+        _seriesSortAsc = (criteria === 'title' || criteria === 'network' || criteria === 'status' || criteria === 'nextAiring');
     }
 
-    _seriesSortOpen = false;
-    const menu = document.getElementById('series-sort-menu');
-    if (menu) {
-        menu.classList.remove('open');
-        menu.querySelectorAll('.sort-menu-item').forEach(el => {
-            const label = el.textContent.replace(/ [↑↓]$/, '');
-            const match = label.toLowerCase().replace(' ', '') === criteria.toLowerCase().replace(/([A-Z])/g, ' $1').trim().toLowerCase().replace(' ', '');
-            el.classList.toggle('active', match);
-            if (match) {
-                el.textContent = label + (_seriesSortAsc ? ' ↑' : ' ↓');
-            } else {
-                el.textContent = label;
-            }
-        });
-    }
+    // Met à jour la liste déroulante
+    const sel = document.getElementById('series-sort-select');
+    if (sel) sel.value = criteria;
 
     const sorted = applySortToSeries([..._seriesAllData]);
     const grid = document.getElementById('series-grid');

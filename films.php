@@ -45,17 +45,7 @@ if (file_exists($config_path)) {
 <input type="text" class="lib-search" id="movies-search"
 placeholder="<?= t('films_filter_placeholder') ?>" oninput="moviesSearchDebounce()">
 
-<div class="lib-sort-wrap">
-<button class="btn-sort" onclick="toggleMoviesSort()" title="<?= t('tooltip_sort') ?>">⇅</button>
-<div class="sort-menu" id="movies-sort-menu">
-<div class="sort-menu-item active" onclick="sortMovies('title')"><?= t('sort_title') ?></div>
-<div class="sort-menu-item" onclick="sortMovies('monitored')"><?= t('sort_monitored') ?></div>
-<div class="sort-menu-item" onclick="sortMovies('rating')"><?= t('sort_rating') ?></div>
-<div class="sort-menu-item" onclick="sortMovies('year')"><?= t('sort_year') ?></div>
-<div class="sort-menu-item" onclick="sortMovies('added')"><?= t('sort_added') ?></div>
-<div class="sort-menu-item" onclick="sortMovies('sizeOnDisk')"><?= t('sort_size') ?></div>
-</div>
-</div>
+
 
 <button class="btn-sort" id="btn-bulk-toggle" onclick="toggleBulkMode()" title="<?= t('bulk_select_toggle') ?>">☑️</button>
 
@@ -67,6 +57,20 @@ placeholder="<?= t('films_filter_placeholder') ?>" oninput="moviesSearchDebounce
 <option value="downloaded"><?= t('films_filter_downloaded') ?></option>
 <option value="missing"><?= t('films_filter_missing') ?></option>
 </select>
+
+<div class="lib-sort-wrap" style="display:flex; align-items:center;">
+<label class="dl-sort-label" style="margin-right:8px; font-size:12px; font-weight:bold; color:var(--muted); text-transform:uppercase;"><?= t('dl_sort_by') ?? 'Tri' ?></label>
+<select id="movies-sort-select" class="lib-select" onchange="sortMovies(this.value)">
+<option value="title"><?= t('sort_title') ?></option>
+<option value="monitored"><?= t('sort_monitored') ?></option>
+<option value="rating"><?= t('sort_rating') ?></option>
+<option value="year"><?= t('sort_year') ?></option>
+<option value="added"><?= t('sort_added') ?></option>
+<option value="sizeOnDisk"><?= t('sort_size') ?></option>
+</select>
+<button class="btn-sort" onclick="sortMovies(_moviesSortCriteria)" title="<?= t('tooltip_reverse') ?>" style="margin-left:8px;">⇅</button>
+</div>
+
 </div>
 
 <div id="movies-grid" class="media-grid"></div>

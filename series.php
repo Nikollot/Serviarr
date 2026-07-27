@@ -44,20 +44,6 @@ if (file_exists($config_path)) {
 <input type="text" class="lib-search" id="series-search"
 placeholder="<?= t('films_filter_placeholder') ?>" oninput="seriesSearchDebounce()">
 
-<div class="lib-sort-wrap">
-<button class="btn-sort" onclick="toggleSeriesSort()" title="<?= t('tooltip_sort') ?>">⇅</button>
-<div class="sort-menu" id="series-sort-menu">
-<div class="sort-menu-item active" onclick="sortSeries('title')"><?= t('sort_title') ?></div>
-<div class="sort-menu-item" onclick="sortSeries('monitored')"><?= t('sort_monitored') ?></div>
-<div class="sort-menu-item" onclick="sortSeries('nextAiring')"><?= t('sort_next_airing') ?></div>
-<div class="sort-menu-item" onclick="sortSeries('added')"><?= t('sort_added') ?></div>
-<div class="sort-menu-item" onclick="sortSeries('network')"><?= t('sort_network') ?></div>
-<div class="sort-menu-item" onclick="sortSeries('sizeOnDisk')"><?= t('sort_size') ?></div>
-<div class="sort-menu-item" onclick="sortSeries('rating')"><?= t('sort_rating') ?></div>
-<div class="sort-menu-item" onclick="sortSeries('status')"><?= t('sort_status') ?></div>
-</div>
-</div>
-
 <button class="btn-sort" id="btn-bulk-toggle" onclick="toggleBulkMode()" title="<?= t('bulk_select_toggle') ?>">☑️</button>
 
 
@@ -68,6 +54,21 @@ placeholder="<?= t('films_filter_placeholder') ?>" oninput="seriesSearchDebounce
 <option value="complete"><?= t('series_filter_complete') ?></option>
 <option value="incomplete"><?= t('series_filter_incomplete') ?></option>
 </select>
+
+<div class="lib-sort-wrap" style="display:flex; align-items:center;">
+<label class="dl-sort-label" style="margin-right:8px; font-size:12px; font-weight:bold; color:var(--muted); text-transform:uppercase;"><?= t('dl_sort_by') ?? 'Tri' ?></label>
+<select id="series-sort-select" class="lib-select" onchange="sortSeries(this.value)">
+<option value="title"><?= t('sort_title') ?></option>
+<option value="monitored"><?= t('sort_monitored') ?></option>
+<option value="nextAiring"><?= t('sort_next_airing') ?></option>
+<option value="added"><?= t('sort_added') ?></option>
+<option value="network"><?= t('sort_network') ?></option>
+<option value="sizeOnDisk"><?= t('sort_size') ?></option>
+<option value="rating"><?= t('sort_rating') ?></option>
+<option value="status"><?= t('sort_status') ?></option>
+</select>
+<button class="btn-sort" onclick="sortSeries(_seriesSortCriteria)" title="<?= t('tooltip_reverse') ?>" style="margin-left:8px;">⇅</button>
+</div>
 </div>
 
 <div id="series-grid" class="media-grid"></div>
