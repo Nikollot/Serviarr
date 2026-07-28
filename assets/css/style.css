@@ -2782,3 +2782,25 @@ button.app-item-btn.danger { color: var(--accent3) !important; }
     }
 }
 
+/* ── CENTRAGE ABSOLU DE TOUTES LES MODALES ── */
+.modal-bg {
+    /* Aligne le contenu parfaitement au centre (verticalement et horizontalement) */
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 15px !important; /* Évite que la modale touche les bords sur petit écran */
+    box-sizing: border-box !important;
+}
+
+/* Force l'utilisation de Flexbox même pour les modales configurées en "block" dans le JS */
+.modal-bg[style*="display: block"], 
+.modal-bg.open {
+    display: flex !important;
+}
+
+/* Annule les anciennes marges qui décalaient les modales sur mobile */
+.modal-box, 
+.modal-bg > div {
+    margin: 0 !important;
+    max-height: 90vh !important; /* S'assure que la modale ne dépasse pas la hauteur de l'écran */
+}
+
