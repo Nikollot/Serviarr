@@ -1,4 +1,4 @@
-const APP_VERSION = "1.4.4";
+const APP_VERSION = "1.4.5";
 const UPDATE_URL = "https://raw.githubusercontent.com/Nikollot/Serviarr/main/version.json";
 
 const DRIVER_ICONS = {docker:'🐳', sonarr:'📺',radarr:'🎬',prowlarr:'🔍',indexer:'🔍',transmission:'⬇',download:'⬇',jellyfin:'🎵',qbittorrent:'🌊',sabnzbd:'📥',lidarr:'🎶',readarr:'📚', iframe:'🌐', supervision:'📊'};
@@ -6477,5 +6477,28 @@ function closeTrailerModal() {
         modal.style.display = 'none'; // Cache la modale
     }
 }
+
+// ── FIX : EMPÊCHER LA FERMETURE DES MODALES LORS DE LA SÉLECTION DE TEXTE ──
+let _modalMousedownTarget = null;
+
+// 1. On mémorise l'élément exact sur lequel l'utilisateur enfonce le clic
+document.addEventListener('mousedown', e => {
+    _modalMousedownTarget = e.target;
+});
+
+// 2. On intercepte le clic de relâchement (phase de capture = avant tout le monde)
+document.addEventListener('click', e => {
+    const target = e.target;
+    
+    // Si l'utilisateur relâche le clic sur le fond sombre d'une modale
+    if (target && ((target.id && target.id.startsWith('modal-')) || (target.classList && target.classList.contains('modal-bg')))) {
+        
+        // Et que le clic a commencé AILLEURS (dans un champ texte par exemple)
+        if (_modalMousedownTarget !== target) {
+            // On bloque immédiatement l'événement, la modale ne se fermera pas !
+            e.stopPropagation();
+        }
+    }
+}, true);
 
 boot();
