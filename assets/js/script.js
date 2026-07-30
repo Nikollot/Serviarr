@@ -1,4 +1,4 @@
-const APP_VERSION = "1.4.6";
+const APP_VERSION = "1.5";
 const UPDATE_URL = "https://raw.githubusercontent.com/Nikollot/Serviarr/main/version.json";
 
 const DRIVER_ICONS = {docker:'🐳', sonarr:'📺',radarr:'🎬',prowlarr:'🔍',indexer:'🔍',transmission:'⬇',download:'⬇',jellyfin:'🎵',qbittorrent:'🌊',sabnzbd:'📥',lidarr:'🎶',readarr:'📚', iframe:'🌐', supervision:'📊'};
@@ -864,15 +864,17 @@ function makeMovieCard(mv, isSearch) {
     ? `<button class="btn-add" onclick="event.stopPropagation();promptAddMedia('movie', ${mv.tmdbId}, '${esc(mv.title).replace(/'/g,"\\'").replace(/"/g,'&quot;')}', this)">＋</button>`
     : '';
     const qualityBadge = mv.quality ? `<span style="font-size:10px;color:var(--radarr)">${esc(mv.quality)}</span>` : '';
+    // 🌟 Le badge de poids avec la puce :
+    const sizeBadge = mv.sizeOnDisk > 0 ? `<span style="font-size:10px;color:var(--muted);font-weight:600;margin-left:4px;">${mv.sizeOnDisk} GB</span>` : '';
     const poster = mv.poster ? `<img class="media-card-poster" src="${esc(mv.poster)}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">` : '';
     const placeholder = `<div class="media-card-poster-placeholder" style="${mv.poster?'display:none':''}">🎬</div>`;
+    const fanartHtml = (!isSearch && mv.fanart) ? `<img class="media-card-bg-mobile" src="${esc(mv.fanart)}" loading="lazy">` : '';
 
     if (!isSearch) {
-        // Ajout des événements tactiles pour le long press
         div.setAttribute('ontouchstart', `startLongPress(${mv.id})`);
         div.setAttribute('ontouchend', 'cancelLongPress()');
         div.setAttribute('ontouchcancel', 'cancelLongPress()');
-        div.setAttribute('oncontextmenu', 'if(window.preventNextClick) return false;'); // Bloque le menu natif du navigateur
+        div.setAttribute('oncontextmenu', 'if(window.preventNextClick) return false;');
 
         div.addEventListener('click', (e) => {
             if (window.preventNextClick) {
@@ -894,7 +896,9 @@ function makeMovieCard(mv, isSearch) {
     <input type="checkbox" ${bulkSelectedIds.has(mv.id) ? 'checked' : ''} readonly>
     </div>` : '';
     if (bulkSelectedIds.has(mv.id)) div.classList.add('bulk-selected');
+
     div.innerHTML = `
+    ${fanartHtml} <!-- 🌟 Fanart placé à la racine pour couvrir toute la carte -->
     ${bulkCheckbox}
     ${poster}${placeholder}
     <div class="monitored-badge">${!isSearch ? `<div class="monitored-badge" style="cursor:pointer;" onclick="event.stopPropagation(); toggleMonitor(${mv.id}, 'movie', ${!monitored}, this)">${monitored ? ICON_MONITORED : ICON_UNMONITORED}</div>` : ''}</div>
@@ -908,7 +912,7 @@ function makeMovieCard(mv, isSearch) {
     <div class="media-card-overlay">
     <div class="media-card-title">${esc(mv.title)}</div>
     <div class="media-card-meta">${mv.year || ''}${mv.rating ? ' &nbsp;⭐ ' + mv.rating : ''}</div>
-    <div class="media-card-footer">${qualityBadge} ${statusPill} ${addBtn}</div>
+    <div class="media-card-footer" style="display:flex;align-items:center;">${qualityBadge} ${statusPill} ${sizeBadge} ${addBtn}</div>
     </div>
     <div class="media-card-body">
     <div class="media-card-title" style="display:flex;align-items:center;gap:6px;">
@@ -916,7 +920,7 @@ function makeMovieCard(mv, isSearch) {
     <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(mv.title)}</span>
     </div>
     <div class="media-card-meta">${mv.year || ''}${mv.rating ? ' · ⭐ ' + mv.rating : ''}</div>
-    <div class="media-card-footer" style="margin-top:4px">${qualityBadge} ${statusPill} ${addBtn}</div>
+    <div class="media-card-footer" style="margin-top:4px;display:flex;align-items:center;">${qualityBadge} ${statusPill} ${sizeBadge} ${addBtn}</div>
     </div>`;
     return div;
 }
@@ -1046,11 +1050,13 @@ function makeSerieCard(s, isSearch) {
     const monitoredIcon = monitored ? `<span title="${t('badge_monitored')}" style="color:var(--sonarr)">🔖</span>` : `<span title="${t('badge_unmonitored')}" style="color:var(--muted)">🔕</span>`;
     const addBtn = isSearch && !inLib ? `<button class="btn-add" onclick="event.stopPropagation();promptAddMedia('serie', ${s.tvdbId}, '${esc(s.title).replace(/'/g,"\\'").replace(/"/g,'&quot;')}', this)">＋</button>` : '';
     const seasonsBadge = !isSearch ? `<span style="font-size:10px;color:var(--sonarr)">${s.seasons} s.</span>` : (inLib ? '<span class="pill sonarr" style="font-size:10px">✓</span>' : '');
-    const sizeBadge = s.sizeOnDisk > 0 ? `<span style="font-size:10px;color:var(--muted)">${s.sizeOnDisk} GB</span>` : '';
+    // 🌟 Le badge de poids avec la puce :
+    const sizeBadge = s.sizeOnDisk > 0 ? `<span style="font-size:10px;color:var(--muted);font-weight:600;margin-left:4px;">${s.sizeOnDisk} GB</span>` : '';
     const networkBadge = s.network ? `<span style="font-size:10px;color:var(--muted)">${esc(s.network)}</span>` : '';
     const progressBar = (!isSearch && pct !== null) ? `<div class="progress-bar" style="margin-top:5px"><div class="progress-fill" style="width:${pct}%;background:var(--sonarr)"></div></div>` : '';
     const poster = s.poster ? `<img class="media-card-poster" src="${esc(s.poster)}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">` : '';
     const placeholder = `<div class="media-card-poster-placeholder" style="${s.poster?'display:none':''}">📺</div>`;
+    const fanartHtml = (!isSearch && s.fanart) ? `<img class="media-card-bg-mobile" src="${esc(s.fanart)}" loading="lazy">` : '';
 
     if (!isSearch) {
         div.setAttribute('ontouchstart', `startLongPress(${s.id})`);
@@ -1078,7 +1084,9 @@ function makeSerieCard(s, isSearch) {
     <input type="checkbox" ${bulkSelectedIds.has(s.id) ? 'checked' : ''} readonly>
     </div>` : '';
     if (bulkSelectedIds.has(s.id)) div.classList.add('bulk-selected');
+
     div.innerHTML = `
+    ${fanartHtml} <!-- 🌟 Fanart placé à la racine pour couvrir toute la carte -->
     ${bulkCheckbox}
     ${poster}${placeholder}
     <div class="monitored-badge">${!isSearch ? `<div class="monitored-badge" style="cursor:pointer;" onclick="event.stopPropagation(); toggleMonitor(${s.id}, 'serie', ${!monitored}, this)">${monitored ? ICON_MONITORED : ICON_UNMONITORED}</div>` : ''}</div>
@@ -1092,7 +1100,7 @@ function makeSerieCard(s, isSearch) {
     <div class="media-card-overlay">
     <div class="media-card-title">${esc(s.title)}</div>
     <div class="media-card-meta">${s.year || ''}${s.rating ? ' &nbsp;⭐ ' + s.rating : ''}${s.network ? ' · ' + esc(s.network) : ''}</div>
-    <div class="media-card-footer">${seasonsBadge} ${sizeBadge} ${addBtn}</div>
+    <div class="media-card-footer" style="display:flex;align-items:center;">${seasonsBadge} ${sizeBadge} ${addBtn}</div>
     ${progressBar}
     </div>
     <div class="media-card-body">
@@ -1101,7 +1109,7 @@ function makeSerieCard(s, isSearch) {
     <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(s.title)}</span>
     </div>
     <div class="media-card-meta">${s.year || ''}${s.rating ? ' · ⭐ ' + s.rating : ''}${s.network ? ' · ' + esc(s.network) : ''}</div>
-    <div class="media-card-footer" style="margin-top:4px">${seasonsBadge} ${sizeBadge} ${addBtn}</div>
+    <div class="media-card-footer" style="margin-top:4px;display:flex;align-items:center;">${seasonsBadge} ${sizeBadge} ${addBtn}</div>
     ${progressBar}
     </div>`;
     return div;
@@ -1762,7 +1770,10 @@ function animateContentSlideIn(el) {
 
 function toggleListElements(show) {
     document.querySelectorAll('.tab-page').forEach(el => el.style.display = show ? 'block' : 'none');
-    document.querySelectorAll('.lib-toolbar, .page-title').forEach(el => el.style.display = show ? '' : 'none');
+    
+    // 🌟 CORRECTION ICI : On ajoute '.page-title-row' pour masquer toute la ligne du haut (incluant le bouton global)
+    document.querySelectorAll('.lib-toolbar, .page-title, .page-title-row').forEach(el => el.style.display = show ? '' : 'none');
+    
     const allHomeTabs = document.querySelectorAll('.home-tab-content');
     if (show) {
         const activeHomeTab = document.querySelector('.home-tab-content.active');
@@ -1772,6 +1783,7 @@ function toggleListElements(show) {
         allHomeTabs.forEach(el => { el.style.display = 'none'; });
     }
 }
+
 
 function makeFullscreenView(bgId, contentId) {
     const bg = document.getElementById(bgId);
@@ -3454,7 +3466,7 @@ async function openEditMediaModal(id, type) {
     }
 
     modal.innerHTML = `
-    <div class="modal-box" style="width: 500px; max-width: 90%; overflow: visible;">
+    <div class="modal-box" style="width: clamp(340px, 90vw, 560px); max-width: 92vw; max-height: 90vh; overflow-y: auto; background: var(--bg2); border: 1px solid var(--border); border-radius: 16px; padding: 26px; box-shadow: 0 10px 40px rgba(0,0,0,0.5);">
     <h2 id="edit-media-title" style="margin-top:0; border-bottom:1px solid var(--border); padding-bottom:10px;">${t('loading')}</h2>
     <div id="edit-media-loader" style="padding: 30px; text-align: center; color: var(--muted);">${t('loading')}</div>
     <div id="edit-media-form" style="display:none; display:flex; flex-direction:column; gap:15px; margin-top:20px;">
@@ -4075,7 +4087,6 @@ function renderTorrents() {
     const torrents = getVisibleTorrents();
 
     if (torrents.length === 0) {
-        // J'ai légèrement adapté le message vide pour que ça ait du sens si la recherche ne trouve rien
         container.innerHTML = `<div class="empty-state"><div class="icon">🔍</div><h3>${t('torrent_none_found')}</h3></div>`;
         return;
     }
@@ -4100,36 +4111,43 @@ function renderTorrents() {
 
         html += `
         <div class="card ${bulkSelectedIds.has(tInfo.id) ? 'bulk-selected' : ''}"
-        style="padding:15px; border-left:4px solid ${status.color}; cursor:pointer; position:relative; -webkit-touch-callout:none; user-select:none;"
+        style="padding:10px 14px; border-left:4px solid ${status.color}; cursor:pointer; position:relative; -webkit-touch-callout:none; user-select:none;"
         ontouchstart="startLongPress('${tInfo.id}')"
         ontouchend="cancelLongPress()"
         ontouchcancel="cancelLongPress()"
         oncontextmenu="if(window.preventNextClick) return false;"
         onclick="if(window.preventNextClick){ window.preventNextClick=false; return; } ${bulkSelectMode ? `toggleBulkSelect('${tInfo.id}')` : `openTorrentDetail('${tInfo.id}')`}">
         ${bulkCheckbox}
-        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px;">
-        <div style="font-weight:600; font-size:14px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin-right:15px; ${bulkSelectMode ? 'padding-left:34px;' : ''}">${esc(tInfo.name)}</div>
+
+        <!-- Ligne 1 : Titre et Boutons -->
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+        <div style="font-weight:600; font-size:13px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin-right:15px; ${bulkSelectMode ? 'padding-left:34px;' : ''}">${esc(tInfo.name)}</div>
         <div style="display:flex; gap:6px; flex-shrink:0;">
         ${btnPlayPause}
         <button class="btn-ep" style="color:var(--accent3); border-color:var(--accent3);" onclick="event.stopPropagation(); confirmDeleteTorrent('${tInfo.id}', '${esc(tInfo.name).replace(/'/g,"\'")}')">🗑</button>
         </div>
         </div>
 
-        <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--muted); margin-bottom:6px;">
-        <span style="color:${status.color}; font-weight:600;">${status.text}${tInfo.errorString ? ' ⚠️' : ''}</span>
-        <span>${percent}% / ${size}</span>
+        <!-- Ligne 2 : Statuts, Vitesses et Infos condensées -->
+        <div style="display:flex; justify-content:space-between; align-items:center; font-size:11px; color:var(--muted); margin-bottom:6px; flex-wrap:wrap; gap:8px;">
+        <div style="display:flex; gap:12px; align-items:center;">
+        <span style="color:${status.color}; font-weight:700;">${status.text}${tInfo.errorString ? ' ⚠️' : ''}</span>
+        <span style="color:var(--accent); font-family:var(--mono);">${dlSpeed}</span>
+        <span style="color:var(--accent2); font-family:var(--mono);">${upSpeed}</span>
         </div>
 
-        <div class="progress-bar" style="height:6px; background:var(--bg3); margin-bottom:6px;">
+        <div style="display:flex; gap:12px; align-items:center; font-family:var(--mono);">
+        <span>Ratio: ${(tInfo.uploadRatio || 0).toFixed(2)}</span>
+        ${tInfo.eta > 0 ? `<span>ETA: ${formatEta(tInfo.eta)}</span>` : ''}
+        <span style="font-weight:600; color:var(--text);">${percent}% / ${size}</span>
+        </div>
+        </div>
+
+        <!-- Ligne 3 : Barre de progression (plus fine) -->
+        <div class="progress-bar" style="height:4px; background:var(--bg3); margin:0;">
         <div class="progress-fill" style="width:${percent}%; background:${status.color}; transition:width 0.5s;"></div>
         </div>
 
-        <div style="display:flex; gap:15px; font-family:var(--mono); font-size:10px; color:var(--muted);">
-        <span style="color:var(--accent);">${dlSpeed}</span>
-        <span style="color:var(--accent2);">${upSpeed}</span>
-        <span style="margin-left:auto;">Ratio: ${(tInfo.uploadRatio || 0).toFixed(2)}</span>
-        ${tInfo.eta > 0 ? `<span>ETA: ${formatEta(tInfo.eta)}</span>` : ''}
-        </div>
         </div>`;
     });
 
@@ -4165,7 +4183,7 @@ function openAddTorrentModal() {
         modal.style.zIndex = '10002';
 
         modal.innerHTML = `
-        <div class="modal-box" style="width: 400px; max-width: 90%; max-height: 90vh; display: flex; flex-direction: column; padding: 0; border-radius: 16px; overflow: hidden; background: var(--bg2);">
+        <div class="modal-box" style="width: clamp(320px, 90vw, 440px); max-width: 92vw; max-height: 90vh; display: flex; flex-direction: column; padding: 0; border-radius: 16px; overflow: hidden; background: var(--bg2);">
         <h3 style="margin:0; border-bottom:1px solid var(--border); padding: 20px; flex-shrink: 0; background: var(--bg2);">${t('torrent_add_title')}</h3>
         <div style="padding: 20px; overflow-y: auto; flex: 1;">
         <div class="form-row">
@@ -4501,9 +4519,11 @@ async function openTorrentDetail(id) {
     const filesHtml = renderFileTreeHtml(tree, tInfo.id);
 
     const isPaused = (tInfo.status === 0);
+
+    // 🌟 On ajoute des IDs (ex: id="torrent-detail-action-btn") pour pouvoir cibler ces éléments lors du rafraîchissement
     const bottomActionsHtml = `
     <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; padding-top:10px; border-top:1px solid var(--border);">
-    <button onclick="torrentAction('torrent-${isPaused ? 'start' : 'stop'}', '${tInfo.id}'); closeTorrentDetail();"
+    <button id="torrent-detail-action-btn" onclick="torrentAction('torrent-${isPaused ? 'start' : 'stop'}', '${tInfo.id}'); closeTorrentDetail();"
     style="background:var(--bg3); border:1px solid var(--border); color:var(--text); padding:10px; border-radius:var(--radius); cursor:pointer; font-weight:600;">
     ${isPaused ? '▶ ' + t('torrent_resume') : '⏸ ' + t('torrent_pause')}
     </button>
@@ -4521,30 +4541,31 @@ async function openTorrentDetail(id) {
     </div>
 
     <div style="display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap;">
-    <span style="padding:4px 10px; border-radius:20px; font-size:11px; font-weight:700; background:${status.color}22; color:${status.color}; border:1px solid ${status.color}44;">${status.text}</span>
-    <span style="padding:4px 10px; border-radius:20px; font-size:11px; background:var(--bg3); color:var(--muted);">${percent}%</span>
+    <span id="torrent-detail-status-badge" style="padding:4px 10px; border-radius:20px; font-size:11px; font-weight:700; background:${status.color}22; color:${status.color}; border:1px solid ${status.color}44;">${status.text}</span>
+    <span id="torrent-detail-percent" style="padding:4px 10px; border-radius:20px; font-size:11px; background:var(--bg3); color:var(--muted);">${percent}%</span>
+    <span id="torrent-detail-spinner" style="font-size:12px; color:var(--muted); opacity:0; transition:opacity 0.2s; animation: syncPulse 1.2s infinite; display:flex; align-items:center; margin-left:auto;">↻</span>
     </div>
 
     <div style="height:6px; background:var(--bg3); border-radius:3px; margin-bottom:16px;">
-    <div style="height:6px; width:${percent}%; background:${status.color}; border-radius:3px; transition:width 0.5s;"></div>
+    <div id="torrent-detail-progress-fill" style="height:6px; width:${percent}%; background:${status.color}; border-radius:3px; transition:width 0.5s, background 0.5s;"></div>
     </div>
 
     <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px 10px; margin-bottom:24px; padding:16px; background:var(--bg2); border:1px solid var(--border); border-radius:var(--radius);">
     <div>
     <div style="font-size:11px; color:var(--muted); margin-bottom:4px; display:flex; align-items:center; gap:6px; text-transform:uppercase;">⬇️ ${t('torrent_downloaded')}</div>
-    <div style="font-size:14px; font-weight:600;">${downloaded} / ${size}</div>
+    <div id="torrent-detail-downloaded" style="font-size:14px; font-weight:600;">${downloaded} / ${size}</div>
     </div>
     <div>
     <div style="font-size:11px; color:var(--muted); margin-bottom:4px; display:flex; align-items:center; gap:6px; text-transform:uppercase;">⬆️ ${t('torrent_uploaded')}</div>
-    <div style="font-size:14px; font-weight:600;">${uploaded} (${ratio})</div>
+    <div id="torrent-detail-uploaded" style="font-size:14px; font-weight:600;">${uploaded} (${ratio})</div>
     </div>
     <div>
     <div style="font-size:11px; color:var(--muted); margin-bottom:4px; display:flex; align-items:center; gap:6px; text-transform:uppercase;">⏱️ ${t('time_remaining')}</div>
-    <div style="font-size:14px; font-weight:600;">${eta}</div>
+    <div id="torrent-detail-eta" style="font-size:14px; font-weight:600;">${eta}</div>
     </div>
     <div>
     <div style="font-size:11px; color:var(--muted); margin-bottom:4px; display:flex; align-items:center; gap:6px; text-transform:uppercase;">👥 ${t('torrent_peers_label')}</div>
-    <div style="font-size:14px; font-weight:600;">${totalPeers} (${seeders} / ${leechers})</div>
+    <div id="torrent-detail-peers" style="font-size:14px; font-weight:600;">${totalPeers} (${seeders} / ${leechers})</div>
     </div>
     <div>
     <div style="font-size:11px; color:var(--muted); margin-bottom:4px; display:flex; align-items:center; gap:6px; text-transform:uppercase;">📅 ${t('torrent_added_on')}</div>
@@ -4575,13 +4596,96 @@ async function openTorrentDetail(id) {
         document.body.appendChild(modal);
     }
 
-    modal.innerHTML = `<div style="background:var(--bg); border-radius:16px; width:100%; max-width:600px; margin:auto; box-shadow:0 10px 40px rgba(0,0,0,0.5);">${content}</div>`;
+    modal.innerHTML = `<div style="background:var(--bg); border-radius:16px; width:100%; max-width:min(680px, 92vw); margin:auto; box-shadow:0 10px 40px rgba(0,0,0,0.5);">${content}</div>`;
     modal.style.display = 'flex';
     modal.classList.add('open');
 
     setTimeout(() => {
         modal.querySelectorAll('.torrent-file-checkbox[data-indeterminate="true"]').forEach(cb => { cb.indeterminate = true; });
     }, 10);
+
+    // 🚀 LA MAGIE COMMENCE ICI : Boucle d'actualisation en arrière-plan
+    if (window.torrentDetailInterval) clearInterval(window.torrentDetailInterval);
+
+    const fetchTorrentUpdates = async () => {
+        const modalCheck = document.getElementById('modal-torrent-detail');
+        if (!modalCheck || !modalCheck.classList.contains('open')) {
+            clearInterval(window.torrentDetailInterval);
+            return;
+        }
+
+        const spinner = document.getElementById('torrent-detail-spinner');
+        if(spinner) spinner.style.opacity = '1';
+
+        const r = await api('get_downloads', {}, 'GET');
+
+        if(spinner) spinner.style.opacity = '0';
+
+        if (r.torrents) {
+            dlTorrentsCache = r.torrents;
+
+            // Met aussi à jour la liste en arrière-plan discrètement
+            if (typeof renderTorrents === 'function') renderTorrents();
+
+            const tInfoLive = r.torrents.find(x => x.id === id);
+            if (tInfoLive) {
+                const statusLive = getTransmissionStatus(tInfoLive.status);
+                const percentLive = (tInfoLive.percentDone * 100).toFixed(1);
+                const etaLive = tInfoLive.eta > 0 ? formatEta(tInfoLive.eta) : '∞';
+                const ratioLive = (tInfoLive.uploadRatio || 0).toFixed(3);
+                const seedersLive = tInfoLive.peersSendingToUs || 0;
+                const leechersLive = tInfoLive.peersGettingFromUs || 0;
+                const totalPeersLive = tInfoLive.peersConnected || 0;
+                const downloadedLive = formatBytes(tInfoLive.downloadedEver || 0);
+                const uploadedLive = formatBytes(tInfoLive.uploadedEver || 0);
+                const sizeLive = formatBytes(tInfoLive.totalSize || 0);
+
+                // On injecte les nouvelles valeurs sans recréer le HTML
+                const badge = document.getElementById('torrent-detail-status-badge');
+                if(badge) {
+                    badge.textContent = statusLive.text + (tInfoLive.errorString ? ' ⚠️' : '');
+                    badge.style.background = statusLive.color + '22';
+                    badge.style.color = statusLive.color;
+                    badge.style.borderColor = statusLive.color + '44';
+                }
+
+                const pctEl = document.getElementById('torrent-detail-percent');
+                if(pctEl) pctEl.textContent = percentLive + '%';
+
+                const fillEl = document.getElementById('torrent-detail-progress-fill');
+                if(fillEl) {
+                    fillEl.style.width = percentLive + '%';
+                    fillEl.style.background = statusLive.color;
+                }
+
+                const dlEl = document.getElementById('torrent-detail-downloaded');
+                if(dlEl) dlEl.textContent = downloadedLive + ' / ' + sizeLive;
+
+                const ulEl = document.getElementById('torrent-detail-uploaded');
+                if(ulEl) ulEl.textContent = uploadedLive + ' (' + ratioLive + ')';
+
+                const etaEl = document.getElementById('torrent-detail-eta');
+                if(etaEl) etaEl.textContent = etaLive;
+
+                const peersEl = document.getElementById('torrent-detail-peers');
+                if(peersEl) peersEl.textContent = totalPeersLive + ' (' + seedersLive + ' / ' + leechersLive + ')';
+
+                const btnAction = document.getElementById('torrent-detail-action-btn');
+                if (btnAction) {
+                    const isPausedLive = (tInfoLive.status === 0);
+                    btnAction.innerHTML = isPausedLive ? '▶ ' + t('torrent_resume') : '⏸ ' + t('torrent_pause');
+                    btnAction.setAttribute('onclick', `torrentAction('torrent-${isPausedLive ? 'start' : 'stop'}', '${tInfoLive.id}'); closeTorrentDetail();`);
+                }
+            } else {
+                // Si le torrent a disparu (supprimé en arrière-plan)
+                clearInterval(window.torrentDetailInterval);
+                closeTorrentDetail();
+            }
+        }
+    };
+
+    // Exécute la boucle toutes les 2,5 secondes (2500 ms)
+    window.torrentDetailInterval = setInterval(fetchTorrentUpdates, 2500);
 }
 
 function closeTorrentDetail() {
@@ -4591,6 +4695,8 @@ function closeTorrentDetail() {
         modal.classList.remove('open');
         document.body.style.overflow = '';
     }
+    // 🌟 On n'oublie pas de couper la boucle quand on ferme la fenêtre !
+    if (window.torrentDetailInterval) clearInterval(window.torrentDetailInterval);
 }
 
 // ── CONFIRMATION SUPPRESSION ──────────────────────────────────────────────────
@@ -4755,7 +4861,7 @@ function showDockerLogs(id, name) {
     }
 
     modal.innerHTML = `
-    <div class="modal-box" style="width: 800px; max-width: 95%; max-height: 90vh; display: flex; flex-direction: column; padding: 0; overflow: hidden; background: var(--bg2); border-radius: 16px;">
+    <div class="modal-box" style="width: clamp(480px, 90vw, 880px); max-width: 95vw; max-height: 90vh; display: flex; flex-direction: column; padding: 0; overflow: hidden; background: var(--bg2); border-radius: 16px;">
     <h3 style="margin:0; border-bottom:1px solid var(--border); padding: 15px 20px; display:flex; justify-content:space-between; align-items:center; flex-shrink:0; background: var(--bg2);">
     <span style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">📝 ${t('docker_logs_title', {name: esc(name)})}</span>
     <div style="display:flex; align-items:center; gap:10px;">
@@ -4820,7 +4926,7 @@ function showDockerStats(id, name) {
     }
 
     modal.innerHTML = `
-    <div class="modal-box" style="width: 450px; max-width: 95%; max-height: 90vh; display: flex; flex-direction: column; padding: 0; overflow: hidden; background: var(--bg2); border-radius: 16px;">
+    <div class="modal-box" style="width: clamp(340px, 88vw, 480px); max-width: 95vw; max-height: 90vh; display: flex; flex-direction: column; padding: 0; overflow: hidden; background: var(--bg2); border-radius: 16px;">
     <h3 style="margin:0; border-bottom:1px solid var(--border); padding: 15px 20px; display:flex; justify-content:space-between; align-items:center; flex-shrink:0; background: var(--bg2);">
     <span style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">📊 ${t('docker_stats_title', {name: esc(name)})}</span>
     <div style="display:flex; align-items:center; gap:10px;">
@@ -5734,12 +5840,12 @@ function openImportListModal(type) {
     if (!modal) {
         const modalHtml = `
         <div id="modal-import-list" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:999999; align-items:center; justify-content:center; padding:20px; backdrop-filter:blur(5px);">
-        <div style="background:var(--bg2); width:100%; max-width:800px; border:1px solid var(--border); border-radius:12px; max-height:90vh; display:flex; flex-direction:column; box-shadow:0 10px 40px rgba(0,0,0,0.5); overflow:hidden;">
+        <div style="background:var(--bg2); width:100%; max-width:min(920px, 92vw); height:90vh; max-height:90vh; border:1px solid var(--border); border-radius:12px; display:flex; flex-direction:column; box-shadow:0 10px 40px rgba(0,0,0,0.5); overflow:hidden;">
         <div style="display:flex; justify-content:space-between; align-items:center; padding: 15px 20px; border-bottom: 1px solid var(--border); flex-shrink:0; background:var(--bg2);">
         <h3 id="import-list-title" style="margin:0; color:var(--text); font-size:18px;"></h3>
         <span onclick="document.getElementById('modal-import-list').style.display='none'" style="cursor:pointer; color:var(--muted); font-size:24px; line-height:1;">&times;</span>
         </div>
-        <div id="import-list-step1" style="padding: 20px; overflow-y: auto; flex: 1;">
+        <div id="import-list-step1" style="padding: 20px; overflow-y: auto; flex: 1; display:flex; flex-direction:column;">
 
         <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:10px; flex-wrap:wrap; gap:10px;">
         <p style="color:var(--muted); font-size:13px; margin:0;">${t('import_list_hint')}</p>
@@ -5749,7 +5855,7 @@ function openImportListModal(type) {
         <input type="file" id="import-file-upload" accept=".txt" style="display:none;" onchange="handleImportFileUpload(event)">
         </div>
 
-        <textarea id="import-list-textarea" rows="8" style="width:100%; background:var(--bg3); border:1px solid var(--border); color:var(--text); border-radius:8px; padding:12px; font-size:14px; resize:vertical;" placeholder="${t('import_list_placeholder')}"></textarea>
+        <textarea id="import-list-textarea" rows="8" style="width:100%; background:var(--bg3); border:1px solid var(--border); color:var(--text); border-radius:8px; padding:12px; font-size:14px; resize:vertical; flex:1; min-height:160px;" placeholder="${t('import_list_placeholder')}"></textarea>
         <button class="btn-primary" style="margin-top:15px; width:100%; flex-shrink:0;" onclick="analyzeImportList()">${t('import_list_analyze')}</button>
         </div>
         <div id="import-list-step2" style="display:none; flex-direction:column; padding: 20px; overflow:hidden; flex:1;">
@@ -5766,7 +5872,7 @@ function openImportListModal(type) {
 
     document.getElementById('import-list-title').textContent = type === 'movie' ? t('import_list_title_movie') : t('import_list_title_serie');
     document.getElementById('import-list-textarea').value = '';
-    document.getElementById('import-list-step1').style.display = 'block';
+    document.getElementById('import-list-step1').style.display = 'flex';
     document.getElementById('import-list-step2').style.display = 'none';
     modal.style.display = 'flex';
 }
@@ -5885,7 +5991,7 @@ function openSearchModal(type) {
     if (!modal) {
         const modalHtml = `
         <div id="modal-search-media" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:999999; align-items:center; justify-content:center; padding:20px; backdrop-filter:blur(5px);">
-        <div style="background:var(--bg2); width:100%; max-width:800px; border:1px solid var(--border); border-radius:12px; max-height:90vh; display:flex; flex-direction:column; box-shadow:0 10px 40px rgba(0,0,0,0.5); overflow:hidden;">
+        <div style="background:var(--bg2); width:100%; max-width:min(920px, 92vw); border:1px solid var(--border); border-radius:12px; max-height:90vh; display:flex; flex-direction:column; box-shadow:0 10px 40px rgba(0,0,0,0.5); overflow:hidden;">
         <div style="display:flex; justify-content:space-between; align-items:center; padding: 15px 20px; border-bottom: 1px solid var(--border); flex-shrink:0; background:var(--bg2);">
         <h3 id="search-modal-title" style="margin:0; color:var(--text); font-size:18px;">${t('add_media_title')}</h3>
         <span onclick="document.getElementById('modal-search-media').style.display='none'" style="cursor:pointer; color:var(--muted); font-size:24px; line-height:1;">&times;</span>
@@ -6256,16 +6362,16 @@ async function openExportListModal(type) {
     if (!modal) {
         const modalHtml = `
         <div id="modal-export-list" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:999999; align-items:center; justify-content:center; padding:20px; backdrop-filter:blur(5px);">
-        <div style="background:var(--bg2); width:100%; max-width:600px; border:1px solid var(--border); border-radius:12px; display:flex; flex-direction:column; box-shadow:0 10px 40px rgba(0,0,0,0.5); overflow:hidden;">
-        <div style="display:flex; justify-content:space-between; align-items:center; padding: 15px 20px; border-bottom: 1px solid var(--border); background:var(--bg2);">
+        <div style="background:var(--bg2); width:100%; max-width:clamp(420px, 90vw, 720px); height:90vh; max-height:90vh; border:1px solid var(--border); border-radius:12px; display:flex; flex-direction:column; box-shadow:0 10px 40px rgba(0,0,0,0.5); overflow:hidden;">
+        <div style="display:flex; justify-content:space-between; align-items:center; padding: 15px 20px; border-bottom: 1px solid var(--border); background:var(--bg2); flex-shrink:0;">
         <h3 id="export-list-title" style="margin:0; color:var(--text); font-size:18px;">${t('export_modal_title')}</h3>
         <span onclick="document.getElementById('modal-export-list').style.display='none'" style="cursor:pointer; color:var(--muted); font-size:24px; line-height:1;">&times;</span>
         </div>
-        <div style="padding: 20px; display:flex; flex-direction:column;">
-        <p id="export-list-hint" style="color:var(--muted); font-size:13px; margin-bottom:10px;">${t('export_loading')}</p>
-        <textarea id="export-list-textarea" rows="12" style="width:100%; background:var(--bg3); border:1px solid var(--border); color:var(--text); border-radius:8px; padding:12px; font-size:14px; resize:vertical; font-family:var(--mono);" readonly></textarea>
+        <div style="padding: 20px; display:flex; flex-direction:column; flex:1; overflow:hidden;">
+        <p id="export-list-hint" style="color:var(--muted); font-size:13px; margin-bottom:10px; flex-shrink:0;">${t('export_loading')}</p>
+        <textarea id="export-list-textarea" rows="12" style="width:100%; background:var(--bg3); border:1px solid var(--border); color:var(--text); border-radius:8px; padding:12px; font-size:14px; resize:vertical; font-family:var(--mono); flex:1; min-height:200px;" readonly></textarea>
 
-        <div id="export-actions" style="display:flex; gap:10px; margin-top:15px; display:none;">
+        <div id="export-actions" style="display:flex; gap:10px; margin-top:15px; display:none; flex-shrink:0;">
         <button class="btn-primary" style="flex:1; background:var(--bg3); color:var(--text); border:1px solid var(--border);" onclick="copyExportList()">📋 ${t('btn_copy')}</button>
         <button class="btn-primary" style="flex:1; background:var(--accent2); color:#000; border:none;" onclick="downloadExportList()">💾 ${t('btn_save_txt')}</button>
         </div>
@@ -6456,7 +6562,7 @@ function openTrailerModal(videoId) {
 
     // On injecte un iframe YouTube optimisé
     modal.innerHTML = `
-    <div class="modal-box" style="width: 800px; max-width: 100%; padding: 0; background: #000; border-radius: 12px; overflow: hidden; position: relative; box-shadow: 0 10px 40px rgba(0,0,0,0.8);">
+    <div class="modal-box" style="width: clamp(320px, 90vw, 960px); max-width: 92vw; padding: 0; background: #000; border-radius: 12px; overflow: hidden; position: relative; box-shadow: 0 10px 40px rgba(0,0,0,0.8);">
     <div style="display:flex; justify-content:flex-end; position:absolute; top:10px; right:10px; z-index:10;">
     <button onclick="closeTrailerModal()" style="background:rgba(0,0,0,0.6); border:1px solid rgba(255,255,255,0.3); color:#fff; width:34px; height:34px; border-radius:50%; cursor:pointer; font-weight:bold; transition: background 0.2s;" onmouseover="this.style.background='rgba(255,93,143,0.8)'" onmouseout="this.style.background='rgba(0,0,0,0.6)'">✕</button>
     </div>
@@ -6500,5 +6606,861 @@ document.addEventListener('click', e => {
         }
     }
 }, true);
+
+let historyCache = [];
+
+async function loadHistory(type) {
+    const container = document.getElementById('history-list');
+    if (!container) return;
+
+    // Remplacement de "Chargement..."
+    container.innerHTML = `<div class="downloads-loader">⏳ ${t('dl_loading')}</div>`;
+
+    try {
+        const res = await api('get_history&type=' + type, {}, 'GET');
+
+        if (res.history && res.history.length > 0) {
+            historyCache = res.history;
+            renderHistory();
+        } else {
+            // Remplacement de "Aucun historique trouvé"
+            container.innerHTML = `<div class="empty-state"><div class="icon">⏱️</div><h3>${t('history_no_data')}</h3></div>`;
+        }
+    } catch (e) {
+        // Remplacement de "Erreur lors du chargement"
+        container.innerHTML = `<div class="empty-state"><div class="icon">⚠️</div><h3>${t('history_error')}</h3></div>`;
+    }
+}
+
+function renderHistory() {
+    const container = document.getElementById('history-list');
+    const searchInput = document.getElementById('history-search');
+    const searchTerm = searchInput ? searchInput.value.toLowerCase() : '';
+
+    if (!historyCache || historyCache.length === 0) return;
+
+    const filtered = historyCache.filter(item => {
+        const title = item.sourceTitle || item.title || '';
+        return title.toLowerCase().includes(searchTerm);
+    });
+
+    if (filtered.length === 0) {
+        // Remplacement de "Aucun résultat"
+        container.innerHTML = `<div class="empty-state"><div class="icon">🔍</div><h3>${t('history_no_results')}</h3></div>`;
+        return;
+    }
+
+    let html = '';
+    filtered.forEach(item => {
+        const d = new Date(item.date);
+        const dateStr = d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+
+        let color = 'var(--muted)';
+        let icon = 'ℹ️';
+
+        if (item.eventType === 'grabbed') { color = 'var(--orange)'; icon = '⬇️'; }
+        else if (item.eventType === 'downloadFolderImported') { color = 'var(--green)'; icon = '✅'; }
+        else if (item.eventType === 'downloadFailed') { color = 'var(--red)'; icon = '❌'; }
+
+        html += `
+        <div class="card" style="padding:10px 14px; border-left:4px solid ${color}; margin-bottom:10px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+        <div style="font-weight:600; font-size:13px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin-right:10px;">
+        <!-- Remplacement de "Inconnu" par la clé "word_unknown" qui existe déjà dans ton projet -->
+        ${icon} ${esc(item.sourceTitle || item.title || t('word_unknown'))}
+        </div>
+        <div style="font-size:11px; color:var(--muted); white-space:nowrap;">${dateStr}</div>
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center; font-size:11px; color:var(--muted);">
+        <div><span style="color:${color}; font-weight:700; text-transform:capitalize;">${esc(item.eventType)}</span> • ${esc(item.quality || '')}</div>
+        </div>
+        </div>`;
+    });
+
+    container.innerHTML = html;
+}
+
+function filterHistory() {
+    renderHistory();
+}
+
+// ── SYSTÈME ET PARAMÈTRES (RADARR/SONARR) ─────────────────────────────────────
+async function loadAppSystemStatus(type) {
+    const prefix = type === 'movie' ? 'movie' : 'serie';
+    const verEl = document.getElementById('app-version');
+    const badgeEl = document.getElementById('app-update-badge');
+    
+    if (verEl) verEl.textContent = t('loading');
+    
+    const r = await api('app_sys_status', { type: type });
+    
+    if (r.ok) {
+        if (verEl) verEl.textContent = t('app_version').replace('{v}', r.version);
+        if (badgeEl) badgeEl.style.display = r.update_available ? 'inline-block' : 'none';
+        
+        if (r.stats) {
+            const elTotal = document.getElementById(`${prefix}-stat-total`);
+            const elDl = document.getElementById(`${prefix}-stat-dl`);
+            const elMissing = document.getElementById(`${prefix}-stat-missing`);
+            const elSize = document.getElementById(`${prefix}-stat-size`);
+            
+            if (elTotal) elTotal.textContent = r.stats.total;
+            if (elDl) elDl.textContent = r.stats.downloaded;
+            if (elMissing) elMissing.textContent = r.stats.missing;
+            if (elSize) elSize.textContent = formatBytes(r.stats.sizeOnDisk || 0);
+        }
+    } else {
+        if (verEl) verEl.textContent = t('error_connection');
+    }
+}
+
+async function appSystemCommand(type, commandName) {
+    if (commandName === 'Restart') {
+        if (!confirm(t('confirm_restart_app'))) return;
+    }
+    
+    notify(t('command_sent'), 'ok');
+    const r = await api('app_sys_command', { type: type, command: commandName });
+    
+    if (r.ok) notify(t('command_success'), 'ok');
+    else notify(r.error || t('command_error'), 'err');
+}
+
+// ── AFFICHAGE DES COLLECTIONS FAÇON "NZB360" ──────────────────────────────────
+async function viewCollections() {
+    let modal = document.getElementById('modal-collections');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'modal-collections';
+        modal.className = 'modal-bg';
+        modal.style.zIndex = '10005';
+        document.body.appendChild(modal);
+        modal.addEventListener('click', e => {
+            if (e.target === modal) modal.classList.remove('open');
+        });
+    }
+
+    modal.innerHTML = `
+    <div class="modal-box" style="width: clamp(420px, 90vw, 720px); max-width: 95vw; max-height: 90vh; display: flex; flex-direction: column; padding: 0; overflow: hidden; background: var(--bg); border-radius: 16px;">
+        
+        <div style="padding: 15px 20px; display: flex; align-items: center; gap: 15px; background: var(--bg2);">
+            <button onclick="document.getElementById('modal-collections').classList.remove('open');" style="background:none; border:none; color:var(--text); font-size:24px; cursor:pointer;">←</button>
+            <div style="flex:1; position:relative;">
+                <input type="text" id="col-search-input" placeholder="${t('col_search_placeholder')}" oninput="renderFilteredCollections()" style="width:100%; background:var(--bg3); border:1px solid var(--border); border-radius:24px; padding:12px 18px; color:var(--text); outline:none; font-size:14px;">
+            </div>
+        </div>
+        
+        <div style="display:flex; justify-content:space-around; background:var(--bg2); border-bottom: 1px solid var(--border); padding: 5px 10px 15px 10px;">
+            <button class="col-filter-btn active" data-filter="all" onclick="setColFilter('all', this)" style="background:rgba(255, 193, 50, 0.15); color:var(--radarr); border:none; padding:8px 24px; border-radius:20px; font-weight:bold; cursor:pointer; font-size:13px;">${t('col_filter_all')}</button>
+            <button class="col-filter-btn" data-filter="missing" onclick="setColFilter('missing', this)" style="background:none; color:var(--muted); border:none; padding:8px 24px; border-radius:20px; font-weight:bold; cursor:pointer; font-size:13px;">${t('col_filter_missing')}</button>
+            <button class="col-filter-btn" data-filter="complete" onclick="setColFilter('complete', this)" style="background:none; color:var(--muted); border:none; padding:8px 24px; border-radius:20px; font-weight:bold; cursor:pointer; font-size:13px;">${t('col_filter_complete')}</button>
+        </div>
+
+        <div id="collections-content" style="padding: 20px; overflow-y: auto; flex: 1; display: block; background:var(--bg);">
+            <div style="text-align:center; padding:40px; color:var(--muted);">⏳ ${t('loading')}</div>
+        </div>
+    </div>`;
+    modal.classList.add('open');
+
+    const r = await api('get_all_collections', {}, 'GET');
+    const content = document.getElementById('collections-content');
+    
+    if (r.error) {
+        content.innerHTML = `<div class="empty-state"><div class="icon">⚠️</div><h3>${t('notif_error')}</h3><p>${esc(r.error)}</p></div>`;
+        return;
+    }
+
+    window._allCollectionsCache = r.collections || [];
+    window._currentColFilter = 'all';
+    renderFilteredCollections();
+}
+
+window.setColFilter = function(filter, btn) {
+    window._currentColFilter = filter;
+    document.querySelectorAll('.col-filter-btn').forEach(b => {
+        b.classList.remove('active');
+        b.style.background = 'none';
+        b.style.color = 'var(--muted)';
+    });
+    btn.classList.add('active');
+    btn.style.background = 'rgba(255, 193, 50, 0.15)';
+    btn.style.color = 'var(--radarr)';
+    renderFilteredCollections();
+}
+
+window.renderFilteredCollections = function() {
+    const query = (document.getElementById('col-search-input').value || '').toLowerCase().trim();
+    const content = document.getElementById('collections-content');
+    const collections = window._allCollectionsCache;
+
+    if (!collections || collections.length === 0) {
+        content.innerHTML = `<div class="empty-state"><div class="icon">📚</div><h3>${t('col_none_found')}</h3></div>`;
+        return;
+    }
+
+    const filtered = collections.filter(c => {
+        if (query && !c.title.toLowerCase().includes(query)) return false;
+        if (window._currentColFilter === 'missing' && c.inLibCount >= c.totalMovies) return false;
+        if (window._currentColFilter === 'complete' && c.inLibCount < c.totalMovies) return false;
+        return true;
+    });
+
+    if (filtered.length === 0) {
+        content.innerHTML = `<div style="text-align:center; padding:40px; color:var(--muted);">${t('no_result')}</div>`;
+        return;
+    }
+
+    const iconMonitoredSVG = ICON_MONITORED.replace(/width:\s*18px;\s*height:\s*18px;/, 'width: 14px; height: 14px;');
+    const iconUnmonitoredSVG = ICON_UNMONITORED.replace(/width:\s*18px;\s*height:\s*18px;/, 'width: 14px; height: 14px;');
+
+    let html = '';
+    filtered.forEach(c => {
+        const isComplete = c.inLibCount === c.totalMovies;
+        const subtitleColor = isComplete ? 'var(--accent)' : 'var(--muted)';
+        const subtitleText = isComplete 
+            ? t('col_all_movies').replace('{total}', c.totalMovies) 
+            : t('col_movies_in_lib').replace('{n}', c.inLibCount).replace('{total}', c.totalMovies);
+        
+        const colMonitorIcon = c.monitored ? iconMonitoredSVG : iconUnmonitoredSVG;
+        
+        let moviesHtml = '';
+        (c.movies || []).forEach(m => {
+            let overlayHtml = '';
+            let yearColor = 'var(--muted)';
+            let posterOpacity = '1';
+
+            if (!m.inLib) {
+                overlayHtml = `<div style="position:absolute; bottom:0; left:0; right:0; background:rgba(0,0,0,0.7); color:var(--muted); font-size:8px; text-align:center; padding:3px 0; font-weight:bold;">${t('col_not_added')}</div>`;
+                posterOpacity = '0.4';
+            } else {
+                yearColor = 'var(--radarr)';
+                const sizeStr = m.sizeOnDisk > 0 ? `${m.sizeOnDisk} GB` : '';
+                const smallIcon = ICON_MONITORED.replace(/width:\s*18px;\s*height:\s*18px;/, 'width: 8px; height: 8px;').replace(/color:\s*var\(--accent\);/, 'color: var(--muted);');
+                
+                overlayHtml = `
+                <div style="position:absolute; top:4px; left:4px; background:rgba(0,0,0,0.75); padding:2px 4px; border-radius:4px; display:flex; align-items:center; gap:3px; font-size:8px; font-weight:bold;">
+                    <span style="display:flex; align-items:center;">${smallIcon}</span>
+                    ${m.hasFile ? `<span style="color:var(--accent);">✓ ${sizeStr}</span>` : `<span style="color:#ffa03c;">⏳</span>`}
+                </div>`;
+            }
+
+            moviesHtml += `
+            <div style="display:flex; flex-direction:column; gap:4px; width:65px; flex-shrink:0; cursor:pointer;" onclick="document.getElementById('modal-collections').classList.remove('open'); makeFullscreenView('modal-movie', 'movie-detail-content'); openMovieCollection('${esc(c.title).replace(/'/g, "\\'")}', 0, ${c.tmdbId});">
+                <div style="position:relative; width:100%; aspect-ratio:2/3; border-radius:6px; overflow:hidden; border:1px solid rgba(255,255,255,0.05); background:var(--bg3);">
+                    ${m.poster ? `<img src="${esc(m.poster)}" style="width:100%; height:100%; object-fit:cover; opacity:${posterOpacity};">` : `<div style="width:100%; height:100%; display:flex; align-items:center; justify-content:center; font-size:16px; opacity:${posterOpacity};">🎬</div>`}
+                    ${overlayHtml}
+                </div>
+                <div style="text-align:center; font-size:10px; font-weight:bold; color:${yearColor};">${m.year || ''}</div>
+            </div>`;
+        });
+
+        const bgImage = c.fanart ? `url('${esc(c.fanart)}')` : 'none';
+
+        html += `
+        <div style="position:relative; border-radius:12px; overflow:hidden; background:var(--bg2); border:1px solid var(--border); margin-bottom: 12px; flex-shrink: 0;">
+            <div style="position:absolute; inset:0; background-image:${bgImage}; background-size:cover; background-position:center; opacity:0.25;"></div>
+            <div style="position:absolute; inset:0; background:linear-gradient(to right, var(--bg2) 0%, rgba(19,22,30,0.85) 60%, transparent 100%);"></div>
+            
+            <div style="position:relative; z-index:10; padding:10px 12px;">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px;">
+                    <div style="display:flex; gap:8px; align-items:flex-start;">
+                        <span style="margin-top:2px; display:flex;">${colMonitorIcon}</span>
+                        <div>
+                            <h4 style="margin:0 0 2px 0; font-size:14px; color:var(--text); font-weight:bold;">${esc(c.title)}</h4>
+                            <div style="font-size:10px; font-weight:600; color:${subtitleColor};">${subtitleText}</div>
+                        </div>
+                    </div>
+                    <button style="background:none; border:none; color:var(--muted); font-size:16px; cursor:pointer; padding:0 4px;" onclick="event.stopPropagation(); openCollectionBottomSheet(${c.tmdbId});">⋮</button>
+                </div>
+
+                <div style="display:flex; gap:8px; overflow-x:auto; padding-bottom:4px; scrollbar-width:none;">
+                    ${moviesHtml}
+                </div>
+            </div>
+        </div>`;
+    });
+
+    content.innerHTML = html;
+}
+
+// ── MENU D'OPTIONS COLLECTION (BOTTOM SHEET) ──────────────────────────────────
+    window.openCollectionBottomSheet = function(tmdbId) {
+        const c = window._allCollectionsCache.find(x => x.tmdbId === tmdbId);
+        if (!c) return;
+
+        let sheet = document.getElementById('col-menu-sheet');
+        let overlay = document.getElementById('col-menu-overlay');
+
+        if (!sheet) {
+            const html = `
+            <div class="mobile-menu-overlay" id="col-menu-overlay" onclick="closeCollectionBottomSheet()" style="z-index:100006;"></div>
+            <div class="mobile-bottom-sheet" id="col-menu-sheet" style="z-index:100007; padding:0; background:var(--bg2); display:flex; flex-direction:column; max-height:90vh; border-radius: 24px 24px 0 0;">
+                <div id="col-menu-content" style="overflow-y:auto; padding:20px;"></div>
+            </div>`;
+            document.body.insertAdjacentHTML('beforeend', html);
+            sheet = document.getElementById('col-menu-sheet');
+            overlay = document.getElementById('col-menu-overlay');
+        }
+
+        const missingCount = c.totalMovies - c.inLibCount;
+        const inLibIds = [];
+        window.currentCollectionUnmonitored = [];
+
+        let moviesHtml = '';
+        (c.movies || []).forEach(m => {
+            if (m.inLib && m.id) inLibIds.push(m.id);
+            if (!m.inLib) window.currentCollectionUnmonitored.push(m);
+
+            let overlayHtml = '';
+            let posterOpacity = '1';
+
+            if (!m.inLib) {
+                overlayHtml = `<div style="position:absolute; bottom:0; left:0; right:0; background:rgba(0,0,0,0.7); color:var(--muted); font-size:9px; text-align:center; padding:4px 0; font-weight:bold;">${t('col_not_added')}</div>`;
+                posterOpacity = '0.4';
+            } else {
+                const sizeStr = m.sizeOnDisk > 0 ? `${m.sizeOnDisk} GB` : '';
+                const smallIcon = ICON_MONITORED.replace(/width:\s*18px;\s*height:\s*18px;/, 'width: 9px; height: 9px;').replace(/color:\s*var\(--accent\);/, 'color: var(--muted);');
+                overlayHtml = `
+                <div style="position:absolute; top:4px; left:4px; background:rgba(0,0,0,0.75); padding:2px 5px; border-radius:5px; display:flex; align-items:center; gap:4px; font-size:9px; font-weight:bold;">
+                    <span style="display:flex; align-items:center;">${smallIcon}</span>
+                    ${m.hasFile ? `<span style="color:var(--accent);">✓ ${sizeStr}</span>` : `<span style="color:#ffa03c;">⏳</span>`}
+                </div>`;
+            }
+
+            moviesHtml += `
+            <div style="display:flex; flex-direction:column; gap:6px; width:80px; flex-shrink:0;">
+                <div style="position:relative; width:100%; aspect-ratio:2/3; border-radius:8px; overflow:hidden; border:1px solid rgba(255,255,255,0.05); background:var(--bg3);">
+                    ${m.poster ? `<img src="${esc(m.poster)}" style="width:100%; height:100%; object-fit:cover; opacity:${posterOpacity};">` : `<div style="width:100%; height:100%; display:flex; align-items:center; justify-content:center; font-size:20px; opacity:${posterOpacity};">🎬</div>`}
+                    ${overlayHtml}
+                </div>
+                <div style="text-align:center; font-size:11px; font-weight:bold; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${esc(m.title)}">${esc(m.title)}</div>
+                <div style="text-align:center; font-size:10px; font-weight:bold; color:var(--radarr);">${m.year || ''}</div>
+            </div>`;
+        });
+
+        const safeTitle = esc(c.title).replace(/'/g, "\\'");
+        const idsJson = JSON.stringify(inLibIds).replace(/"/g, '&quot;');
+
+        const monitorIconSVG = c.monitored 
+            ? ICON_MONITORED.replace(/width:\s*18px;\s*height:\s*18px;/, 'width: 20px; height: 20px;') 
+            : ICON_UNMONITORED.replace(/width:\s*18px;\s*height:\s*18px;/, 'width: 20px; height: 20px;');
+
+        const content = document.getElementById('col-menu-content');
+        content.innerHTML = `
+            <div style="width: 40px; height: 5px; background: var(--border); border-radius: 5px; margin: 0 auto 20px auto;"></div>
+            
+            <div style="display:flex; gap:15px; margin-bottom:15px;">
+                <div style="width: 60px; height: 90px; flex-shrink:0; border-radius:8px; overflow:hidden; border:1px solid var(--border); background:var(--bg3);">
+                    ${c.poster ? `<img src="${esc(c.poster)}" style="width:100%; height:100%; object-fit:cover;">` : `<div style="width:100%; height:100%; display:flex; align-items:center; justify-content:center; font-size:24px;">🎬</div>`}
+                </div>
+                <div style="flex:1;">
+                    <h2 style="margin:0 0 6px 0; font-size:18px; color:var(--text); font-weight:bold; line-height:1.2;">${esc(c.title)}</h2>
+                    <p style="font-size:12px; color:var(--muted); line-height:1.4; margin:0; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden;">${esc(c.overview || t('col_no_overview'))}</p>
+                </div>
+            </div>
+
+            <div style="font-size:12px; font-weight:bold; color:var(--muted); margin-bottom:10px;">
+                ${t('col_movies_in_lib').replace('{n}', c.inLibCount).replace('{total}', c.totalMovies)}
+            </div>
+
+            <div style="display:flex; gap:10px; overflow-x:auto; padding-bottom:15px; scrollbar-width:none; border-bottom:1px solid var(--border); margin-bottom:15px;">
+                ${moviesHtml}
+            </div>
+
+            <div style="display:flex; flex-direction:column; gap:10px;">
+                <button class="sheet-btn" onclick="closeCollectionBottomSheet(); toggleCollectionMonitor(${c.id}, '${idsJson}', ${!c.monitored})">
+                    <span style="width:30px; display:flex; align-items:center; justify-content:center;">${monitorIconSVG}</span> ${t('col_action_monitoring')}
+                </button>
+                <button class="sheet-btn" onclick="closeCollectionBottomSheet(); promptCollectionQuality(${c.id}, ${c.qualityProfileId || 0}, '${idsJson}')">
+                    <span style="color:var(--radarr); width:30px; text-align:center; font-size:18px; font-weight:bold; font-family:var(--mono);">HQ</span> ${t('col_action_quality')}
+                </button>
+                <button class="sheet-btn" onclick="closeCollectionBottomSheet(); promptAddCollection('${safeTitle}')" ${missingCount === 0 ? 'disabled style="opacity:0.5"' : ''}>
+                    <span style="color:var(--radarr); width:30px; text-align:center; font-size:18px;">➕</span> ${t('col_action_add_missing')}
+                </button>
+                <button class="sheet-btn danger" onclick="closeCollectionBottomSheet(); removeCollectionMovies('${idsJson}', '${safeTitle}')">
+                    <span style="color:var(--accent3); width:30px; text-align:center; font-size:18px;">🗑️</span> ${t('col_action_remove')}
+                </button>
+            </div>
+        `;
+
+        overlay.style.display = 'block';
+        sheet.style.display = 'flex';
+        setTimeout(() => { overlay.classList.add('open'); sheet.classList.add('open'); }, 10);
+    }
+
+    window.closeCollectionBottomSheet = function() {
+        const sheet = document.getElementById('col-menu-sheet');
+        const overlay = document.getElementById('col-menu-overlay');
+        if (sheet && overlay) {
+            sheet.classList.remove('open');
+            overlay.classList.remove('open');
+            setTimeout(() => { sheet.style.display = 'none'; overlay.style.display = 'none'; }, 300);
+        }
+    }
+
+    // ── ACTIONS DES BOUTONS DE LA BOTTOM SHEET ──
+    window.toggleCollectionMonitor = async function(collectionId, idsJson, state) {
+        const ids = JSON.parse(idsJson.replace(/&quot;/g, '"'));
+        if (ids.length === 0) {
+            notify(t('col_err_no_movies'), "err");
+            return;
+        }
+        notify(t('loading'), 'ok');
+
+        await api('edit_collection', { id: collectionId, monitored: state });
+
+        if (ids.length > 0) {
+            const action = state ? 'monitor_on' : 'monitor_off';
+            await api('bulk_media_action', {
+                type: 'movie',
+                ids: JSON.stringify(ids),
+                bulkAction: action,
+                deleteFiles: '0'
+            });
+        }
+
+        notify(t('col_monitor_updated'), 'ok');
+        viewCollections();
+    };
+
+    window.promptCollectionQuality = async function(collectionId, currentProfileId, idsJson) {
+        const r = await api('get_options&app=radarr', {}, 'GET');
+        if (r.error || !r.profiles) {
+            notify(t('error_connection'), 'err');
+            return;
+        }
+
+        let optionsHtml = r.profiles.map(p => `<option value="${p.id}" ${p.id === currentProfileId ? 'selected' : ''}>${esc(p.name)}</option>`).join('');
+        const ids = JSON.parse(idsJson.replace(/&quot;/g, '"'));
+
+        showConfirmModal(
+            t('col_action_quality'),
+            `<div class="form-row" style="text-align:left; margin-top:10px;">
+                <label style="font-size:12px; font-weight:bold; color:var(--muted); text-transform:uppercase;">${t('col_profile_label')}</label>
+                <select id="col-quality-select" style="width:100%; padding:10px; background:var(--bg); border:1px solid var(--border); color:var(--text); border-radius:6px; appearance:auto;">
+                    ${optionsHtml}
+                </select>
+            </div>
+            <label style="display:flex; align-items:center; gap:10px; cursor:pointer; background:var(--bg3); padding:12px; border-radius:8px; margin-top:15px; text-align:left;">
+                <input type="checkbox" id="col-quality-apply-existing" checked style="width:18px; height:18px; accent-color:var(--accent);">
+                <span style="font-size:13px; color:var(--text);">${t('col_apply_existing').replace('{n}', ids.length)}</span>
+            </label>`,
+            async () => {
+                const newProfileId = document.getElementById('col-quality-select').value;
+                const applyExisting = document.getElementById('col-quality-apply-existing').checked;
+
+                notify(t('loading'), 'ok');
+                
+                const res = await api('edit_collection', { id: collectionId, qualityProfileId: newProfileId });
+
+                if (res.ok) {
+                    if (applyExisting && ids.length > 0) {
+                        const promises = ids.map(id => api('update_media_quality', { type: 'movie', id: id, profileId: newProfileId }));
+                        await Promise.all(promises);
+                    }
+                    notify(t('col_profile_updated'), 'ok');
+                    viewCollections(); 
+                } else {
+                    notify(res.error || t('notif_error'), 'err');
+                }
+            }
+        );
+    };
+
+    window.removeCollectionMovies = function(idsJson, title) {
+        const ids = JSON.parse(idsJson.replace(/&quot;/g, '"'));
+        if (ids.length === 0) {
+            notify(t('col_err_no_movies'), "err");
+            return;
+        }
+        
+        showConfirmModal(
+            t('col_remove_title'),
+            `${t('col_remove_msg').replace('{n}', ids.length).replace('{title}', title)}<br><br>
+            <label style="display:flex; align-items:center; gap:8px; cursor:pointer; background:var(--bg3); padding:10px; border-radius:8px;">
+                <input type="checkbox" id="delete-files-checkbox" checked style="width:16px; height:16px; accent-color:var(--accent3);">
+                <span style="font-size:13px;">${t('confirm_delete_files')}</span>
+            </label>`,
+            async () => {
+                const deleteFiles = document.getElementById('delete-files-checkbox').checked;
+                notify(t('col_removing'), 'ok');
+                const r = await api('bulk_media_action', {
+                    type: 'movie',
+                    ids: JSON.stringify(ids),
+                    bulkAction: 'delete',
+                    deleteFiles: deleteFiles ? '1' : '0'
+                });
+                if (r.ok) {
+                    notify(t('col_remove_success').replace('{n}', r.success), 'ok');
+                    viewCollections();
+                } else {
+                    notify(r.error || t('notif_error'), 'err');
+                }
+            }
+        );
+    };
+
+    // ── VUE COLLECTION (REMPLACEMENT PROPRE ET DÉFINITIF DE L'ANCIENNE VERSION) ──
+    window.openMovieCollection = async function(collectionTitle, fromMovieId, collectionTmdbId = 0) {
+        const content = document.getElementById('movie-detail-content');
+        content.innerHTML = `<div style="text-align:center;padding:40px;color:var(--muted);">${t('loading')}</div>`;
+
+        currentActiveCollection = { title: collectionTitle, fromId: fromMovieId, tmdbId: collectionTmdbId };
+
+        const r = await api('movie_collection&title=' + encodeURIComponent(collectionTitle) + '&tmdbId=' + (collectionTmdbId || 0), {}, 'GET');
+        if (r.error) { content.innerHTML = `<p style="color:var(--accent3)">${esc(r.error)}</p>`; return; }
+
+        const movies = r.movies || [];
+        const total      = movies.length;
+        const inLib      = movies.filter(m => m.inLib).length;
+        const downloaded = movies.filter(m => m.hasFile).length;
+        window.currentCollectionUnmonitored = movies.filter(m => !m.inLib);
+
+        const cards = movies.map(mv => {
+            const notInLib    = !mv.inLib;
+            const statusColor = mv.hasFile ? 'var(--accent2)' : notInLib ? 'var(--muted)' : '#ffa03c';
+            const statusIcon  = mv.hasFile ? '✓' : notInLib ? '＋' : '○';
+
+            const safeTitle = esc(mv.title).replace(/'/g, "\\'");
+            const clickAction = mv.inLib
+            ? `openMovieDetail(${mv.id})`
+            : `promptAddMedia('movie', ${mv.tmdbId}, '${safeTitle}', this)`;
+
+            const dimStyle    = notInLib ? 'opacity:.55;' : '';
+            const badge       = notInLib ? `<div class="not-planned-badge" style="position:absolute;top:8px;right:8px;background:rgba(0,0,0,.75);border:1px solid var(--border);border-radius:6px;padding:3px 8px;font-size:10px;color:var(--muted);">${t('not_planned')}</div>` : '';
+            return `
+            <div onclick="${clickAction}" id="col-card-${mv.tmdbId}"
+            style="position:relative;border-radius:10px;overflow:hidden;cursor:pointer;background:var(--bg3);transition:transform .2s,box-shadow .2s;"
+            onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 12px 30px rgba(0,0,0,.5)'"
+            onmouseout="this.style.transform='';this.style.boxShadow=''">
+            ${mv.poster
+                ? `<img src="${esc(mv.poster)}" loading="lazy" style="width:100%;aspect-ratio:2/3;object-fit:cover;display:block;${dimStyle}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
+                : ''}
+                <div style="width:100%;aspect-ratio:2/3;background:var(--bg2);display:${mv.poster ? 'none' : 'flex'};align-items:center;justify-content:center;font-size:36px;${dimStyle}">🎬</div>
+                ${badge}
+                <div style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(to top,rgba(0,0,0,.92) 0%,transparent 100%);padding:28px 10px 10px;">
+                <div style="font-size:12px;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(mv.title)}</div>
+                <div style="font-size:11px;color:rgba(255,255,255,.65);display:flex;gap:6px;margin-top:2px;">
+                <span>${mv.year}</span>
+                ${mv.rating ? `<span>⭐ ${mv.rating}</span>` : ''}
+                <span style="color:${statusColor};font-weight:600;">${statusIcon}</span>
+                </div>
+                </div>
+                </div>`;
+        }).join('');
+
+        const backAction = fromMovieId ? `openMovieDetail(${fromMovieId})` : `closeMovieDetail(); setTimeout(viewCollections, 300);`;
+
+        content.innerHTML = `
+        <div style="display:flex;flex-direction:column;gap:20px;padding:10px 0;">
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+        <button onclick="${backAction}"
+        style="background:var(--bg3);color:var(--text);border:1px solid var(--border);padding:8px 18px;border-radius:8px;cursor:pointer;font-weight:600;font-size:14px;display:inline-flex;align-items:center;gap:8px;transition:all .15s;"
+        onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'"
+        onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text)'">
+        ⬅ ${t('detail_back')}
+        </button>
+        </div>
+        <div style="width:100%;">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:6px;">
+        <span style="font-size:24px;">🎞️</span>
+        <div style="flex:1; min-width:0;">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+        <div style="font-size:22px;font-weight:800;">${esc(collectionTitle)}</div>
+        ${window.currentCollectionUnmonitored.length > 0
+            ? `<button class="btn-pill" onclick="promptAddCollection('${esc(collectionTitle).replace(/'/g, "\\'")}')" style="font-weight:bold; padding:8px 16px; border-radius:8px; cursor:pointer; font-size:13px;">＋ ${t('collection_add_btn')} (${window.currentCollectionUnmonitored.length})</button>`
+            : `<span style="color:var(--accent2); font-weight:bold; font-size:12px; padding:4px 8px; background:rgba(93,255,214,0.1); border-radius:6px; border:1px solid rgba(93,255,214,0.3);">✓ ${t('collection_complete')}</span>`
+        }
+        </div>
+        <div style="font-size:13px;color:var(--muted);margin-top:4px;">
+        ${total} ${t('word_movies')}
+        · <span style="color:var(--accent2)">${downloaded} ${t('col_downloaded')}</span>
+        · <span style="color:#ffa03c">${inLib - downloaded} ${t('col_monitored')}</span>
+        </div>
+        </div>
+        </div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;">
+        ${cards}
+        </div>
+        </div>`;
+        animateContentSlideIn(content);
+    };
+
+    window.promptAddCollection = async function(title) {
+        currentAddMedia = { type: 'collection', title: title };
+        const modal = document.getElementById('modal-add-media');
+
+        if (modal.parentElement !== document.body) {
+            document.body.appendChild(modal);
+        }
+        modal.style.position = 'fixed';
+        modal.style.zIndex = '99999999';
+
+        document.getElementById('add-media-title').textContent = t('detail_collection') + ' : ' + title;
+        document.getElementById('add-media-loader').style.display = 'block';
+        document.getElementById('add-media-form').style.display = 'none';
+
+        modal.classList.add('open');
+
+        const r = await api('get_options&app=radarr', {}, 'GET');
+
+        if (r.error || !r.profiles) {
+            document.getElementById('add-media-loader').innerHTML = `<span style="color:var(--accent3)">${t('error_connection')}</span>`;
+            return;
+        }
+
+        const profileSel = document.getElementById('add-media-profile');
+        const folderSel = document.getElementById('add-media-folder');
+
+        profileSel.innerHTML = r.profiles.map(p => `<option value="${p.id}">${esc(p.name)}</option>`).join('');
+        folderSel.innerHTML = r.folders.map(f => `<option value="${f.path}">${esc(f.path)}</option>`).join('');
+
+        let searchDiv = document.getElementById('add-media-search-container');
+        if (!searchDiv) {
+            searchDiv = document.createElement('div');
+            searchDiv.id = 'add-media-search-container';
+            searchDiv.style.marginTop = '15px';
+            searchDiv.innerHTML = `
+            <label style="display:flex; align-items:center; gap:10px; cursor:pointer; background:var(--bg3); padding:12px; border-radius:8px; border:1px solid var(--border);">
+            <input type="checkbox" id="add-media-search" checked style="width:18px; height:18px; accent-color:var(--accent); cursor:pointer;">
+            <span style="font-size:13px; color:var(--text); font-weight:600;">${t('search_now')}</span>
+            </label>
+            `;
+            folderSel.parentNode.insertAdjacentElement('afterend', searchDiv);
+        } else {
+            document.getElementById('add-media-search').checked = true;
+        }
+
+        document.getElementById('add-media-loader').style.display = 'none';
+        document.getElementById('add-media-form').style.display = 'block';
+        document.getElementById('btn-confirm-add').onclick = confirmAddCollection;
+    };
+
+    window.confirmAddCollection = async function() {
+        if (!currentAddMedia || currentAddMedia.type !== 'collection') return;
+
+        const profileId = document.getElementById('add-media-profile').value;
+        const rootPath = document.getElementById('add-media-folder').value;
+        const searchNow = document.getElementById('add-media-search') ? document.getElementById('add-media-search').checked : true;
+
+        const modal = document.getElementById('modal-add-media');
+        document.getElementById('add-media-form').style.display = 'none';
+        const loader = document.getElementById('add-media-loader');
+        loader.style.display = 'block';
+
+        const total = window.currentCollectionUnmonitored.length;
+        let successCount = 0;
+
+        for (let i = 0; i < total; i++) {
+            const mv = window.currentCollectionUnmonitored[i];
+
+            loader.innerHTML = `
+            <div style="text-align:center;">
+            <div style="font-size:24px; margin-bottom:10px;">⏳</div>
+            <div style="color:var(--text); font-weight:bold; margin-bottom:5px;">${t('collection_adding')} (${i+1}/${total})...</div>
+            <div style="color:var(--accent); font-size:13px; font-family:var(--mono);">${esc(mv.title)}</div>
+            <div class="progress-bar" style="margin-top:15px; height:6px; background:var(--bg); border-radius:3px; overflow:hidden;">
+            <div class="progress-fill" style="height:100%; width:${((i)/total)*100}%; background:var(--accent); transition:width 0.3s;"></div>
+            </div>
+            </div>`;
+
+            const payload = {
+                tmdbId: mv.tmdbId,
+                qualityProfileId: profileId,
+                rootFolderPath: rootPath,
+                search: searchNow
+            };
+
+            const r = await api('add_movie', payload);
+            if(r.ok) successCount++;
+        }
+
+        modal.classList.remove('open');
+        notify(`${t('collection_added_success')} : ${successCount}/${total} ${t('word_movies').toLowerCase()}`, 'ok');
+
+        if (currentActiveCollection) {
+            setTimeout(() => openMovieCollection(currentActiveCollection.title, currentActiveCollection.fromId, currentActiveCollection.tmdbId), 1000);
+        }
+    };
+	
+// ── IMPORT DE BIBLIOTHÈQUE (LIBRARY IMPORT) ───────────────────────────────────
+window.openLibraryImportModal = async function(type) {
+    window._importListType = type;
+    window._importResults = [];
+    window._importSelected = new Set();
+    window._unmappedFoldersCache = [];
+
+    let modal = document.getElementById('modal-library-import');
+    if (!modal) {
+        const html = `
+        <div id="modal-library-import" class="modal-bg" style="z-index:999999;">
+            <div class="modal-box" style="width: clamp(480px, 90vw, 880px); max-width: 95vw; max-height: 90vh; display: flex; flex-direction: column; padding: 0; overflow: hidden; background: var(--bg2); border-radius: 12px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; padding: 15px 20px; border-bottom: 1px solid var(--border); background:var(--bg2); flex-shrink:0;">
+                    <h3 id="lib-import-title" style="margin:0; color:var(--text); font-size:18px;"></h3>
+                    <span onclick="document.getElementById('modal-library-import').classList.remove('open')" style="cursor:pointer; color:var(--muted); font-size:24px; line-height:1;">&times;</span>
+                </div>
+                
+                <div id="lib-import-step1" style="padding: 20px; background:var(--bg); flex-shrink:0; border-bottom:1px solid var(--border);">
+                    <label style="font-size:12px; font-weight:bold; color:var(--muted); text-transform:uppercase;">Dossier Racine (Root Folder)</label>
+                    <div style="display:flex; gap:10px; margin-top:8px;">
+                        <select id="lib-import-folder-select" style="flex:1; padding:10px; background:var(--bg3); border:1px solid var(--border); color:var(--text); border-radius:6px;"></select>
+                        <button class="btn-primary" onclick="scanLibraryFolders()" style="flex-shrink:0;">🔍 Scanner les dossiers</button>
+                    </div>
+                </div>
+                
+                <div id="lib-import-results-container" style="flex:1; overflow-y:auto; padding:0; display:flex; flex-direction:column; background:var(--bg);">
+                    <div id="lib-import-results" style="display:flex; flex-direction:column; gap:0;">
+                        <div style="text-align:center; color:var(--muted); padding:40px;">⏳ Chargement...</div>
+                    </div>
+                </div>
+
+                <div id="lib-import-footer" style="padding: 15px 20px; background:var(--bg2); border-top: 1px solid var(--border); display:none; flex-shrink:0;">
+                    <div style="display:flex; gap:10px; margin-bottom:12px;">
+                        <select id="lib-import-profile" class="lib-select" style="flex:1;"></select>
+                    </div>
+                    <button class="btn-primary" id="btn-process-lib-import" onclick="confirmLibraryImport()" style="width:100%;"></button>
+                </div>
+            </div>
+        </div>`;
+        document.body.insertAdjacentHTML('beforeend', html);
+        modal = document.getElementById('modal-library-import');
+        modal.addEventListener('click', e => { if (e.target === modal) modal.classList.remove('open'); });
+    }
+    
+    document.getElementById('lib-import-title').textContent = type === 'movie' ? 'Importer Bibliothèque (Films)' : 'Importer Bibliothèque (Séries)';
+    document.getElementById('lib-import-results').innerHTML = `<div style="text-align:center; color:var(--muted); padding:40px;">⏳ Récupération de vos dossiers racines...</div>`;
+    document.getElementById('lib-import-footer').style.display = 'none';
+    modal.classList.add('open');
+
+    const appDriver = type === 'movie' ? 'radarr' : 'sonarr';
+    const opts = await api(`get_options&app=${appDriver}`, {}, 'GET');
+    
+    if (opts.folders && opts.profiles) {
+        window._libraryProfiles = opts.profiles;
+        window._unmappedFoldersCache = opts.folders;
+        
+        const folderSelect = document.getElementById('lib-import-folder-select');
+        folderSelect.innerHTML = opts.folders.map((f, i) => `<option value="${i}">${esc(f.path)} (${(f.unmappedFolders || []).length} orphelins)</option>`).join('');
+        
+        const profileSelect = document.getElementById('lib-import-profile');
+        profileSelect.innerHTML = opts.profiles.map(p => `<option value="${p.id}">${esc(p.name)}</option>`).join('');
+        
+        document.getElementById('lib-import-results').innerHTML = `<div style="text-align:center; color:var(--muted); padding:40px;">Sélectionnez un dossier racine ci-dessus et cliquez sur <b>Scanner</b> pour identifier les dossiers inconnus de Radarr/Sonarr.</div>`;
+    } else {
+        document.getElementById('lib-import-results').innerHTML = `<div style="text-align:center; color:var(--accent3); padding:40px;">Erreur de chargement. Vérifiez que Radarr/Sonarr est bien en ligne.</div>`;
+    }
+};
+
+window.scanLibraryFolders = async function() {
+    const folderIndex = document.getElementById('lib-import-folder-select').value;
+    const folderObj = window._unmappedFoldersCache[folderIndex];
+    
+    if (!folderObj || !folderObj.unmappedFolders || folderObj.unmappedFolders.length === 0) {
+        document.getElementById('lib-import-results').innerHTML = `<div style="text-align:center; color:var(--muted); padding:40px;">Aucun dossier orphelin (non mappé) trouvé ! Radarr/Sonarr connaît déjà tous les dossiers présents ici.</div>`;
+        document.getElementById('lib-import-footer').style.display = 'none';
+        return;
+    }
+
+    document.getElementById('lib-import-results').innerHTML = `<div style="text-align:center; color:var(--muted); padding:40px;">⏳ Recherche des correspondances TMDB/TVDB pour ${folderObj.unmappedFolders.length} dossiers. Cela peut prendre un instant...</div>`;
+    
+    // Pour mapper exactement le dossier lors de l'ajout, on mémorise le path de chaque unmappedFolder
+    window._unmappedPathsMap = {};
+    folderObj.unmappedFolders.forEach(f => {
+        window._unmappedPathsMap[f.name] = f.path;
+    });
+    
+    const folderNames = folderObj.unmappedFolders.map(f => f.name);
+    
+    // On réutilise la fonction de recherche en masse existante !
+    const r = await api('bulk_import_lookup', { type: window._importListType, terms: JSON.stringify(folderNames) });
+    
+    if (r.error) {
+        document.getElementById('lib-import-results').innerHTML = `<div style="text-align:center; color:var(--accent3); padding:40px;">⚠️ ${esc(r.error)}</div>`;
+        return;
+    }
+
+    window._importResults = r.results || [];
+    window._importSelected = new Set(window._importResults.map((res, i) => (res.found && !res.in_lib) ? i : null).filter(i => i !== null));
+    
+    renderLibraryImportResults();
+    document.getElementById('lib-import-footer').style.display = 'block';
+};
+
+window.renderLibraryImportResults = function() {
+    const container = document.getElementById('lib-import-results');
+    container.innerHTML = window._importResults.map((r, i) => {
+        if (!r.found) {
+            return `<label style="display:flex; align-items:center; gap:12px; padding:12px 20px; border-bottom:1px solid var(--border); background:var(--bg3); opacity:0.6;">
+                <span style="font-size:20px;">❓</span>
+                <div style="flex:1; min-width:0;">
+                    <div style="font-size:13px; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${esc(r.term)}</div>
+                    <div style="font-size:11px; color:var(--accent3);">Introuvable sur TMDB/TVDB</div>
+                </div>
+            </label>`;
+        }
+        const disabled = r.in_lib;
+        const checked = window._importSelected.has(i);
+        return `<label style="display:flex; align-items:center; gap:12px; padding:12px 20px; border-bottom:1px solid var(--border); background:var(--bg2); cursor:${disabled ? 'default' : 'pointer'}; ${disabled ? 'opacity:0.5;' : ''} transition:background 0.2s;" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background='var(--bg2)'">
+            <input type="checkbox" ${checked ? 'checked' : ''} ${disabled ? 'disabled' : ''} onchange="toggleLibImportItem(${i})" style="width:18px; height:18px; accent-color:var(--accent); flex-shrink:0;">
+            ${r.poster ? `<img src="${esc(r.poster)}" style="width:36px; height:54px; object-fit:cover; border-radius:4px; flex-shrink:0;">` : '<div style="width:36px;height:54px;flex-shrink:0;background:var(--bg);border-radius:4px;border:1px solid var(--border);"></div>'}
+            <div style="flex:1; min-width:0;">
+                <div style="font-size:14px; font-weight:bold; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${esc(r.title)} ${r.year ? `(${r.year})` : ''}</div>
+                <div style="font-size:11px; color:var(--muted); font-family:var(--mono); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Dossier: ${esc(r.term)}</div>
+                ${disabled ? `<div style="font-size:11px; color:var(--accent); font-weight:bold; margin-top:2px;">Déjà dans la librairie</div>` : ''}
+            </div>
+        </label>`;
+    }).join('');
+
+    const btn = document.getElementById('btn-process-lib-import');
+    btn.textContent = `Ajouter la sélection (${window._importSelected.size})`;
+    btn.disabled = window._importSelected.size === 0;
+};
+
+window.toggleLibImportItem = function(i) {
+    if (window._importSelected.has(i)) window._importSelected.delete(i);
+    else window._importSelected.add(i);
+    renderLibraryImportResults();
+};
+
+window.confirmLibraryImport = async function() {
+    if (window._importSelected.size === 0) return;
+    
+    const profileId = document.getElementById('lib-import-profile').value;
+    const folderIndex = document.getElementById('lib-import-folder-select').value;
+    const rootPath = window._unmappedFoldersCache[folderIndex].path;
+    
+    const btn = document.getElementById('btn-process-lib-import');
+    btn.disabled = true;
+
+    let successCount = 0;
+    const itemsToImport = Array.from(window._importSelected).map(i => window._importResults[i]);
+
+    for (const item of itemsToImport) {
+        btn.textContent = `Ajout en cours... (${successCount + 1}/${itemsToImport.length})`;
+        
+        // On récupère le chemin absolu exact du dossier pour que Radarr/Sonarr l'assigne directement et ne crée pas de doublon !
+        const exactPath = window._unmappedPathsMap[item.term] || null;
+        
+        const payload = { 
+            qualityProfileId: profileId, 
+            rootFolderPath: rootPath, 
+            search: false // Pas besoin de chercher sur les indexeurs, les fichiers sont déjà là !
+        };
+        if (exactPath) payload.path = exactPath;
+        
+        if (window._importListType === 'movie') payload.tmdbId = item.tmdbId;
+        else payload.tvdbId = item.tvdbId;
+
+        const action = window._importListType === 'movie' ? 'add_movie' : 'add_serie';
+        const r = await api(action, payload);
+        if (r.ok) successCount++;
+    }
+
+    notify(`Terminé. ${successCount} médias importés !`, 'ok');
+    document.getElementById('modal-library-import').classList.remove('open');
+    
+    if (window._importListType === 'movie') loadMovies(); else loadSeries();
+};
 
 boot();

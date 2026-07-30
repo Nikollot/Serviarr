@@ -572,21 +572,33 @@ main{flex:1;padding:24px;max-width:1400px;width:100%;margin:0 auto;}
     width: 100% !important;
     height: 100% !important;
     z-index: 10000 !important; /* 👈 LA CORRECTION : 10000 passe au-dessus de 9999 */
-    background: var(--bg);
+    /* 🌟 CORRECTIF : fond assombri translucide + flou, PAS un fond opaque plein écran.
+       C'est ce qui donnait l'impression que la modale "prenait toute la place" avec
+       une immense zone vide autour d'une toute petite boîte. */
+    background: rgba(6, 8, 14, .72) !important;
+    backdrop-filter: blur(6px) !important;
     overflow-y: auto;
 }
 /* On annule les marges et comportements du flux normal pour la modale */
 #modal-movie, #modal-serie {
 display: none; /* Caché par défaut */
 }
-.modal-bg .modal {
-    width: 100% !important;
-    max-width: 800px !important;
-    margin: 20px auto;
-    background: transparent !important;
-    box-shadow: none !important;
+/* 🌟 SUPPRIMÉ : l'ancienne règle `.modal-bg .modal { background:transparent!important; box-shadow:none!important; }`
+   rendait la "carte" de la modale invisible (fondue dans le fond) pour les modales
+   génériques (confirmation, ajout d'app, etc). La modale garde maintenant son propre
+   fond/ombre définis ci-dessous, ce qui la rend bien visible sur le fond assombri. */
+.modal{
+    background:var(--bg2);
+    border:1px solid var(--border);
+    border-radius:16px;
+    padding:26px;
+    /* 🌟 Taille modulable : petite sur mobile, confortable sur PC, jamais énorme */
+    width:clamp(320px, 90vw, 520px);
+    max-width:95vw;
+    box-shadow:var(--shadow);
+    max-height:90vh;
+    overflow-y:auto;
 }
-.modal{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:26px;width:460px;max-width:95vw;box-shadow:var(--shadow);max-height:90vh;overflow-y:auto;}
 .modal h3{font-family:var(--mono);font-size:15px;margin-bottom:18px;color:var(--accent);}
 .form-row{margin-bottom:12px;}
 .form-row label{display:block;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px;}
@@ -1118,7 +1130,9 @@ overflow: hidden !important;
 max-height: 90vh !important;
 margin: auto !important;
 border-radius: 16px !important;
-width: 740px !important;
+/* 🌟 Modulable : reste lisible sur mobile, s'élargit confortablement sur PC
+   pour laisser respirer le tableau des releases */
+width: clamp(480px, 88vw, 960px) !important;
 max-width: 96vw !important;
 background: var(--bg2) !important;
 }
@@ -1275,12 +1289,16 @@ padding: 12px 18px 18px;
  * ─ ─ REFONTE MOBILE : DÉTAILS FILMS / SÉRIES
  * ========================================================================= */
 @media (max-width: 768px) {
-    /* 1. La modale devient un écran complet */
-    .modal-bg {
+    /* 1. La fiche film/série devient un écran complet
+       🌟 Portée réduite à #modal-movie / #modal-serie uniquement : avant cette règle
+       générique s'appliquait à TOUTES les modales (confirmation, ajout d'app, etc.)
+       et les forçait en plein écran 100vh, ce qui n'a aucun sens pour un petit formulaire.
+       Les petites modales gardent le style "bottom sheet" défini plus haut. */
+    #modal-movie, #modal-serie {
         align-items: flex-end; /* Permet une animation d'apparition par le bas si besoin */
     }
 
-    .modal {
+    #modal-movie .modal, #modal-serie .modal {
         width: 100% !important;
         max-width: 100% !important;
         height: 100vh;
@@ -1559,7 +1577,10 @@ position: fixed !important;
 inset: 0 !important;
 width: 100vw !important;
 height: 100vh !important;
-background: rgba(13, 16, 22, 0.96) !important; /* Fond sombre opaque identique à tes modales */
+/* 🌟 Fond translucide + flou (au lieu d'un fond quasi opaque) pour un vrai effet
+   "boîte de dialogue par-dessus l'app", cohérent avec les autres modales. */
+background: rgba(13, 16, 22, 0.72) !important;
+backdrop-filter: blur(6px) !important;
 z-index: 2147483647 !important; /* Valeur maximale absolue acceptée par les navigateurs */
 display: none;
 align-items: center;
@@ -1568,6 +1589,11 @@ justify-content: center;
 
 #modal-app.open {
 display: flex !important;
+}
+
+/* Taille modulable de la boîte "Ajouter/Éditer une app" */
+#modal-app .modal {
+    width: clamp(320px, 90vw, 480px) !important;
 }
 
 /* Assure la propreté du bloc interne de formulaire */
@@ -1984,12 +2010,12 @@ padding: 20px;
 }
 
 /* Modales films / séries */
-.modal-movie { width: 680px; max-width: 96vw; }
-.modal-serie  { width: 780px; max-width: 96vw; }
+.modal-movie { width: clamp(480px, 90vw, 1040px); max-width: 96vw; }
+.modal-serie  { width: clamp(480px, 90vw, 1100px); max-width: 96vw; }
 
 /* Modal releases */
 .modal-releases-inner {
-    width: 740px;
+    width: clamp(480px, 88vw, 960px);
     max-width: 96vw;
     padding: 0;
     overflow: hidden;
@@ -1997,7 +2023,7 @@ padding: 20px;
 
 /* Modal ajout media */
 .modal-add-media-inner {
-    width: 400px;
+    width: clamp(320px, 90vw, 460px);
     max-width: 95vw;
 }
 
@@ -2014,7 +2040,7 @@ padding: 20px;
 
 /* Modal confirmation suppression */
 .modal-confirm-inner {
-    width: 420px;
+    width: clamp(300px, 88vw, 440px);
     max-width: 95vw;
     text-align: center;
     padding: 30px 20px;
@@ -2055,43 +2081,71 @@ padding: 20px;
 /* Modale Acteur */
 .modal-actor {
     display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,.85);
-    z-index: 20000;
-    overflow: hidden;
+    position: fixed !important;
+    inset: 0 !important;
+    background: rgba(13, 16, 22, 0.72) !important;
+    backdrop-filter: blur(6px) !important;
+    z-index: 2147483647 !important;
+    
+    /* 🌟 La correction est ici : On gère le scroll sur le fond sombre et on aligne en haut */
+    overflow-y: auto !important; 
+    padding: 40px 20px !important;
+    align-items: flex-start !important; 
+    justify-content: center !important;
 }
 
+.modal-actor.open {
+    display: flex !important;
+}
+
+/* Personnalisation de la barre de défilement pour faire disparaître la grosse barre blanche */
+.modal-actor::-webkit-scrollbar { width: 8px; }
+.modal-actor::-webkit-scrollbar-track { background: transparent; }
+.modal-actor::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.15); border-radius: 10px; }
+.modal-actor::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.3); }
+
 .modal-actor-scroll {
-    max-width: 1100px;
-    margin: 0 auto;
-    padding: 24px;
-    position: relative;
-    height: 100%;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
+    width: 100% !important;
+    max-width: 1200px !important;
+    
+    /* 🌟 Magie du flexbox : centre verticalement s'il y a de la place, sinon reste collé en haut */
+    margin: auto !important; 
+    
+    height: auto !important;
+    overflow: visible !important;
+    padding: 0 !important;
 }
 
 .modal-actor-inner {
-    background: var(--bg);
-    border-radius: 16px;
-    padding: 24px;
-    position: relative;
+    background: var(--bg2) !important;
+    border-radius: 16px !important;
+    padding: 30px !important;
+    position: relative !important;
+    border: 1px solid var(--border) !important;
+    box-shadow: 0 10px 50px rgba(0,0,0,0.6) !important;
+    width: 100% !important;
 }
 
 .modal-actor-close {
-    position: absolute;
-    top: 16px;
-    right: 16px;
-    background: var(--bg3);
-    border: 1px solid var(--border);
-    color: var(--text);
-    padding: 8px 16px;
-    border-radius: var(--radius);
-    cursor: pointer;
-    font-weight: bold;
-    z-index: 10;
-    font-size: 14px;
+    position: absolute !important;
+    top: 25px !important;
+    right: 25px !important;
+    background: var(--bg3) !important;
+    border: 1px solid var(--border) !important;
+    color: var(--text) !important;
+    padding: 8px 16px !important;
+    border-radius: var(--radius) !important;
+    cursor: pointer !important;
+    font-weight: bold !important;
+    z-index: 100 !important;
+    font-size: 14px !important;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.4) !important;
+    transition: background 0.2s, color 0.2s !important;
+}
+
+.modal-actor-close:hover {
+    background: var(--border) !important;
+    color: var(--accent) !important;
 }
 
 .actor-header-detail {
@@ -2101,7 +2155,7 @@ padding: 20px;
     align-items: center;
     background: var(--bg2);
     padding: 20px;
-    padding-right: 80px;
+    padding-right: 120px; /* 👈 Espace sécurisé pour que le bouton ne coupe pas le texte */
     border-radius: var(--radius);
     border: 1px solid var(--border);
     flex-wrap: wrap;
@@ -2804,3 +2858,302 @@ button.app-item-btn.danger { color: var(--accent3) !important; }
     max-height: 90vh !important; /* S'assure que la modale ne dépasse pas la hauteur de l'écran */
 }
 
+/* ── ARRONDIS DES AFFICHES (FANART) DANS LES FICHES DÉTAILS ── */
+
+/* 1. Arrondir les coins de la grande image de fond */
+#movie-detail-content > div > div:nth-child(2),
+#serie-detail-content > div > div:nth-child(2) {
+    border-bottom-left-radius: 24px !important;
+    border-bottom-right-radius: 24px !important;
+    border-top-left-radius: 16px !important;
+    border-top-right-radius: 16px !important;
+}
+
+/* 2. Ajuster le conteneur principal pour un effet "carte" parfait */
+#movie-detail-content > div,
+#serie-detail-content > div {
+    min-height: auto !important; /* Annule l'ancien mode plein écran */
+    max-height: 90vh !important;
+    border-radius: 16px !important; /* Arrondit les coins de la fenêtre globale */
+    overflow-x: hidden !important;
+    overflow-y: auto !important; /* S'assure qu'on peut toujours défiler vers le bas */
+}
+
+/* ── SCROLLBAR DISCRÈTE POUR LES MODALES ET FICHES DÉTAILS ── */
+
+/* Compatibilité Firefox */
+#movie-detail-content > div,
+#serie-detail-content > div,
+.modal-box,
+.modal-bg > div {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+}
+
+/* Compatibilité Chrome / Edge / Safari */
+#movie-detail-content > div::-webkit-scrollbar,
+#serie-detail-content > div::-webkit-scrollbar,
+.modal-box::-webkit-scrollbar,
+.modal-bg > div::-webkit-scrollbar {
+    width: 6px; /* Barre très fine */
+}
+
+#movie-detail-content > div::-webkit-scrollbar-track,
+#serie-detail-content > div::-webkit-scrollbar-track,
+.modal-box::-webkit-scrollbar-track,
+.modal-bg > div::-webkit-scrollbar-track {
+    background: transparent; /* Fond totalement invisible */
+    border-radius: 10px;
+}
+
+#movie-detail-content > div::-webkit-scrollbar-thumb,
+#serie-detail-content > div::-webkit-scrollbar-thumb,
+.modal-box::-webkit-scrollbar-thumb,
+.modal-bg > div::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15); /* Gris très discret */
+    border-radius: 10px;
+}
+
+/* Effet au survol de la barre */
+#movie-detail-content > div::-webkit-scrollbar-thumb:hover,
+#serie-detail-content > div::-webkit-scrollbar-thumb:hover,
+.modal-box::-webkit-scrollbar-thumb:hover,
+.modal-bg > div::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3); /* Devient un peu plus visible quand on la saisit */
+}
+
+/* Cache l'image de fond sur PC */
+.media-card-bg-mobile {
+    display: none;
+}
+
+/* Affiche l'image de fond uniquement sur Mobile */
+@media (max-width: 768px) {
+    .media-card-bg-mobile {
+        display: block;
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        opacity: 0.20; /* 👈 Rend l'image transparente pour lire le texte ! */
+        z-index: 0;
+        pointer-events: none;
+    }
+}
+
+/* Cache l'image de fond sur PC */
+.media-card-bg-mobile {
+    display: none !important; /* 👈 C'est ce !important qui manquait pour forcer le masquage sur PC */
+}
+
+/* ── DESIGN MOBILE ULTRA-COMPACT ET PARFAITEMENT LISIBLE ── */
+@media (max-width: 768px) {
+    /* 1. La carte : on fixe la hauteur à 90px pour un ratio parfait */
+    .media-card {
+        background: var(--bg2) !important;
+        align-items: center !important;
+        padding: 0 !important;
+        border-radius: 10px !important;
+        overflow: hidden !important;
+        position: relative !important;
+        height: auto !important;
+        min-height: 0 !important;
+    }
+
+    /* 2. L'affiche : Ratio exact 2:3 (60x90), zéro rognage ! */
+    .media-card-poster,
+    .media-card img,
+    .media-card-poster-placeholder {
+        width: 60px !important;
+        height: 100% !important;
+        margin: 0 !important;
+        border-radius: 0 !important;
+        position: relative !important;
+        z-index: 2 !important;
+        flex-shrink: 0 !important;
+        object-fit: fill !important;
+        box-shadow: 4px 0 10px rgba(0,0,0,0.6) !important;
+    }
+
+    /* 3. Le Fanart : Beaucoup plus visible ! */
+    img.media-card-bg-mobile {
+        display: block !important;
+        position: absolute !important;
+        inset: 0 !important;
+        width: 100% !important;
+        height: 100% !important;
+        object-fit: cover !important;
+        z-index: 0 !important;
+        opacity: 0.60 !important; /* Très belle visibilité globale */
+        margin: 0 !important;
+        /* 🌟 La magie : l'image est invisible à gauche pour laisser le texte lisible, et apparaît doucement vers la droite */
+        -webkit-mask-image: linear-gradient(to right, transparent 50px, rgba(0,0,0,0.1) 120px, black 100%) !important;
+        mask-image: linear-gradient(to right, transparent 50px, rgba(0,0,0,0.3) 500px, black 100%) !important;
+        border-radius: 0 !important;
+    }
+
+    /* 4. Le Texte : Protégé par un dégradé sombre fluide */
+    .media-card-body {
+        padding: 0 12px !important;
+        position: relative !important;
+        z-index: 1 !important;
+        /* 🌟 Le secret : un fond sombre qui protège le texte à gauche et disparaît à droite */
+        background: transparent !important;
+        justify-content: center !important;
+        min-width: 0 !important;
+        height: 100% !important;
+        width: 100% !important;
+    }
+
+    /* 5. Ajustements typographiques (ombres renforcées) */
+    .media-card-title {
+        font-size: 14px !important;
+        font-weight: 700 !important;
+        margin-bottom: 2px !important;
+        text-shadow: 0 2px 4px rgba(0,0,0,1) !important;
+        line-height: 1.2 !important;
+    }
+
+    .media-card-meta {
+        font-size: 11px !important;
+        margin-bottom: 4px !important;
+        text-shadow: 0 1px 3px rgba(0,0,0,1) !important;
+    }
+
+    .media-card-footer {
+        margin-top: 0 !important;
+    }
+
+    .media-card-footer .pill {
+        font-size: 9px !important;
+        padding: 2px 6px !important;
+    }
+}
+
+    /* 6. Miniaturisation des pastilles */
+    .media-card-footer .pill {
+        font-size: 9px !important;
+        padding: 2px 6px !important;
+    }
+}
+
+.settings-page {
+    padding: 20px;
+    color: #ffffff;
+    font-family: sans-serif;
+}
+
+/* En-tête */
+.settings-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    text-align: center;
+}
+.settings-header .header-info {
+    flex-grow: 1;
+}
+.settings-header h2 {
+    margin: 0 0 5px 0;
+    font-size: 24px;
+}
+.version-container {
+    font-size: 14px;
+    color: #a0a0a0;
+}
+.update-badge {
+    background-color: #ff9800; /* Orange pour alerter d'une MAJ */
+    color: #000;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-weight: bold;
+    margin-left: 10px;
+    font-size: 12px;
+}
+.restart-btn {
+    background: transparent;
+    border: none;
+    color: #ffffff;
+    font-size: 24px;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+.restart-btn:hover {
+    color: #ff4c4c;
+}
+
+/* Carte de statistiques */
+.stats-card {
+    background-color: #1e1e24; /* Couleur de fond sombre */
+    border: 1px solid #2c2c35;
+    border-radius: 12px;
+    padding: 15px;
+    margin-bottom: 20px;
+}
+.stats-card-header {
+    display: flex;
+    justify-content: space-between;
+    font-size: 14px;
+    color: #e0e0e0;
+    margin-bottom: 15px;
+    border-bottom: 1px solid #2c2c35;
+    padding-bottom: 10px;
+}
+.stats-updated {
+    color: #a0a0a0;
+    font-size: 12px;
+}
+.stats-grid {
+    display: flex;
+    justify-content: space-around;
+    text-align: center;
+}
+.stat-item {
+    display: flex;
+    flex-direction: column;
+}
+.stat-value {
+    font-size: 18px;
+    font-weight: bold;
+    color: #ffffff;
+}
+.stat-label {
+    font-size: 12px;
+    color: #a0a0a0;
+    margin-top: 5px;
+}
+
+/* Groupes de boutons d'action */
+.action-menu-group {
+    background-color: #1e1e24;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    overflow: hidden;
+}
+.menu-list-btn {
+    width: 100%;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid #2c2c35;
+    color: #e0e0e0;
+    padding: 15px 20px;
+    text-align: left;
+    font-size: 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    transition: background 0.2s;
+}
+.menu-list-btn:last-child {
+    border-bottom: none;
+}
+.menu-list-btn:hover {
+    background-color: #2c2c35;
+}
+.menu-list-btn i {
+    width: 30px; /* Aligne parfaitement les icônes */
+    color: #fbc02d; /* Couleur d'accentuation (jaune Radarr) */
+}
