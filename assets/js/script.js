@@ -1,4 +1,4 @@
-const APP_VERSION = "1.5";
+const APP_VERSION = "1.5.1";
 const UPDATE_URL = "https://raw.githubusercontent.com/Nikollot/Serviarr/main/version.json";
 
 const DRIVER_ICONS = {docker:'🐳', sonarr:'📺',radarr:'🎬',prowlarr:'🔍',indexer:'🔍',transmission:'⬇',download:'⬇',jellyfin:'🎵',qbittorrent:'🌊',sabnzbd:'📥',lidarr:'🎶',readarr:'📚', iframe:'🌐', supervision:'📊'};
@@ -2386,7 +2386,7 @@ async function confirmAddCollection() {
         loader.innerHTML = `
         <div style="text-align:center;">
         <div style="font-size:24px; margin-bottom:10px;">⏳</div>
-        <div style="color:var(--text); font-weight:bold; margin-bottom:5px;">Ajout en cours (${i+1}/${total})...</div>
+        <div style="color:var(--text); font-weight:bold; margin-bottom:5px;">${t('col_adding_progress').replace('{n}', i+1).replace('{total}', total)}</div>
         <div style="color:var(--accent); font-size:13px; font-family:var(--mono);">${esc(mv.title)}</div>
         <div class="progress-bar" style="margin-top:15px; height:6px; background:var(--bg); border-radius:3px; overflow:hidden;">
         <div class="progress-fill" style="height:100%; width:${((i)/total)*100}%; background:var(--accent); transition:width 0.3s;"></div>
@@ -3482,7 +3482,7 @@ async function openEditMediaModal(id, type) {
     </div>
 
     <div class="form-row">
-    <label style="font-size:12px; font-weight:bold; color:var(--muted); text-transform:uppercase;">Chemin</label>
+    <label style="font-size:12px; font-weight:bold; color:var(--muted); text-transform:uppercase;">${t('edit_path_label')}</label>
     <input type="text" id="edit-path" style="width:100%; padding:10px; background:var(--bg); border:1px solid var(--border); color:var(--text); border-radius:6px;">
     </div>
 
@@ -3491,7 +3491,7 @@ async function openEditMediaModal(id, type) {
 
     <div id="edit-tags-badges" style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:8px;"></div>
 
-    <input type="text" id="edit-tags-input" placeholder="${t('tag_add_placeholder', {fallback:'Ajouter...'})}" style="width:100%; padding:10px; background:var(--bg); border:1px solid var(--border); color:var(--text); border-radius:6px;" autocomplete="off">
+    <input type="text" id="edit-tags-input" placeholder="${t('tags', {fallback:'Ajouter...'})}" style="width:100%; padding:10px; background:var(--bg); border:1px solid var(--border); color:var(--text); border-radius:6px;" autocomplete="off">
 
     <div id="edit-tags-suggestions" style="position:absolute; left:0; right:0; top:100%; background:var(--bg2); border:1px solid var(--border); border-radius:6px; max-height:160px; overflow-y:auto; z-index:10005; display:none; box-shadow:0 6px 16px rgba(0,0,0,0.4); margin-top:4px;"></div>
     </div>
@@ -4032,12 +4032,13 @@ function sortTorrents(torrents) {
     const sorted = [...torrents].sort((a, b) => {
         switch (dlSortField) {
             case 'name':        return (a.name || '').localeCompare(b.name || '');
-            case 'percentDone': return (a.percentDone || 0) - (b.percentDone || 0);
-            case 'totalSize':   return (a.totalSize || 0) - (b.totalSize || 0);
-            case 'status':      return (a.status || 0) - (b.status || 0);
-            case 'uploadRatio': return (a.uploadRatio || 0) - (b.uploadRatio || 0);
+            // Pour tous les autres, on inverse l'ordre (b - a) pour avoir le plus grand/récent en premier
+            case 'percentDone': return (b.percentDone || 0) - (a.percentDone || 0);
+            case 'totalSize':   return (b.totalSize || 0) - (a.totalSize || 0);
+            case 'status':      return (b.status || 0) - (a.status || 0);
+            case 'uploadRatio': return (b.uploadRatio || 0) - (a.uploadRatio || 0);
             case 'addedDate':
-            default:            return (a.addedDate || 0) - (b.addedDate || 0);
+            default:            return (b.addedDate || 0) - (a.addedDate || 0); /* 👈 Les plus récents en haut ! */
         }
     });
     return dlSortReverse ? sorted.reverse() : sorted;
@@ -4046,9 +4047,12 @@ function sortTorrents(torrents) {
 function filterTorrents(torrents, tab) {
     switch (tab) {
         case 'active':   return torrents.filter(t => [3, 4].includes(t.status));
-        case 'seeding':  return torrents.filter(t => [5, 6].includes(t.status));
-        case 'paused':   return torrents.filter(t => t.status === 0);
-        case 'finished': return torrents.filter(t => t.percentDone >= 1 && t.status === 0);
+        // En seed : statut seed ET vitesse d'upload supérieure à zéro
+        case 'seeding':  return torrents.filter(t => [5, 6].includes(t.status) && t.rateUpload > 0);
+        // En pause : uniquement les torrents non terminés mis en pause (pour ne pas doublonner avec "Terminés")
+        case 'paused':   return torrents.filter(t => t.status === 0 && t.percentDone < 1);
+        // Terminés : TOUS les torrents à 100%, peu importe leur statut (en pause, en seed, etc.)
+        case 'finished': return torrents.filter(t => t.percentDone >= 1);
         default:         return torrents;
     }
 }
@@ -4057,9 +4061,9 @@ function updateDlBadges(torrents) {
     const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val || ''; };
     set('dl-count',          torrents.length);
     set('dl-count-active',   torrents.filter(t => [3,4].includes(t.status)).length || '');
-    set('dl-count-seeding',  torrents.filter(t => [5,6].includes(t.status)).length || '');
+    set('dl-count-seeding',  torrents.filter(t => [5,6].includes(t.status) && t.rateUpload > 0).length || '');
     set('dl-count-paused',   torrents.filter(t => t.status === 0 && t.percentDone < 1).length || '');
-    set('dl-count-finished', torrents.filter(t => t.percentDone >= 1 && t.status === 0).length || '');
+    set('dl-count-finished', torrents.filter(t => t.percentDone >= 1).length || '');
 }
 
 function switchDlTab(tab, button) {
@@ -5019,7 +5023,7 @@ async function load2FAStatus() {
         <div style="color:var(--accent2); font-weight:bold;">${t('2fa_enabled', {fallback:'2FA activé'})}</div>
         <div style="font-size:12px; color:var(--muted);">${t('2fa_protected', {fallback:'Compte protégé'})}</div>
         </div>
-        <button class="btn-sm danger" onclick="disable2FA()">${t('btn_disable_2fa', {fallback:'Désactiver'})}</button>
+        <button class="btn-sm danger" onclick="disable2FA()">${t('btn_disable_2fa')}</button>
         </div>
         `;
     } else {
@@ -5030,7 +5034,7 @@ async function load2FAStatus() {
         <div style="color:var(--text); font-weight:bold;">${t('2fa_disabled', {fallback:'2FA désactivé'})}</div>
         <div style="font-size:12px; color:var(--muted);">${t('2fa_unprotected', {fallback:'Compte vulnérable'})}</div>
         </div>
-        <button class="btn-sm accent" onclick="startSetup2FA()">${t('btn_enable_2fa', {fallback:'Activer'})}</button>
+        <button class="btn-sm accent" onclick="startSetup2FA()">${t('btn_enable_2fa')}</button>
         </div>
 
         <div id="setup-2fa-box" style="display:none; margin-top:15px; padding:20px; background:var(--bg3); border:1px solid var(--border); border-radius:10px; text-align:center;">
@@ -5040,7 +5044,7 @@ async function load2FAStatus() {
         <p style="font-size:13px; color:var(--text); margin-bottom:10px;">${t('2fa_step2', {fallback:'Entrez le code'})}</p>
         <div style="display:flex; gap:10px; justify-content:center;">
         <input type="text" id="confirm-2fa-code" placeholder="123456" maxlength="6" style="width:120px; text-align:center; font-size:16px; letter-spacing:2px; font-weight:bold; background:var(--bg2); border:1px solid var(--border); color:var(--text); border-radius:var(--radius);">
-        <button class="btn-primary" onclick="confirmSetup2FA()">${t('btn_validate', {fallback:'Valider'})}</button>
+        <button class="btn-primary" onclick="confirmSetup2FA()">${t('btn_validate')}</button>
         </div>
         </div>
         `;
@@ -7302,16 +7306,16 @@ window.openLibraryImportModal = async function(type) {
                 </div>
                 
                 <div id="lib-import-step1" style="padding: 20px; background:var(--bg); flex-shrink:0; border-bottom:1px solid var(--border);">
-                    <label style="font-size:12px; font-weight:bold; color:var(--muted); text-transform:uppercase;">Dossier Racine (Root Folder)</label>
+                    <label style="font-size:12px; font-weight:bold; color:var(--muted); text-transform:uppercase;">\${t('lib_import_root_folder')}</label>
                     <div style="display:flex; gap:10px; margin-top:8px;">
                         <select id="lib-import-folder-select" style="flex:1; padding:10px; background:var(--bg3); border:1px solid var(--border); color:var(--text); border-radius:6px;"></select>
-                        <button class="btn-primary" onclick="scanLibraryFolders()" style="flex-shrink:0;">🔍 Scanner les dossiers</button>
+                        <button class="btn-primary" onclick="scanLibraryFolders()" style="flex-shrink:0;">🔍 \${t('lib_import_btn_scan')}</button>
                     </div>
                 </div>
                 
                 <div id="lib-import-results-container" style="flex:1; overflow-y:auto; padding:0; display:flex; flex-direction:column; background:var(--bg);">
                     <div id="lib-import-results" style="display:flex; flex-direction:column; gap:0;">
-                        <div style="text-align:center; color:var(--muted); padding:40px;">⏳ Chargement...</div>
+                        <div style="text-align:center; color:var(--muted); padding:40px;">⏳ \${t('loading')}</div>
                     </div>
                 </div>
 
@@ -7328,27 +7332,27 @@ window.openLibraryImportModal = async function(type) {
         modal.addEventListener('click', e => { if (e.target === modal) modal.classList.remove('open'); });
     }
     
-    document.getElementById('lib-import-title').textContent = type === 'movie' ? 'Importer Bibliothèque (Films)' : 'Importer Bibliothèque (Séries)';
-    document.getElementById('lib-import-results').innerHTML = `<div style="text-align:center; color:var(--muted); padding:40px;">⏳ Récupération de vos dossiers racines...</div>`;
+    document.getElementById('lib-import-title').textContent = type === 'movie' ? t('lib_import_title_movie') : t('lib_import_title_serie');
+    document.getElementById('lib-import-results').innerHTML = `<div style="text-align:center; color:var(--muted); padding:40px;">⏳ \${t('lib_import_fetching')}</div>`;
     document.getElementById('lib-import-footer').style.display = 'none';
     modal.classList.add('open');
 
     const appDriver = type === 'movie' ? 'radarr' : 'sonarr';
-    const opts = await api(`get_options&app=${appDriver}`, {}, 'GET');
+    const opts = await api(`get_options&app=\${appDriver}`, {}, 'GET');
     
     if (opts.folders && opts.profiles) {
         window._libraryProfiles = opts.profiles;
         window._unmappedFoldersCache = opts.folders;
         
         const folderSelect = document.getElementById('lib-import-folder-select');
-        folderSelect.innerHTML = opts.folders.map((f, i) => `<option value="${i}">${esc(f.path)} (${(f.unmappedFolders || []).length} orphelins)</option>`).join('');
+        folderSelect.innerHTML = opts.folders.map((f, i) => `<option value="\${i}">\${esc(f.path)} (\${(f.unmappedFolders || []).length})</option>`).join('');
         
         const profileSelect = document.getElementById('lib-import-profile');
-        profileSelect.innerHTML = opts.profiles.map(p => `<option value="${p.id}">${esc(p.name)}</option>`).join('');
+        profileSelect.innerHTML = opts.profiles.map(p => `<option value="\${p.id}">\${esc(p.name)}</option>`).join('');
         
-        document.getElementById('lib-import-results').innerHTML = `<div style="text-align:center; color:var(--muted); padding:40px;">Sélectionnez un dossier racine ci-dessus et cliquez sur <b>Scanner</b> pour identifier les dossiers inconnus de Radarr/Sonarr.</div>`;
+        document.getElementById('lib-import-results').innerHTML = `<div style="text-align:center; color:var(--muted); padding:40px;">\${t('lib_import_select_hint')}</div>`;
     } else {
-        document.getElementById('lib-import-results').innerHTML = `<div style="text-align:center; color:var(--accent3); padding:40px;">Erreur de chargement. Vérifiez que Radarr/Sonarr est bien en ligne.</div>`;
+        document.getElementById('lib-import-results').innerHTML = `<div style="text-align:center; color:var(--accent3); padding:40px;">\${t('lib_import_err_connection')}</div>`;
     }
 };
 
@@ -7357,14 +7361,13 @@ window.scanLibraryFolders = async function() {
     const folderObj = window._unmappedFoldersCache[folderIndex];
     
     if (!folderObj || !folderObj.unmappedFolders || folderObj.unmappedFolders.length === 0) {
-        document.getElementById('lib-import-results').innerHTML = `<div style="text-align:center; color:var(--muted); padding:40px;">Aucun dossier orphelin (non mappé) trouvé ! Radarr/Sonarr connaît déjà tous les dossiers présents ici.</div>`;
+        document.getElementById('lib-import-results').innerHTML = `<div style="text-align:center; color:var(--muted); padding:40px;">\${t('lib_import_no_orphans')}</div>`;
         document.getElementById('lib-import-footer').style.display = 'none';
         return;
     }
 
-    document.getElementById('lib-import-results').innerHTML = `<div style="text-align:center; color:var(--muted); padding:40px;">⏳ Recherche des correspondances TMDB/TVDB pour ${folderObj.unmappedFolders.length} dossiers. Cela peut prendre un instant...</div>`;
+    document.getElementById('lib-import-results').innerHTML = `<div style="text-align:center; color:var(--muted); padding:40px;">⏳ \${t('lib_import_searching').replace('{n}', folderObj.unmappedFolders.length)}</div>`;
     
-    // Pour mapper exactement le dossier lors de l'ajout, on mémorise le path de chaque unmappedFolder
     window._unmappedPathsMap = {};
     folderObj.unmappedFolders.forEach(f => {
         window._unmappedPathsMap[f.name] = f.path;
@@ -7372,11 +7375,10 @@ window.scanLibraryFolders = async function() {
     
     const folderNames = folderObj.unmappedFolders.map(f => f.name);
     
-    // On réutilise la fonction de recherche en masse existante !
     const r = await api('bulk_import_lookup', { type: window._importListType, terms: JSON.stringify(folderNames) });
     
     if (r.error) {
-        document.getElementById('lib-import-results').innerHTML = `<div style="text-align:center; color:var(--accent3); padding:40px;">⚠️ ${esc(r.error)}</div>`;
+        document.getElementById('lib-import-results').innerHTML = `<div style="text-align:center; color:var(--accent3); padding:40px;">⚠️ \${esc(r.error)}</div>`;
         return;
     }
 
@@ -7394,26 +7396,26 @@ window.renderLibraryImportResults = function() {
             return `<label style="display:flex; align-items:center; gap:12px; padding:12px 20px; border-bottom:1px solid var(--border); background:var(--bg3); opacity:0.6;">
                 <span style="font-size:20px;">❓</span>
                 <div style="flex:1; min-width:0;">
-                    <div style="font-size:13px; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${esc(r.term)}</div>
-                    <div style="font-size:11px; color:var(--accent3);">Introuvable sur TMDB/TVDB</div>
+                    <div style="font-size:13px; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">\${esc(r.term)}</div>
+                    <div style="font-size:11px; color:var(--accent3);">\${t('lib_import_not_found')}</div>
                 </div>
             </label>`;
         }
         const disabled = r.in_lib;
         const checked = window._importSelected.has(i);
-        return `<label style="display:flex; align-items:center; gap:12px; padding:12px 20px; border-bottom:1px solid var(--border); background:var(--bg2); cursor:${disabled ? 'default' : 'pointer'}; ${disabled ? 'opacity:0.5;' : ''} transition:background 0.2s;" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background='var(--bg2)'">
-            <input type="checkbox" ${checked ? 'checked' : ''} ${disabled ? 'disabled' : ''} onchange="toggleLibImportItem(${i})" style="width:18px; height:18px; accent-color:var(--accent); flex-shrink:0;">
-            ${r.poster ? `<img src="${esc(r.poster)}" style="width:36px; height:54px; object-fit:cover; border-radius:4px; flex-shrink:0;">` : '<div style="width:36px;height:54px;flex-shrink:0;background:var(--bg);border-radius:4px;border:1px solid var(--border);"></div>'}
+        return `<label style="display:flex; align-items:center; gap:12px; padding:12px 20px; border-bottom:1px solid var(--border); background:var(--bg2); cursor:\${disabled ? 'default' : 'pointer'}; \${disabled ? 'opacity:0.5;' : ''} transition:background 0.2s;" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background='var(--bg2)'">
+            <input type="checkbox" \${checked ? 'checked' : ''} \${disabled ? 'disabled' : ''} onchange="toggleLibImportItem(\${i})" style="width:18px; height:18px; accent-color:var(--accent); flex-shrink:0;">
+            \${r.poster ? \`<img src="\${esc(r.poster)}" style="width:36px; height:54px; object-fit:cover; border-radius:4px; flex-shrink:0;">\` : '<div style="width:36px;height:54px;flex-shrink:0;background:var(--bg);border-radius:4px;border:1px solid var(--border);"></div>'}
             <div style="flex:1; min-width:0;">
-                <div style="font-size:14px; font-weight:bold; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${esc(r.title)} ${r.year ? `(${r.year})` : ''}</div>
-                <div style="font-size:11px; color:var(--muted); font-family:var(--mono); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Dossier: ${esc(r.term)}</div>
-                ${disabled ? `<div style="font-size:11px; color:var(--accent); font-weight:bold; margin-top:2px;">Déjà dans la librairie</div>` : ''}
+                <div style="font-size:14px; font-weight:bold; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">\${esc(r.title)} \${r.year ? \`(\${r.year})\` : ''}</div>
+                <div style="font-size:11px; color:var(--muted); font-family:var(--mono); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">\${t('lib_import_folder_lbl')} \${esc(r.term)}</div>
+                \${disabled ? \`<div style="font-size:11px; color:var(--accent); font-weight:bold; margin-top:2px;">\${t('lib_import_already_in_lib')}</div>\` : ''}
             </div>
         </label>`;
     }).join('');
 
     const btn = document.getElementById('btn-process-lib-import');
-    btn.textContent = `Ajouter la sélection (${window._importSelected.size})`;
+    btn.textContent = t('lib_import_btn_add_selected').replace('{n}', window._importSelected.size);
     btn.disabled = window._importSelected.size === 0;
 };
 
@@ -7437,16 +7439,10 @@ window.confirmLibraryImport = async function() {
     const itemsToImport = Array.from(window._importSelected).map(i => window._importResults[i]);
 
     for (const item of itemsToImport) {
-        btn.textContent = `Ajout en cours... (${successCount + 1}/${itemsToImport.length})`;
+        btn.textContent = t('lib_import_adding').replace('{n}', successCount + 1).replace('{total}', itemsToImport.length);
         
-        // On récupère le chemin absolu exact du dossier pour que Radarr/Sonarr l'assigne directement et ne crée pas de doublon !
         const exactPath = window._unmappedPathsMap[item.term] || null;
-        
-        const payload = { 
-            qualityProfileId: profileId, 
-            rootFolderPath: rootPath, 
-            search: false // Pas besoin de chercher sur les indexeurs, les fichiers sont déjà là !
-        };
+        const payload = { qualityProfileId: profileId, rootFolderPath: rootPath, search: false };
         if (exactPath) payload.path = exactPath;
         
         if (window._importListType === 'movie') payload.tmdbId = item.tmdbId;
@@ -7457,7 +7453,7 @@ window.confirmLibraryImport = async function() {
         if (r.ok) successCount++;
     }
 
-    notify(`Terminé. ${successCount} médias importés !`, 'ok');
+    notify(t('lib_import_success').replace('{n}', successCount), 'ok');
     document.getElementById('modal-library-import').classList.remove('open');
     
     if (window._importListType === 'movie') loadMovies(); else loadSeries();
