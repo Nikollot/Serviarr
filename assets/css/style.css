@@ -3157,3 +3157,69 @@ button.app-item-btn.danger { color: var(--accent3) !important; }
     width: 30px; /* Aligne parfaitement les icônes */
     color: #fbc02d; /* Couleur d'accentuation (jaune Radarr) */
 }
+
+/* =========================================================================
+ * ── CORRECTION MOBILE : RECHERCHE, TRI ET ACTIONS OPTIMISÉS
+ * ========================================================================= */
+@media (max-width: 768px) {
+    /* 1. La barre globale devient flexible et répartit l'espace */
+    .dl-toolbar {
+        display: flex !important;
+        flex-wrap: wrap !important;
+        justify-content: space-between !important;
+        gap: 10px !important;
+        align-items: center !important;
+    }
+
+    /* 2. La barre de recherche prend 100% de la largeur sur la ligne du haut */
+    .dl-toolbar > div:first-child {
+        width: 100% !important;
+        margin-bottom: 0 !important; /* Écrase la marge inline de PHP */
+    }
+
+    .dl-toolbar .lib-search {
+        height: 38px !important;
+        box-sizing: border-box !important;
+    }
+
+    /* 3. On cache le texte inutile sur mobile */
+    .dl-toolbar .dl-sort-label,
+    .hide-mobile {
+        display: none !important;
+    }
+
+    /* 4. Bloc de tri (à gauche de la ligne du bas) */
+    .dl-sort-wrap {
+        display: flex !important;
+        gap: 6px !important;
+        margin: 0 !important;
+    }
+
+    .dl-sort-select {
+        height: 38px !important;
+        padding: 0 10px !important;
+        box-sizing: border-box !important;
+    }
+
+    /* 5. Bloc d'actions (à droite de la ligne du bas) */
+    .dl-actions {
+        display: flex !important;
+        gap: 6px !important;
+        margin-top: 0 !important;
+    }
+
+    /* 6. On transforme TOUS les petits boutons en carrés parfaits de 38px */
+    .dl-sort-wrap .btn-sort,
+    .dl-actions .btn-sort,
+    .dl-action-btn {
+        height: 38px !important;
+        width: 38px !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        box-sizing: border-box !important;
+        font-size: 16px !important; /* Grossit un peu les emojis ▶ et ⏸ */
+    }
+}

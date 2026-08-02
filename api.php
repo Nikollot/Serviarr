@@ -365,8 +365,8 @@ function http_post($url, $headers = [], $body = []) {
         CURLOPT_TIMEOUT        => 300,
         CURLOPT_POST           => true,
         CURLOPT_POSTFIELDS     => json_encode($body),
-        CURLOPT_HTTPHEADER     => array_merge(['Content-Type: application/json'], $headers),
-        CURLOPT_SSL_VERIFYPEER => false,
+                      CURLOPT_HTTPHEADER     => array_merge(['Content-Type: application/json'], $headers),
+                      CURLOPT_SSL_VERIFYPEER => false,
     ]);
     $res = curl_exec($ch);
     $err = curl_error($ch);
@@ -382,8 +382,8 @@ function http_put($url, $headers = [], $body = []) {
         CURLOPT_TIMEOUT        => 300,
         CURLOPT_CUSTOMREQUEST  => 'PUT',
         CURLOPT_POSTFIELDS     => json_encode($body, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
-        CURLOPT_HTTPHEADER     => array_merge(['Content-Type: application/json'], $headers),
-        CURLOPT_SSL_VERIFYPEER => false,
+                      CURLOPT_HTTPHEADER     => array_merge(['Content-Type: application/json'], $headers),
+                      CURLOPT_SSL_VERIFYPEER => false,
     ]);
     $res  = curl_exec($ch);
     $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
@@ -399,7 +399,7 @@ function http_put_raw($url, $headers = [], $body_encoded = '') {
         CURLOPT_CUSTOMREQUEST  => 'PUT',
         CURLOPT_POSTFIELDS     => $body_encoded,
         CURLOPT_HTTPHEADER     => array_merge(['Content-Type: application/json'], $headers),
-        CURLOPT_SSL_VERIFYPEER => false,
+                      CURLOPT_SSL_VERIFYPEER => false,
     ]);
     $res  = curl_exec($ch);
     $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
@@ -456,7 +456,7 @@ function get_tmdb_trailer($type, $tmdb_id) {
 
     $url = "https://api.themoviedb.org/3/{$type}/{$tmdb_id}/videos?api_key={$api_key}&language={$TMDB_LANG}";
     $data = http_get_secure($url);
-    
+
     $trailer = null;
     if (!isset($data['_error']) && !empty($data['results'])) {
         foreach ($data['results'] as $v) {
@@ -466,7 +466,7 @@ function get_tmdb_trailer($type, $tmdb_id) {
             }
         }
     }
-    
+
     if (!$trailer && $TMDB_LANG !== 'en-US') {
         $url_en = "https://api.themoviedb.org/3/{$type}/{$tmdb_id}/videos?api_key={$api_key}&language=en-US";
         $data_en = http_get_secure($url_en);
@@ -648,17 +648,17 @@ if ($action !== 'webhook_notif') {
 // 🔒 Défense en profondeur CSRF
 $get_safe_actions = [
     'check_setup', 'get_2fa_status', 'get_activity_log', 'get_apps', 'get_containers',
-    'get_downloads', 'get_local_icons', 'get_notifications_list', 'get_push_config',
-    'get_tmdb_key', 'get_webhook_url', 'list_drivers', 'prowlarr_indexers',
-    'recent_downloads', 'recommendations', 'setup_2fa', 'get_options', 'proxy_image',
-    'proxy_fetch', 'movies_dashboard', 'series_dashboard', 'driver_fields',
-    'library_movies', 'library_series', 'movie_detail', 'serie_detail',
-    'movie_releases', 'episode_releases', 'season_releases', 'omnisearch',
-    'movie_collection', 'docker_logs', 'docker_stats', 'app_status', 'queue_status',
-    'tmdb_movie_detail', 'tmdb_serie_detail', 'get_torrent_files',
-    'calendar', 'search_movie', 'search_serie', 'get_media_raw', 'actor_credits',
-    'prowlarr_search', 'export_media_list', 'prowlarr_categories', 'get_recent_movies', 'get_history', 'get_all_collections',
-    'manual_import_scan', 'manual_import_process'
+'get_downloads', 'get_local_icons', 'get_notifications_list', 'get_push_config',
+'get_tmdb_key', 'get_webhook_url', 'list_drivers', 'prowlarr_indexers',
+'recent_downloads', 'recommendations', 'setup_2fa', 'get_options', 'proxy_image',
+'proxy_fetch', 'movies_dashboard', 'series_dashboard', 'driver_fields',
+'library_movies', 'library_series', 'movie_detail', 'serie_detail',
+'movie_releases', 'episode_releases', 'season_releases', 'omnisearch',
+'movie_collection', 'docker_logs', 'docker_stats', 'app_status', 'queue_status',
+'tmdb_movie_detail', 'tmdb_serie_detail', 'get_torrent_files',
+'calendar', 'search_movie', 'search_serie', 'get_media_raw', 'actor_credits',
+'prowlarr_search', 'export_media_list', 'prowlarr_categories', 'get_recent_movies', 'get_history', 'get_all_collections',
+'manual_import_scan', 'manual_import_process', 'server_stats', 'server_dl_stats', 'server_detailed_history'
 ];
 
 if ($_SERVER['REQUEST_METHOD'] === 'GET' && $action !== 'webhook_notif' && !in_array($action, $get_safe_actions, true)) {
@@ -828,14 +828,14 @@ if ($action === 'actor_credits') {
 
     $local_movies = [];
     $cache_movies = __DIR__ . '/data/.cache_library_movies.json';
-    
+
     if (file_exists($cache_movies)) {
         $radarr_data = json_decode(file_get_contents($cache_movies), true);
     } else {
         $radarr = find_app_by_driver($cfg, 'radarr');
         $radarr_data = $radarr ? arr_get($radarr, '/api/v3/movie') : [];
     }
-    
+
     if (is_array($radarr_data) && !isset($radarr_data['_error'])) {
         foreach ($radarr_data as $m) {
             if (!empty($m['tmdbId'])) {
@@ -847,7 +847,7 @@ if ($action === 'actor_credits') {
     $local_series_by_title = [];
     $local_series_by_tmdb = [];
     $cache_series = __DIR__ . '/data/.cache_library_series.json';
-    
+
     if (file_exists($cache_series)) {
         $sonarr_data = json_decode(file_get_contents($cache_series), true);
     } else {
@@ -1288,8 +1288,8 @@ if ($action === 'get_options') {
 
     echo json_encode([
         'profiles' => is_array($profiles) && !isset($profiles['_error']) ? $profiles : [],
-        'folders'  => is_array($folders) && !isset($folders['_error']) ? $folders : [],
-        'tags'     => is_array($tags) && !isset($tags['_error']) ? $tags : []
+                     'folders'  => is_array($folders) && !isset($folders['_error']) ? $folders : [],
+                     'tags'     => is_array($tags) && !isset($tags['_error']) ? $tags : []
     ]);
     exit;
 }
@@ -1367,7 +1367,7 @@ if ($action === 'add_movie') {
     $res = arr_post($radarr, '/api/v3/movie', $body);
     if (isset($res['_error'])) { echo json_encode(['error' => $res['_error']]); exit; }
     if (isset($res['message'])) { echo json_encode(['error' => $res['message']]); exit; }
-    
+
     clear_media_caches('movie');
     log_activity('add_movie', 'movie', $res['id'] ?? null, $res['title'] ?? '?');
 
@@ -1412,7 +1412,7 @@ if ($action === 'add_serie') {
     $res = arr_post($sonarr, '/api/v3/series', $body);
     if (isset($res['_error'])) { echo json_encode(['error' => $res['_error']]); exit; }
     if (isset($res['message'])) { echo json_encode(['error' => $res['message']]); exit; }
-    
+
     clear_media_caches('serie');
     log_activity('add_serie', 'serie', $res['id'] ?? null, $res['title'] ?? '?');
 
@@ -1451,14 +1451,14 @@ if ($action === 'tmdb_movie_detail') {
         'year'       => $lookup['year'] ?? '',
         'overview'   => $lookup['overview'] ?? '',
         'rating'     => round($lookup['ratings']['tmdb']['value'] ?? 0, 1),
-        'runtime'    => $lookup['runtime'] ?? 0,
-        'genres'     => $lookup['genres'] ?? [],
-        'poster'     => $poster_url,
-        'fanart'     => $fanart_url,
-        'inCinemas'       => $lookup['inCinemas'] ?? null,
-        'digitalRelease'  => $lookup['digitalRelease'] ?? null,
-        'physicalRelease' => $lookup['physicalRelease'] ?? null,
-        'youtubeTrailerId'=> $youtubeTrailerId
+                     'runtime'    => $lookup['runtime'] ?? 0,
+                     'genres'     => $lookup['genres'] ?? [],
+                     'poster'     => $poster_url,
+                     'fanart'     => $fanart_url,
+                     'inCinemas'       => $lookup['inCinemas'] ?? null,
+                     'digitalRelease'  => $lookup['digitalRelease'] ?? null,
+                     'physicalRelease' => $lookup['physicalRelease'] ?? null,
+                     'youtubeTrailerId'=> $youtubeTrailerId
     ], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_IGNORE);
     exit;
 }
@@ -1509,18 +1509,18 @@ if ($action === 'tmdb_serie_detail') {
 
     echo json_encode([
         'tmdbId'     => $tmdbId,
-        'imdbId'     => $imdbId, 
+        'imdbId'     => $imdbId,
         'tvdbId'     => $serie['tvdbId'] ?? 0,
         'title'      => $serie['title'] ?? '?',
         'year'       => $serie['year'] ?? '',
         'overview'   => $serie['overview'] ?? '',
         'rating'     => round($serie['ratings']['value'] ?? 0, 1),
-        'network'    => $serie['network'] ?? '',
-        'genres'     => $serie['genres'] ?? [],
-        'poster'     => $poster_url,
-        'fanart'     => $fanart_url,
-        'seasons'    => count($serie['seasons'] ?? []),
-        'youtubeTrailerId'=> $youtubeTrailerId
+                     'network'    => $serie['network'] ?? '',
+                     'genres'     => $serie['genres'] ?? [],
+                     'poster'     => $poster_url,
+                     'fanart'     => $fanart_url,
+                     'seasons'    => count($serie['seasons'] ?? []),
+                     'youtubeTrailerId'=> $youtubeTrailerId
     ], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_IGNORE);
     exit;
 }
@@ -1528,7 +1528,7 @@ if ($action === 'tmdb_serie_detail') {
 // ── LIBRARIES ─────────────────────────────────────────────────────────────────
 if ($action === 'library_movies') {
     $q      = strtolower($_GET['q'] ?? '');
-    $filter = $_GET['filter'] ?? 'all'; 
+    $filter = $_GET['filter'] ?? 'all';
 
     $cacheFile = __DIR__ . '/data/.cache_library_movies.json';
     $all_movies = [];
@@ -1679,7 +1679,7 @@ if ($action === 'movie_detail') {
                     'character' => $c['character'] ?? '',
                     'image'     => $img
                 ];
-                if (count($cast) >= 15) break; 
+                if (count($cast) >= 15) break;
             }
         }
     }
@@ -1691,27 +1691,27 @@ if ($action === 'movie_detail') {
         'year'       => $mv['year'] ?? '',
         'overview'   => $mv['overview'] ?? '',
         'rating'     => round($mv['ratings']['tmdb']['value'] ?? 0, 1),
-        'runtime'    => $mv['runtime'] ?? 0,
-        'genres'     => $mv['genres'] ?? [],
-        'status'     => $mv['status'] ?? '',
-        'studio'     => $mv['studio'] ?? '',
-        'poster'     => $poster_url,
-        'fanart'     => $fanart_url,
-        'hasFile'    => $mv['hasFile'] ?? false,
-        'monitored'  => $mv['monitored'] ?? false,
-        'qualityProfileId' => $mv['qualityProfileId'] ?? 0,
-        'qualityProfileName' => $profileName,
-        'file'       => $file_info,
-        'collection' => $collection,
-        'added'      => $added,
-        'cast'       => $cast,
-        'inCinemas'       => $mv['inCinemas'] ?? null,
-        'digitalRelease'  => $mv['digitalRelease'] ?? null,
-        'physicalRelease' => $mv['physicalRelease'] ?? null,
-        'download_info'   => $download_info,
-        'titleSlug'       => $mv['titleSlug'] ?? '',
-        'appUrl'          => rtrim($radarr['url'], '/'),
-        'youtubeTrailerId'=> $mv['youTubeTrailerId'] ?? null
+                     'runtime'    => $mv['runtime'] ?? 0,
+                     'genres'     => $mv['genres'] ?? [],
+                     'status'     => $mv['status'] ?? '',
+                     'studio'     => $mv['studio'] ?? '',
+                     'poster'     => $poster_url,
+                     'fanart'     => $fanart_url,
+                     'hasFile'    => $mv['hasFile'] ?? false,
+                     'monitored'  => $mv['monitored'] ?? false,
+                     'qualityProfileId' => $mv['qualityProfileId'] ?? 0,
+                     'qualityProfileName' => $profileName,
+                     'file'       => $file_info,
+                     'collection' => $collection,
+                     'added'      => $added,
+                     'cast'       => $cast,
+                     'inCinemas'       => $mv['inCinemas'] ?? null,
+                     'digitalRelease'  => $mv['digitalRelease'] ?? null,
+                     'physicalRelease' => $mv['physicalRelease'] ?? null,
+                     'download_info'   => $download_info,
+                     'titleSlug'       => $mv['titleSlug'] ?? '',
+                     'appUrl'          => rtrim($radarr['url'], '/'),
+                     'youtubeTrailerId'=> $mv['youTubeTrailerId'] ?? null
     ], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_IGNORE);
     exit;
 }
@@ -1769,7 +1769,7 @@ if ($action === 'serie_detail') {
     if (is_array($episodes) && !isset($episodes['_error'])) {
         foreach ($episodes as $ep) {
             $sn = $ep['seasonNumber'] ?? 0;
-            if ($sn === 0) continue; 
+            if ($sn === 0) continue;
             $fileId = $ep['episodeFileId'] ?? 0;
             $ep_by_season[$sn][] = [
                 'id'            => $ep['id'],
@@ -1892,18 +1892,18 @@ if ($action === 'serie_detail') {
         'overview'  => $s['overview'] ?? '',
         'status'    => $s['status'] ?? '?',
         'rating'    => round($s['ratings']['value'] ?? 0, 1),
-        'network'   => $s['network'] ?? '',
-        'genres'    => $s['genres'] ?? [],
-        'seasons'   => $seasons,
-        'pct'       => round($s['statistics']['percentOfEpisodes'] ?? 0),
-        'monitored' => $s['monitored'] ?? false,
-        'qualityProfileId' => $s['qualityProfileId'] ?? 0,
-        'qualityProfileName' => $profileName,
-        'added'     => $added,
-        'cast'      => $cast,
-        'titleSlug' => $s['titleSlug'] ?? '',
-        'appUrl'    => rtrim($sonarr['url'], '/'),
-        'youtubeTrailerId'=> $youtubeTrailerId ?? $s['youTubeTrailerId'] ?? null
+                     'network'   => $s['network'] ?? '',
+                     'genres'    => $s['genres'] ?? [],
+                     'seasons'   => $seasons,
+                     'pct'       => round($s['statistics']['percentOfEpisodes'] ?? 0),
+                     'monitored' => $s['monitored'] ?? false,
+                     'qualityProfileId' => $s['qualityProfileId'] ?? 0,
+                     'qualityProfileName' => $profileName,
+                     'added'     => $added,
+                     'cast'      => $cast,
+                     'titleSlug' => $s['titleSlug'] ?? '',
+                     'appUrl'    => rtrim($sonarr['url'], '/'),
+                     'youtubeTrailerId'=> $youtubeTrailerId ?? $s['youTubeTrailerId'] ?? null
     ], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_IGNORE);
     exit;
 }
@@ -2271,6 +2271,7 @@ if ($action === 'proxy_fetch') {
 }
 
 // ── DASHBOARDS ────────────────────────────────────────────────────────────────
+// ── DASHBOARDS ────────────────────────────────────────────────────────────────
 if ($action === 'movies_dashboard') {
     require_auth();
     $cfg = load_config();
@@ -2326,6 +2327,7 @@ if ($action === 'movies_dashboard') {
     }
 
     $upcomingPool = [];
+    $physicalPool = []; // 🌟 AJOUT : Pour stocker les futures sorties physiques
     $start = date('Y-m-d');
     $end = date('Y-m-d', strtotime('+6 months'));
 
@@ -2334,6 +2336,8 @@ if ($action === 'movies_dashboard') {
         foreach ($calendarData as $mv) {
             if (empty($mv['hasFile'])) {
                 $posterUrl = $baseUrl . '/api/v3/mediacover/' . $mv['id'] . '/poster-250.jpg?apikey=' . $radarr['api_key'];
+
+                // Sorties "générales"
                 $releaseDate = substr($mv['digitalRelease'] ?? $mv['physicalRelease'] ?? $mv['inCinemas'] ?? '', 0, 10);
                 if (!empty($releaseDate) && $releaseDate >= $start) {
                     $upcomingPool[$mv['tmdbId']] = [
@@ -2342,6 +2346,19 @@ if ($action === 'movies_dashboard') {
                         'title' => $mv['title'],
                         'poster' => 'api.php?action=proxy_image&url=' . urlencode($posterUrl),
                         'release_date' => $releaseDate,
+                        'is_new' => false
+                    ];
+                }
+
+                // 🌟 AJOUT : Sorties exclusivement physiques
+                $physDate = substr($mv['physicalRelease'] ?? '', 0, 10);
+                if (!empty($physDate) && $physDate >= $start) {
+                    $physicalPool[$mv['tmdbId']] = [
+                        'id' => $mv['id'],
+                        'tmdbId' => $mv['tmdbId'],
+                        'title' => $mv['title'],
+                        'poster' => 'api.php?action=proxy_image&url=' . urlencode($posterUrl),
+                        'release_date' => $physDate,
                         'is_new' => false
                     ];
                 }
@@ -2421,12 +2438,18 @@ if ($action === 'movies_dashboard') {
     usort($upcoming, function($a, $b) { return strcmp($a['release_date'], $b['release_date']); });
     $upcoming = array_slice($upcoming, 0, 25);
 
+    // 🌟 AJOUT : Tri du tableau des sorties physiques
+    $upcoming_physical = array_values($physicalPool);
+    usort($upcoming_physical, function($a, $b) { return strcmp($a['release_date'], $b['release_date']); });
+    $upcoming_physical = array_slice($upcoming_physical, 0, 25);
+
     $finalJson = json_encode([
         'recent' => array_values($recent),
-        'upcoming' => $upcoming,
-        'reco' => $reco,
-        'popular' => $popular,
-        'tmdb_missing' => empty($tmdbKey)
+                             'upcoming' => $upcoming,
+                             'upcoming_physical' => $upcoming_physical, // 🌟 AJOUT : On inclut les données dans la réponse
+                             'reco' => $reco,
+                             'popular' => $popular,
+                             'tmdb_missing' => empty($tmdbKey)
     ]);
 
     file_put_contents($cacheFile, $finalJson);
@@ -2505,7 +2528,8 @@ if ($action === 'series_dashboard') {
                         'id' => $srId,
                         'title' => $titleWithEpisode,
                         'poster' => 'api.php?action=proxy_image&url=' . urlencode($posterUrl),
-                        'is_new' => false
+                        'is_new' => false,
+                        'release_date' => substr($ep['airDateUtc'] ?? $ep['airDate'] ?? '', 0, 10) // 🌟 AJOUT DE LA DATE
                     ];
                 }
             }
@@ -2546,7 +2570,8 @@ if ($action === 'series_dashboard') {
                     'tmdbId' => $tmdbId,
                     'title' => $s['name'],
                     'poster' => 'https://image.tmdb.org/t/p/w500' . $s['poster_path'],
-                    'is_new' => !$is_in_lib
+                    'is_new' => !$is_in_lib,
+                    'release_date' => $s['first_air_date'] ?? '' // 🌟 AJOUT DE LA DATE
                 ];
                 if (count($upcoming_series) >= 15) break;
             }
@@ -2576,11 +2601,11 @@ if ($action === 'series_dashboard') {
 
     $finalJson = json_encode([
         'recent' => array_values($recent),
-        'upcoming' => array_values($upcoming),
-        'reco' => $reco,
-        'popular' => $popular,
-        'upcoming_series' => $upcoming_series,
-        'tmdb_missing' => empty($tmdbKey)
+                             'upcoming' => array_values($upcoming),
+                             'reco' => $reco,
+                             'popular' => $popular,
+                             'upcoming_series' => $upcoming_series,
+                             'tmdb_missing' => empty($tmdbKey)
     ]);
 
     file_put_contents($cacheFile, $finalJson);
@@ -2956,8 +2981,8 @@ function qbt_login($app) {
     curl_setopt_array($ch, [
         CURLOPT_RETURNTRANSFER => true, CURLOPT_POST => true,
         CURLOPT_POSTFIELDS => http_build_query(['username' => $app['username'] ?? '', 'password' => $app['password'] ?? '']),
-        CURLOPT_HTTPHEADER => ['Referer: ' . $base_url, 'Origin: ' . $base_url],
-        CURLOPT_HEADER => true, CURLOPT_TIMEOUT => 8, CURLOPT_SSL_VERIFYPEER => false,
+                      CURLOPT_HTTPHEADER => ['Referer: ' . $base_url, 'Origin: ' . $base_url],
+                      CURLOPT_HEADER => true, CURLOPT_TIMEOUT => 8, CURLOPT_SSL_VERIFYPEER => false,
     ]);
     $raw = curl_exec($ch);
     $hsize = curl_getinfo($ch, CURLINFO_HEADER_SIZE);
@@ -2977,7 +3002,7 @@ function qbt_request($app, $endpoint, $post_fields = null) {
     if (empty($api_key) && strpos($app['password'] ?? '', 'qbt_') === 0) $api_key = $app['password'];
     if (empty($api_key) && strpos($app['username'] ?? '', 'qbt_') === 0) $api_key = $app['username'];
 
-    if (!empty($api_key)) { $headers[] = 'Authorization: Bearer ' . trim($api_key); } 
+    if (!empty($api_key)) { $headers[] = 'Authorization: Bearer ' . trim($api_key); }
     else {
         $sid = qbt_login($app);
         if (!$sid) return ['_error' => t('err_qbt_auth_failed')];
@@ -3062,7 +3087,7 @@ function qbt_add_torrent($app, $magnet_url = null, $file_path = null) {
     if (empty($api_key) && strpos($app['password'] ?? '', 'qbt_') === 0) $api_key = $app['password'];
     if (empty($api_key) && strpos($app['username'] ?? '', 'qbt_') === 0) $api_key = $app['username'];
 
-    if (!empty($api_key)) { $headers[] = 'Authorization: Bearer ' . trim($api_key); } 
+    if (!empty($api_key)) { $headers[] = 'Authorization: Bearer ' . trim($api_key); }
     else {
         $sid = qbt_login($app);
         if (!$sid) return false;
@@ -3070,8 +3095,8 @@ function qbt_add_torrent($app, $magnet_url = null, $file_path = null) {
     }
 
     $post_fields = [];
-    if ($file_path) { $post_fields['torrents'] = new CURLFile($file_path, 'application/x-bittorrent', 'upload.torrent'); } 
-    elseif ($magnet_url) { $post_fields['urls'] = $magnet_url; } 
+    if ($file_path) { $post_fields['torrents'] = new CURLFile($file_path, 'application/x-bittorrent', 'upload.torrent'); }
+    elseif ($magnet_url) { $post_fields['urls'] = $magnet_url; }
     else { return false; }
 
     $ch = curl_init(rtrim($app['url'], '/') . '/api/v2/torrents/add');
@@ -3095,7 +3120,7 @@ if ($action === 'get_downloads') {
 
     if ($client === 'qbittorrent') {
         $result = qbt_get_torrents($trans);
-        if (isset($result['_error'])) { echo json_encode(['error' => $result['_error']]); } 
+        if (isset($result['_error'])) { echo json_encode(['error' => $result['_error']]); }
         else { echo json_encode(['torrents' => $result]); }
         exit;
     }
@@ -3232,7 +3257,7 @@ if ($action === 'add_torrent') {
     }
 
     $args = [];
-    if ($has_file) { $args['metainfo'] = base64_encode(file_get_contents($_FILES['torrent_file']['tmp_name'])); } 
+    if ($has_file) { $args['metainfo'] = base64_encode(file_get_contents($_FILES['torrent_file']['tmp_name'])); }
     else { $args['filename'] = $magnet_link; }
 
     $res = transmission_rpc($trans, 'torrent-add', $args);
@@ -3575,7 +3600,7 @@ if ($action === 'webhook_notif') {
 
     } elseif (isset($input['series'])) {
         $s = $input['series'];
-        $seriesTitle = $s['title']; 
+        $seriesTitle = $s['title'];
         $title = "📺 " . $seriesTitle;
         $body = $actionText . "\n";
         $tag = 'serie_' . $s['id'];
@@ -3583,7 +3608,7 @@ if ($action === 'webhook_notif') {
 
         if (isset($input['episodes']) && count($input['episodes']) > 0) {
             $ep = $input['episodes'][0];
-            $seasonNum = $ep['seasonNumber'] ?? 0; 
+            $seasonNum = $ep['seasonNumber'] ?? 0;
             $saison = sprintf("%02d", $seasonNum);
             $episode = sprintf("%02d", $ep['episodeNumber'] ?? 0);
             $title .= " - S{$saison}E{$episode}";
@@ -3781,7 +3806,7 @@ if ($action === 'omnisearch') {
             }
             $base_url = $app['url'];
             if (!preg_match("~^(?:f|ht)tps?://~i", $base_url)) $base_url = "http://" . $base_url;
-            $url = rtrim($base_url, '/') . $endpoint . "&apiKey=" . $app['api_key'];
+                $url = rtrim($base_url, '/') . $endpoint . "&apiKey=" . $app['api_key'];
 
             $ch = curl_init($url);
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
@@ -3860,14 +3885,14 @@ if ($action === 'export_media_list') {
     require_auth();
     $cfg = load_config();
     $type = $_GET['type'] ?? 'movie';
-    
+
     $app = find_app_by_driver($cfg, $type === 'movie' ? 'radarr' : 'sonarr');
     if (!$app) { echo json_encode(['error' => t('err_app_not_configured')]); exit; }
-    
+
     $endpoint = $type === 'movie' ? '/api/v3/movie' : '/api/v3/series';
     $library = arr_get($app, $endpoint);
     if (isset($library['_error'])) { echo json_encode(['error' => $library['_error']]); exit; }
-    
+
     $list = [];
     foreach ($library as $item) {
         if (!empty($item['imdbId'])) {
@@ -4018,7 +4043,7 @@ if ($action === 'manual_import_scan') {
 
     // On lance le scan du dossier
     $res = arr_get($app, '/api/v3/manualimport?folder=' . urlencode($folder));
-    
+
     if (isset($res['_error'])) {
         echo json_encode(['error' => $res['_error']]);
     } else {
@@ -4048,14 +4073,14 @@ if ($action === 'manual_import_process') {
             'languages' => $f['languages'] ?? null,
             'releaseGroup' => $f['releaseGroup'] ?? null,
         ];
-        
+
         if ($type === 'movie') {
             if (isset($f['movie']['id'])) $formatted['movieId'] = $f['movie']['id'];
             elseif (isset($f['movieId'])) $formatted['movieId'] = $f['movieId'];
         } else {
             if (isset($f['series']['id'])) $formatted['seriesId'] = $f['series']['id'];
             elseif (isset($f['seriesId'])) $formatted['seriesId'] = $f['seriesId'];
-            
+
             if (isset($f['episodes'])) {
                 $formatted['episodeIds'] = array_map(fn($ep) => $ep['id'], $f['episodes']);
             } elseif (isset($f['episodeIds'])) {
@@ -4078,6 +4103,282 @@ if ($action === 'manual_import_process') {
     } else {
         echo json_encode(['success' => true]);
     }
+    exit;
+}
+
+// ── STATISTIQUES SERVEUR (Espace Disque) ──────────────────────────────────────
+if ($action === 'server_stats') {
+    require_auth();
+    $cfg = load_config();
+
+    $disks_map = [];
+
+    // 1. On interroge Radarr
+    $radarr = find_app_by_driver($cfg, 'radarr');
+    if ($radarr) {
+        $diskspace = arr_get($radarr, '/api/v3/diskspace');
+        if (is_array($diskspace) && !isset($diskspace['_error'])) {
+            foreach($diskspace as $d) {
+                // On utilise le chemin comme clé pour éviter les doublons
+                $disks_map[$d['path']] = [
+                    'path' => $d['path'],
+                    'free' => $d['freeSpace'],
+                    'total' => $d['totalSpace']
+                ];
+            }
+        }
+    }
+
+    // 2. On interroge Sonarr (pour récupérer les disques exclusifs aux séries, ex: /tv)
+    $sonarr = find_app_by_driver($cfg, 'sonarr');
+    if ($sonarr) {
+        $diskspace = arr_get($sonarr, '/api/v3/diskspace');
+        if (is_array($diskspace) && !isset($diskspace['_error'])) {
+            foreach($diskspace as $d) {
+                $disks_map[$d['path']] = [
+                    'path' => $d['path'],
+                    'free' => $d['freeSpace'],
+                    'total' => $d['totalSpace']
+                ];
+            }
+        }
+    }
+
+    if (empty($disks_map)) {
+        echo json_encode(['error' => 'Impossible de récupérer les disques. Vérifiez la connexion à Radarr/Sonarr.']);
+        exit;
+    }
+
+    // On convertit le tableau fusionné pour le renvoyer proprement
+    $disks = array_values($disks_map);
+
+    // On trie les disques par ordre alphabétique pour un bel affichage
+    usort($disks, function($a, $b) { return strcmp($a['path'], $b['path']); });
+
+    echo json_encode(['success' => true, 'disks' => $disks]);
+    exit;
+}
+
+// ── STATISTIQUES SERVEUR (Historique DL) ──────────────────────────────────────
+if ($action === 'server_dl_stats') {
+    require_auth();
+    $cfg = load_config();
+
+    $radarr = find_app_by_driver($cfg, 'radarr');
+    $sonarr = find_app_by_driver($cfg, 'sonarr');
+
+    // Initialise un tableau pour les 7 derniers jours (à 0 octet)
+    $seven_days_ago = strtotime('-6 days 00:00:00');
+    $days = [];
+    for ($i = 6; $i >= 0; $i--) {
+        $days[date('Y-m-d', strtotime("-$i days"))] = 0;
+    }
+
+    // 1. RADARR : On récupère tous les films et on filtre ceux ajoutés cette semaine
+    if ($radarr) {
+        $movies = arr_get($radarr, '/api/v3/movie');
+        if (is_array($movies) && !isset($movies['_error'])) {
+            foreach ($movies as $m) {
+                if (!empty($m['hasFile']) && isset($m['movieFile'])) {
+                    $added = strtotime($m['movieFile']['dateAdded'] ?? '');
+                    if ($added >= $seven_days_ago) {
+                        $day_key = date('Y-m-d', $added);
+                        if (isset($days[$day_key])) {
+                            $days[$day_key] += $m['movieFile']['size'] ?? 0;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // 2. SONARR : On regarde l'historique pour trouver quelles séries ont été téléchargées cette semaine
+    if ($sonarr) {
+        $history = arr_get($sonarr, '/api/v3/history?page=1&pageSize=200&eventType=3'); // eventType=3 (Dossier Importé)
+        $active_series = [];
+
+        if (is_array($history) && isset($history['records'])) {
+            foreach ($history['records'] as $record) {
+                $added = strtotime($record['date'] ?? '');
+                if ($added >= $seven_days_ago && isset($record['seriesId'])) {
+                    $active_series[$record['seriesId']] = true; // Stocke l'ID de la série
+                }
+            }
+        }
+
+        // On interroge uniquement les fichiers des séries actives de la semaine (Très rapide !)
+        foreach (array_keys($active_series) as $seriesId) {
+            $epFiles = arr_get($sonarr, "/api/v3/episodefile?seriesId=$seriesId");
+            if (is_array($epFiles) && !isset($epFiles['_error'])) {
+                foreach ($epFiles as $ef) {
+                    $added = strtotime($ef['dateAdded'] ?? '');
+                    if ($added >= $seven_days_ago) {
+                        $day_key = date('Y-m-d', $added);
+                        if (isset($days[$day_key])) {
+                            $days[$day_key] += $ef['size'] ?? 0;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    $total = array_sum($days);
+    $chart_data = [];
+    foreach ($days as $date => $size) {
+        $chart_data[] = [
+            'date' => $date,
+            'size' => $size
+        ];
+    }
+
+    echo json_encode(['success' => true, 'total' => $total, 'chart' => $chart_data]);
+    exit;
+}
+
+// ── STATISTIQUES SERVEUR (Historique Chronologique Unifié & Dédoublonné) ────
+if ($action === 'server_detailed_history') {
+    require_auth();
+    $cfg = load_config();
+
+    $seven_days_ago = strtotime('-7 days 00:00:00');
+    $raw_history_list = [];
+
+    // 1. RADARR (Films individuels)
+    $radarr = find_app_by_driver($cfg, 'radarr');
+    if ($radarr) {
+        $movies_map = [];
+        $all_movies = arr_get($radarr, '/api/v3/movie');
+        if (is_array($all_movies) && !isset($all_movies['_error'])) {
+            foreach ($all_movies as $m) {
+                if (isset($m['id'])) $movies_map[$m['id']] = $m;
+            }
+        }
+
+        $h = arr_get($radarr, '/api/v3/history?page=1&pageSize=100&eventType=3');
+        if (is_array($h) && isset($h['records'])) {
+            foreach ($h['records'] as $r) {
+                $added = strtotime($r['date'] ?? '');
+                if ($added >= $seven_days_ago) {
+                    $m_id = $r['movieId'] ?? 0;
+                    $movie = $movies_map[$m_id] ?? null;
+
+                    $m_title = $movie['title'] ?? $r['sourceTitle'] ?? t('unknown_movie');
+
+                    // 🌟 FIX : Construction manuelle sécurisée pour le Proxy
+                    $url = $radarr['url'] ?? '';
+                    $apikey = $radarr['api_key'] ?? '';
+                    if ($m_id > 0 && !empty($url) && !empty($apikey)) {
+                        $raw_poster = rtrim($url, '/') . '/api/v3/mediacover/' . $m_id . '/poster-250.jpg?apikey=' . $apikey;
+                        $poster = 'api.php?action=proxy_image&url=' . urlencode($raw_poster);
+                    } else {
+                        $poster = 'assets/img/default_poster.png';
+                    }
+
+                    $unique_key = 'movie_' . $m_id;
+
+                    if (!isset($raw_history_list[$unique_key]) || $added > $raw_history_list[$unique_key]['date']) {
+                        $raw_history_list[$unique_key] = [
+                            'type' => 'movie',
+                            'title' => $m_title,
+                            'date' => $added,
+                            'poster' => $poster,
+                            'episodes' => []
+                        ];
+                    }
+                }
+            }
+        }
+    }
+
+    // 2. SONARR (Séries groupées)
+    $sonarr = find_app_by_driver($cfg, 'sonarr');
+    if ($sonarr) {
+        $series_map = [];
+        $all_series = arr_get($sonarr, '/api/v3/series');
+        if (is_array($all_series) && !isset($all_series['_error'])) {
+            foreach ($all_series as $s) {
+                if (isset($s['id'])) $series_map[$s['id']] = $s;
+            }
+        }
+
+        $h = arr_get($sonarr, '/api/v3/history?page=1&pageSize=200&eventType=3&includeEpisode=true');
+
+        if (is_array($h) && isset($h['records'])) {
+            foreach ($h['records'] as $r) {
+                $added = strtotime($r['date'] ?? '');
+                if ($added >= $seven_days_ago) {
+                    $s_id = $r['seriesId'] ?? 0;
+                    if (!$s_id) continue;
+
+                    $serie = $series_map[$s_id] ?? null;
+                    $s_title = $serie['title'] ?? t('unknown_serie');
+
+                    $unique_key = 'serie_' . $s_id;
+
+                    if (!isset($raw_history_list[$unique_key])) {
+                        // 🌟 FIX : Construction manuelle sécurisée pour le Proxy
+                        $url = $sonarr['url'] ?? '';
+                        $apikey = $sonarr['api_key'] ?? '';
+                        if ($s_id > 0 && !empty($url) && !empty($apikey)) {
+                            $raw_poster = rtrim($url, '/') . '/api/v3/mediacover/' . $s_id . '/poster-250.jpg?apikey=' . $apikey;
+                            $poster = 'api.php?action=proxy_image&url=' . urlencode($raw_poster);
+                        } else {
+                            $poster = 'assets/img/default_poster.png';
+                        }
+
+                        $raw_history_list[$unique_key] = [
+                            'type' => 'serie',
+                            'title' => $s_title,
+                            'date' => $added,
+                            'poster' => $poster,
+                            'episodes' => []
+                        ];
+                    }
+
+                    if ($added > $raw_history_list[$unique_key]['date']) {
+                        $raw_history_list[$unique_key]['date'] = $added;
+                    }
+
+                    $s_season = sprintf("%02d", $r['episode']['seasonNumber'] ?? 0);
+                    $s_ep = sprintf("%02d", $r['episode']['episodeNumber'] ?? 0);
+                    $ep_title = $r['episode']['title'] ?? t('unknown_episode') . ' ' . ltrim($s_ep, '0');
+
+                    $episode_str = "S{$s_season}E{$s_ep} · $ep_title";
+
+                    $exists = false;
+                    foreach ($raw_history_list[$unique_key]['episodes'] as $existing_ep) {
+                        if ($existing_ep['title'] === $episode_str) {
+                            $exists = true;
+                            break;
+                        }
+                    }
+
+                    if (!$exists) {
+                        $raw_history_list[$unique_key]['episodes'][] = [
+                            'title' => $episode_str,
+                            'date' => $added
+                        ];
+                    }
+                }
+            }
+        }
+    }
+
+    $history_list = [];
+    foreach ($raw_history_list as $item) {
+        if ($item['type'] === 'serie') {
+            usort($item['episodes'], function($a, $b) { return $b['date'] - $a['date']; });
+        }
+        $history_list[] = $item;
+    }
+
+    usort($history_list, function($a, $b) {
+        return $b['date'] - $a['date'];
+    });
+
+    if (ob_get_length()) ob_clean();
+    echo json_encode(['success' => true, 'history' => $history_list]);
     exit;
 }
 

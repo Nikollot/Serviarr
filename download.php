@@ -77,12 +77,17 @@ if (file_exists($config_path)) {
             <button class="btn-sort btn-dl-sort-reverse" onclick="dlSortReverse=!dlSortReverse; renderTorrents();"
                     title="<?= t('tooltip_reverse') ?>">⇅</button>
         </div>
-        <div class="dl-actions">
+                <div class="dl-actions">
             <button class="btn-sort" id="btn-bulk-toggle" onclick="toggleBulkMode()" title="<?= t('bulk_select_toggle') ?>">☑️</button>
-            <button class="btn-sort" style="width: auto; padding: 0 14px; font-size: 13px; font-weight: 600; gap: 6px;" onclick="torrentActionGlobale('torrent-start')">▶ <?= t('dl_resume_all') ?></button>
-            <button class="btn-sort" style="width: auto; padding: 0 14px; font-size: 13px; font-weight: 600; gap: 6px;" onclick="torrentActionGlobale('torrent-stop')">⏸ <?= t('dl_pause_all') ?></button>
+            <button class="btn-sort dl-action-btn" style="width: auto; padding: 0 14px; font-size: 13px; font-weight: 600; gap: 6px;" onclick="torrentActionGlobale('torrent-start')" title="<?= t('dl_resume_all') ?>">
+                ▶ <span class="hide-mobile"><?= t('dl_resume_all') ?></span>
+            </button>
+            <button class="btn-sort dl-action-btn" style="width: auto; padding: 0 14px; font-size: 13px; font-weight: 600; gap: 6px;" onclick="torrentActionGlobale('torrent-stop')" title="<?= t('dl_pause_all') ?>">
+                ⏸ <span class="hide-mobile"><?= t('dl_pause_all') ?></span>
+            </button>
         </div>
-    </div>
+</div>
+
 
     <div id="downloads-list" class="downloads-list">
         <div class="downloads-loader">⏳ <?= t('dl_loading') ?></div>
@@ -94,7 +99,8 @@ if (file_exists($config_path)) {
 let dlInterval;
 function pageInit() {
     loadDownloads();
-    dlInterval = setInterval(loadDownloads, 3000);
+    // On passe à 5 secondes
+    dlInterval = setInterval(loadDownloads, 5000);
 }
 window.addEventListener('beforeunload', () => clearInterval(dlInterval));
 </script>

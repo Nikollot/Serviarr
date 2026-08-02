@@ -1,7 +1,7 @@
-const APP_VERSION = "1.5.1";
+const APP_VERSION = "1.6";
 const UPDATE_URL = "https://raw.githubusercontent.com/Nikollot/Serviarr/main/version.json";
 
-const DRIVER_ICONS = {docker:'🐳', sonarr:'📺',radarr:'🎬',prowlarr:'🔍',indexer:'🔍',transmission:'⬇',download:'⬇',jellyfin:'🎵',qbittorrent:'🌊',sabnzbd:'📥',lidarr:'🎶',readarr:'📚', iframe:'🌐', supervision:'📊'};
+const DRIVER_ICONS = {docker:'🐳', sonarr:'📺',radarr:'🎬',prowlarr:'🔍',indexer:'🔍',transmission:'⬇',download:'⬇',jellyfin:'🎵',qbittorrent:'🌊',sabnzbd:'📥',lidarr:'🎶',readarr:'📚', iframe:'🌐'};
 let appsCache = [], editingId = null;
 
 // ── SÉLECTION GROUPÉE (films / séries / téléchargements) ────────────────────
@@ -325,6 +325,7 @@ function showApp() {
 
         if (hash === '#hub_films') switchHomeTab('movies', null, false);
         else if (hash === '#hub_series') switchHomeTab('series', null, false);
+        else if (hash === '#hub_server') switchHomeTab('server', null, false);
 
         if (urlParams.has('movie')) openMovieDetail(urlParams.get('movie'));
         else if (urlParams.has('tmdb')) openTmdbMovieDetail(urlParams.get('tmdb'));
@@ -714,6 +715,7 @@ async function toggleSeasonMonitor(seriesId, seasonNumber, newState, element) {
 }
 
 // ── FILMS ─────────────────────────────────────────────────────────────────────
+// ── FILMS ─────────────────────────────────────────────────────────────────────
 let moviesSearchTimeout;
 function moviesSearchDebounce() { clearTimeout(moviesSearchTimeout); moviesSearchTimeout = setTimeout(() => { loadMovies(); }, 400); }
 function moviesReload() { loadMovies(); }
@@ -721,12 +723,14 @@ function moviesReload() { loadMovies(); }
 async function loadMovies() {
     const recentContainer = document.getElementById('dash-recent-movies');
     const upcomingContainer = document.getElementById('dash-upcoming-movies');
+    const physicalContainer = document.getElementById('dash-upcoming-physical-movies'); // 🌟 AJOUT
     const recoContainer = document.getElementById('dash-reco-movies');
     const popularContainer = document.getElementById('dash-popular-movies');
 
-    if (recentContainer || upcomingContainer || recoContainer || popularContainer) {
+    if (recentContainer || upcomingContainer || physicalContainer || recoContainer || popularContainer) {
         if (recentContainer) recentContainer.innerHTML = `<p style="color:var(--muted);">${t('status_loading')}</p>`;
         if (upcomingContainer) upcomingContainer.innerHTML = `<p style="color:var(--muted);">${t('status_loading')}</p>`;
+        if (physicalContainer) physicalContainer.innerHTML = `<p style="color:var(--muted);">${t('status_loading')}</p>`; // 🌟 AJOUT
         if (recoContainer) recoContainer.innerHTML = `<p style="color:var(--muted);">${t('status_loading')}</p>`;
         if (popularContainer) popularContainer.innerHTML = `<p style="color:var(--muted);">${t('status_loading')}</p>`;
 
@@ -739,6 +743,7 @@ async function loadMovies() {
                 const errHtml = `<p style="color:var(--accent3);">⚠️ ${errMsg}</p>`;
                 if (recentContainer) recentContainer.innerHTML = errHtml;
                 if (upcomingContainer) upcomingContainer.innerHTML = errHtml;
+                if (physicalContainer) physicalContainer.innerHTML = errHtml; // 🌟 AJOUT
                 if (recoContainer) recoContainer.innerHTML = errHtml;
                 if (popularContainer) popularContainer.innerHTML = errHtml;
                 return;
@@ -755,10 +760,33 @@ async function loadMovies() {
                     : `sessionStorage.setItem('serviarr_hub_tab', 'movies'); window.location.href='films.php?movie=${mv.id}'`;
                     const badge = mv.is_new ? `<div class="dash-badge" style="background:var(--accent); color:#000;">+ ${t('badge_discover')}</div>` : '';
 
+                    // 🌟 AJOUT : Calcul du temps restant avant la sortie
+                    let dateBadge = '';
+                    if (mv.release_date) {
+                        const relDate = new Date(mv.release_date);
+                        if (!isNaN(relDate.getTime())) {
+                            const today = new Date();
+                            today.setHours(0,0,0,0);
+                            relDate.setHours(0,0,0,0);
+
+                            const diffDays = Math.round((relDate - today) / (1000 * 60 * 60 * 24));
+
+                            if (diffDays === 0) {
+                                dateBadge = `<div style="position:absolute; top:6px; right:6px; background:var(--radarr); color:#000; font-size:10px; font-weight:900; padding:3px 6px; border-radius:6px; z-index:10; box-shadow:0 2px 4px rgba(0,0,0,0.5);">${t('date_today')}</div>`;
+                            } else if (diffDays > 0 && diffDays <= 30) {
+                                dateBadge = `<div style="position:absolute; top:6px; right:6px; background:rgba(0,0,0,0.75); color:#fff; font-size:10px; font-weight:bold; padding:3px 6px; border-radius:6px; z-index:10; border:1px solid rgba(255,255,255,0.2); backdrop-filter:blur(4px);">${t('date_in_days').replace('{n}', diffDays)}</div>`;
+                            } else {
+                                const dateStr = relDate.toLocaleDateString(currentLocale(), {day: '2-digit', month: '2-digit', year: '2-digit'});
+                                dateBadge = `<div style="position:absolute; top:6px; right:6px; background:rgba(0,0,0,0.75); color:#fff; font-size:10px; font-weight:bold; padding:3px 6px; border-radius:6px; z-index:10; border:1px solid rgba(255,255,255,0.2); backdrop-filter:blur(4px);">${dateStr}</div>`;
+                            }
+                        }
+                    }
+
                     html += `
                     <div class="dash-item" onclick="${clickAction}">
-                    <div class="dash-poster-wrap">
+                    <div class="dash-poster-wrap" style="position:relative;">
                     ${badge}
+                    ${dateBadge}
                     <img src="${mv.poster}" class="dash-poster" alt="${titleEsced}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
                     <div style="display:none; align-items:center; justify-content:center; width:100%; height:100%; background:var(--bg3); border-radius:10px; border:1px solid var(--border); font-size:24px;">🎬</div>
                     </div>
@@ -784,9 +812,11 @@ async function loadMovies() {
                 </div>`;
                 recoContainer.innerHTML = missingKeyMsg;
                 if (upcomingContainer) upcomingContainer.innerHTML = '';
+                if (physicalContainer) physicalContainer.innerHTML = ''; // 🌟 AJOUT
                 if (popularContainer) popularContainer.innerHTML = '';
             } else {
                 if (upcomingContainer && data.upcoming) upcomingContainer.innerHTML = renderHubRow(data.upcoming);
+                if (physicalContainer && data.upcoming_physical) physicalContainer.innerHTML = renderHubRow(data.upcoming_physical); // 🌟 AJOUT
                 if (recoContainer && data.reco) recoContainer.innerHTML = renderHubRow(data.reco);
                 if (popularContainer && data.popular) popularContainer.innerHTML = renderHubRow(data.popular);
             }
@@ -794,6 +824,7 @@ async function loadMovies() {
             const failMsg = `<p style="color:var(--accent3);">⚠️ ${t('err_conn_server')}</p>`;
             if (recentContainer) recentContainer.innerHTML = failMsg;
             if (upcomingContainer) upcomingContainer.innerHTML = failMsg;
+            if (physicalContainer) physicalContainer.innerHTML = failMsg; // 🌟 AJOUT
             if (recoContainer) recoContainer.innerHTML = failMsg;
             if (popularContainer) popularContainer.innerHTML = failMsg;
         }
@@ -971,10 +1002,35 @@ async function loadSeries() {
                     : `sessionStorage.setItem('serviarr_hub_tab', 'series'); window.location.href='series.php?serie=${sr.id}'`;
                     const badge = sr.is_new ? `<div class="dash-badge" style="background:var(--sonarr); color:#000;">+ ${t('badge_discover')}</div>` : '';
 
+                    // 🌟 AJOUT : Calcul du temps restant avant la diffusion
+                    let dateBadge = '';
+                    if (sr.release_date) {
+                        const relDate = new Date(sr.release_date);
+                        if (!isNaN(relDate.getTime())) {
+                            const today = new Date();
+                            today.setHours(0,0,0,0);
+                            relDate.setHours(0,0,0,0);
+
+                            const diffDays = Math.round((relDate - today) / (1000 * 60 * 60 * 24));
+
+                            if (diffDays === 0) {
+                                // Badge jaune Radarr remplacé par le badge bleu Sonarr
+                                dateBadge = `<div style="position:absolute; top:6px; right:6px; background:var(--sonarr); color:#000; font-size:10px; font-weight:900; padding:3px 6px; border-radius:6px; z-index:10; box-shadow:0 2px 4px rgba(0,0,0,0.5);">${t('date_today')}</div>`;
+                            } else if (diffDays > 0 && diffDays <= 30) {
+                                dateBadge = `<div style="position:absolute; top:6px; right:6px; background:rgba(0,0,0,0.75); color:#fff; font-size:10px; font-weight:bold; padding:3px 6px; border-radius:6px; z-index:10; border:1px solid rgba(255,255,255,0.2); backdrop-filter:blur(4px);">${t('date_in_days').replace('{n}', diffDays)}</div>`;
+                            } else {
+                                // Gère les dates > 30 jours ET les dates passées (< 0)
+                                const dateStr = relDate.toLocaleDateString(currentLocale(), {day: '2-digit', month: '2-digit', year: '2-digit'});
+                                dateBadge = `<div style="position:absolute; top:6px; right:6px; background:rgba(0,0,0,0.75); color:#fff; font-size:10px; font-weight:bold; padding:3px 6px; border-radius:6px; z-index:10; border:1px solid rgba(255,255,255,0.2); backdrop-filter:blur(4px);">${dateStr}</div>`;
+                            }
+                        }
+                    }
+
                     html += `
                     <div class="dash-item" onclick="${clickAction}">
-                    <div class="dash-poster-wrap">
+                    <div class="dash-poster-wrap" style="position:relative;">
                     ${badge}
+                    ${dateBadge}
                     <img src="${sr.poster}" class="dash-poster" alt="${titleEsced}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
                     <div style="display:none; align-items:center; justify-content:center; width:100%; height:100%; background:var(--bg3); border-radius:10px; border:1px solid var(--border); font-size:24px;">📺</div>
                     </div>
@@ -1370,6 +1426,8 @@ async function loadAppsList() {
     appsCache = r.apps || [];
     updateSidebar(appsCache);
     renderAppsListHtml();
+    // 🌟 Mise à jour de la visibilité du Dashboard
+    if (typeof updateHubVisibility === 'function') updateHubVisibility();
 }
 
 function renderAppsListHtml() {
@@ -1485,6 +1543,8 @@ async function toggleApp(id, btn) {
         if (appIndex !== -1) {
             appsCache[appIndex].enabled = r.enabled;
             if (typeof updateSidebar === 'function') updateSidebar(appsCache);
+            // 🌟 Mise à jour en temps réel de l'interface
+            if (typeof updateHubVisibility === 'function') updateHubVisibility();
         }
     }
 }
@@ -2718,6 +2778,7 @@ async function openSerieDetail(id) {
 
             clearInterval(window.serieProgressInterval);
             window.serieProgressInterval = setInterval(async () => {
+                if (document.hidden) return; // 🌟 Stoppe les requêtes en arrière-plan
                 const modal = document.getElementById('modal-serie');
                 if (!modal || modal.style.display === 'none') {
                     clearInterval(window.serieProgressInterval);
@@ -2754,7 +2815,7 @@ async function openSerieDetail(id) {
                         }
                     });
                 }
-            }, 2000);
+            }, 5000);
 }
 
 window.toggleEpisodeActions = function(epId, element) {
@@ -3053,10 +3114,16 @@ function switchHomeTab(tabName, button, updateUrl = true) {
         targetDiv.classList.add('active');
     }
 
+    // 🌟 Ajout de la condition pour l'onglet Serveur
     if (tabName === 'movies') {
         if (typeof loadMovies === 'function') loadMovies();
     } else if (tabName === 'series') {
         if (typeof loadSeries === 'function') loadSeries();
+    } else if (tabName === 'server') {
+        loadServerStats();
+        if (typeof loadServerDlStats === 'function') loadServerDlStats();
+        if (typeof loadServerTorrentHistory === 'function') loadServerTorrentHistory();
+        if (typeof loadServerDetailedHistory === 'function') loadServerDetailedHistory(); // 🌟 AJOUT ICI
     } else {
         if (typeof loadHome === 'function') loadHome();
     }
@@ -3065,6 +3132,7 @@ function switchHomeTab(tabName, button, updateUrl = true) {
         let hash = '';
         if (tabName === 'movies') hash = '#hub_films';
         else if (tabName === 'series') hash = '#hub_series';
+        else if (tabName === 'server') hash = '#hub_server';
         else hash = '#dashboard';
 
         history.pushState({ tab: tabName }, '', hash);
@@ -3982,6 +4050,9 @@ window.addEventListener('popstate', (event) => {
     } else if (hash === '#hub_series') {
         switchHomeTab('series', null, false);
         return;
+    } else if (hash === '#hub_server') { // 🌟 AJOUT ICI
+        switchHomeTab('server', null, false);
+        return;
     } else if (hash === '#dashboard' || hash === '') {
         if (document.getElementById('home-tab-home')) {
             switchHomeTab('home', null, false);
@@ -4160,6 +4231,8 @@ function renderTorrents() {
 
 let _dlLastErrorShown = null;
 async function loadDownloads() {
+    if (document.hidden) return; // 🌟 Stoppe les requêtes si l'app est en arrière-plan
+
     if (typeof CURRENT_PAGE === 'undefined' || CURRENT_PAGE !== 'downloads') return;
 
     const r = await api('get_downloads', {}, 'GET');
@@ -4241,7 +4314,8 @@ async function submitAddTorrent() {
     notify(t('torrent_sending'), 'ok');
 
     try {
-        const response = await fetch('api.php', { method: 'POST', body: fd });
+        // 🌟 AJOUT VITAL : credentials: 'same-origin' pour envoyer le cookie de session !
+        const response = await fetch('api.php', { method: 'POST', body: fd, credentials: 'same-origin' });
         const res = await response.json();
 
         if (res.ok) {
@@ -4612,6 +4686,7 @@ async function openTorrentDetail(id) {
     if (window.torrentDetailInterval) clearInterval(window.torrentDetailInterval);
 
     const fetchTorrentUpdates = async () => {
+        if (document.hidden) return; // 🌟 Stoppe les requêtes en arrière-plan
         const modalCheck = document.getElementById('modal-torrent-detail');
         if (!modalCheck || !modalCheck.classList.contains('open')) {
             clearInterval(window.torrentDetailInterval);
@@ -4689,7 +4764,7 @@ async function openTorrentDetail(id) {
     };
 
     // Exécute la boucle toutes les 2,5 secondes (2500 ms)
-    window.torrentDetailInterval = setInterval(fetchTorrentUpdates, 2500);
+    window.torrentDetailInterval = setInterval(fetchTorrentUpdates, 5000);
 }
 
 function closeTorrentDetail() {
@@ -4884,6 +4959,7 @@ function showDockerLogs(id, name) {
     if (window.dockerLogsInterval) clearInterval(window.dockerLogsInterval);
 
     const fetchLogs = () => {
+        if (document.hidden) return; // 🌟 Stoppe les requêtes en arrière-plan
         if (!document.getElementById('modal-docker-logs').classList.contains('open')) {
             clearInterval(window.dockerLogsInterval);
             return;
@@ -4910,7 +4986,7 @@ function showDockerLogs(id, name) {
     };
 
     fetchLogs();
-    window.dockerLogsInterval = setInterval(fetchLogs, 3000); // Actualisation toutes les 3s
+    window.dockerLogsInterval = setInterval(fetchLogs, 5000); // Actualisation toutes les 3s
 }
 
 function showDockerStats(id, name) {
@@ -4947,6 +5023,7 @@ function showDockerStats(id, name) {
     if (window.dockerStatsInterval) clearInterval(window.dockerStatsInterval);
 
     const fetchStats = () => {
+        if (document.hidden) return; // 🌟 Stoppe les requêtes en arrière-plan
         if (!document.getElementById('modal-docker-stats').classList.contains('open')) {
             clearInterval(window.dockerStatsInterval);
             return;
@@ -4993,7 +5070,7 @@ function showDockerStats(id, name) {
     };
 
     fetchStats();
-    window.dockerStatsInterval = setInterval(fetchStats, 2000); // Actualisation toutes les 2s
+    window.dockerStatsInterval = setInterval(fetchStats, 5000); // Actualisation toutes les 2s
 }
 
 // Validation de la connexion avec le code 2FA
@@ -5536,29 +5613,19 @@ async function sendToTransmission(url, btn) {
     btn.disabled = true;
     btn.textContent = '⏳...';
 
-    const fd = new FormData();
-    fd.append('action', 'add_torrent');
-    fd.append('magnet', url);
+    // 🌟 On utilise notre fonction api() qui gère automatiquement la sécurité et la session !
+    const res = await api('add_torrent', { magnet: url });
 
-    try {
-        const response = await fetch('api.php', { method: 'POST', body: fd });
-        const res = await response.json();
-
-        if (res.ok) {
-            btn.textContent = '✅';
-            btn.style.background = 'var(--accent2)';
-            btn.style.color = '#000';
-            btn.style.border = 'none';
-            notify(t('torrent_added'), 'ok');
-        } else {
-            btn.disabled = false;
-            btn.textContent = '⬇️ DL';
-            notify(res.error || t('torrent_add_error'), 'err');
-        }
-    } catch (e) {
+    if (res.ok) {
+        btn.textContent = '✅';
+        btn.style.background = 'var(--accent2)';
+        btn.style.color = '#000';
+        btn.style.border = 'none';
+        notify(t('torrent_added'), 'ok');
+    } else {
         btn.disabled = false;
         btn.textContent = '⬇️ DL';
-        notify(t('error_connection'), 'err');
+        notify(res.error || t('torrent_add_error'), 'err');
     }
 }
 
@@ -6150,8 +6217,13 @@ function initAlphabetScrubber() {
         }
     };
 
-    window.addEventListener('scroll', checkVisibility);
-    setInterval(checkVisibility, 300);
+    // 🌟 Écoute optimisée du défilement (l'option passive rend le défilement mobile plus fluide)
+    window.addEventListener('scroll', checkVisibility, { passive: true });
+    
+    // 🌟 On vérifie la visibilité uniquement quand tu touches l'écran (ex: ouverture/fermeture de fenêtre)
+    // Le processeur est désormais à 0% d'utilisation quand tu ne fais rien !
+    document.addEventListener('click', () => setTimeout(checkVisibility, 50));
+    document.addEventListener('touchend', () => setTimeout(checkVisibility, 50), { passive: true });
 
     let lastLetter = '';
     const handleScrub = (letter) => {
@@ -7458,5 +7530,581 @@ window.confirmLibraryImport = async function() {
     
     if (window._importListType === 'movie') loadMovies(); else loadSeries();
 };
+
+// ── GESTION DE LA VISIBILITÉ DYNAMIQUE DU DASHBOARD ───────────────────────────
+function updateHubVisibility() {
+    // Vérifie si Radarr et Sonarr sont présents ET activés dans le cache
+    const hasRadarr = appsCache.some(a => a.driver === 'radarr' && a.enabled);
+    const hasSonarr = appsCache.some(a => a.driver === 'sonarr' && a.enabled);
+
+    // 1. Masquer ou afficher les boutons (onglets) des Hubs
+    document.querySelectorAll('.hub-btn').forEach(btn => {
+        const onclick = btn.getAttribute('onclick') || '';
+        if (onclick.includes("'movies'")) {
+            btn.style.display = hasRadarr ? '' : 'none';
+        }
+        if (onclick.includes("'series'")) {
+            btn.style.display = hasSonarr ? '' : 'none';
+        }
+    });
+
+    // 2. Masquer ou afficher les blocs du Dashboard (Zuletzt, Demnächst, etc.)
+    const movieElements = ['dash-recent-movies', 'dash-upcoming-movies', 'dash-reco-movies', 'dash-popular-movies'];
+    movieElements.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.style.display = hasRadarr ? '' : 'none';
+            // Cacher également le titre (H3, H4...) situé juste avant la liste
+            if (el.previousElementSibling && el.previousElementSibling.tagName.match(/^H[1-6]$/)) {
+                el.previousElementSibling.style.display = hasRadarr ? '' : 'none';
+            }
+        }
+    });
+
+    const serieElements = ['dash-recent-series', 'dash-upcoming-series', 'dash-reco-series', 'dash-popular-series', 'dash-upcoming-new-series'];
+    serieElements.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.style.display = hasSonarr ? '' : 'none';
+            if (el.previousElementSibling && el.previousElementSibling.tagName.match(/^H[1-6]$/)) {
+                el.previousElementSibling.style.display = hasSonarr ? '' : 'none';
+            }
+        }
+    });
+
+    // 3. Sécurité : Rediriger vers l'accueil si on désactive une app alors qu'on est sur son Hub
+    const hash = window.location.hash;
+    if (!hasRadarr && hash === '#hub_films') switchHomeTab('home', null, false);
+    if (!hasSonarr && hash === '#hub_series') switchHomeTab('home', null, false);
+}
+
+// ── STATISTIQUES SERVEUR (ESPACE DISQUE) ──────────────────────────────────────
+async function loadServerStats() {
+    const container = document.getElementById('server-disk-container');
+    if (!container) return;
+
+    container.innerHTML = `<div style="text-align:center; color:var(--muted); padding:20px;">⏳ ${t('server_loading_disks')}</div>`;
+
+    const r = await api('server_stats', {}, 'GET');
+
+    if (r.error) {
+        container.innerHTML = `<div style="color:var(--accent3); text-align:center; padding:10px;">⚠️ ${esc(r.error)}</div>`;
+        return;
+    }
+
+    if (!r.disks || r.disks.length === 0) {
+        container.innerHTML = `<div style="text-align:center; color:var(--muted); padding:10px;">${t('server_no_disk')}</div>`;
+        return;
+    }
+
+    let html = '';
+
+    r.disks.forEach((disk) => {
+        const used = disk.total - disk.free;
+        const pct = disk.total > 0 ? (used / disk.total) * 100 : 0;
+
+        let barColor = 'var(--accent2)';
+
+        if (pct >= 90) {
+            barColor = 'var(--accent3)';
+        } else if (pct >= 80) {
+            barColor = '#ffa03c';
+        }
+
+        const freeStr = formatBytes(disk.free).replace('GB', 'Go').replace('MB', 'Mo').replace('TB', 'To');
+
+        html += `
+        <div style="margin-bottom: 22px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+        <div style="font-size: 13px; font-weight: bold; color: var(--text); font-family: var(--mono);">${esc(disk.path)}</div>
+        <div style="font-size: 11px; color: var(--muted); white-space: nowrap;">${freeStr} ${t('server_free')}</div>
+        </div>
+
+        <div style="height: 4px; background: var(--bg3); border-radius: 2px; width: 100%; overflow: hidden;">
+        <div style="height: 100%; width: ${pct}%; background: ${barColor}; border-radius: 2px; box-shadow: 0 0 8px ${barColor}66; transition: width 1s ease-in-out;"></div>
+        </div>
+        </div>`;
+    });
+
+    container.innerHTML = html;
+}
+
+// ── STATISTIQUES SERVEUR (HISTORIQUE TÉLÉCHARGEMENTS) ─────────────────────────
+async function loadServerDlStats() {
+    const chartContainer = document.getElementById('server-dl-chart');
+    const totalContainer = document.getElementById('server-dl-total');
+    if (!chartContainer || !totalContainer) return;
+
+    const r = await api('server_dl_stats', {}, 'GET');
+
+    if (r.error || !r.success) {
+        chartContainer.innerHTML = `<div style="color:var(--accent3); text-align:center; padding-top:40px;">⚠️ ${esc(r.error || t('notif_error'))}</div>`;
+        return;
+    }
+
+    const totalStr = formatBytes(r.total).replace('GB', 'Go').replace('MB', 'Mo').replace('TB', 'To');
+    totalContainer.innerHTML = `${totalStr} <span style="font-size:14px; font-weight:normal; color:var(--muted);">${t('server_dl_last_week')}</span>`;
+
+    let maxSize = Math.max(...r.chart.map(d => d.size));
+    if (maxSize === 0) maxSize = 1024 * 1024; // Evite la division par 0 si 0 téléchargement
+
+    const maxStr = formatBytes(maxSize).replace('GB', 'Go').replace('MB', 'Mo').replace('TB', 'To');
+    const halfStr = formatBytes(maxSize / 2).replace('GB', 'Go').replace('MB', 'Mo').replace('TB', 'To');
+
+    let barsHtml = '';
+    r.chart.forEach(d => {
+        const dateObj = new Date(d.date);
+        // Ex: "lun", "mar", "mer" selon la langue de ton appareil
+        const dayName = dateObj.toLocaleDateString(currentLocale(), { weekday: 'short' });
+        const sizeStr = formatBytes(d.size).replace('GB', 'Go').replace('MB', 'Mo').replace('TB', 'To');
+
+        const pct = (d.size / maxSize) * 100;
+        // On s'assure qu'une toute petite barre (2%) s'affiche s'il y a eu un téléchargement minime
+        const barHeight = d.size > 0 ? Math.max(pct, 2) : 0;
+
+        barsHtml += `
+        <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 8px; height: 100%;">
+        <div style="width: 100%; max-width: 20px; height: calc(100% - 20px); display: flex; align-items: flex-end; position: relative;">
+        <div style="width: 100%; height: ${barHeight}%; background: #8b5cf6; border-radius: 6px 6px 0 0; transition: height 1s ease-out;" title="${sizeStr}"></div>
+        </div>
+        <div style="font-size: 10px; color: var(--muted); text-transform: lowercase;">${dayName}</div>
+        </div>`;
+    });
+
+    chartContainer.innerHTML = `
+    <!-- Lignes de fond (Grille) -->
+    <div style="position: absolute; left: 50px; right: 0; top: 10px; bottom: 24px; display: flex; flex-direction: column; justify-content: space-between; pointer-events: none;">
+    <div style="border-top: 1px dashed rgba(255,255,255,0.05); width: 100%;"></div>
+    <div style="border-top: 1px dashed rgba(255,255,255,0.05); width: 100%;"></div>
+    <div style="border-top: 1px solid rgba(255,255,255,0.1); width: 100%;"></div>
+    </div>
+
+    <!-- Axe Y (Valeurs à gauche) -->
+    <div style="position: absolute; left: 0; top: 4px; bottom: 24px; display: flex; flex-direction: column; justify-content: space-between; pointer-events: none; font-size: 9px; color: var(--muted); font-family: var(--mono); width: 45px; text-align: right;">
+    <span>${maxStr}</span>
+    <span>${halfStr}</span>
+    <span>0 Go</span>
+    </div>
+
+    <!-- Barres graphiques -->
+    <div style="display: flex; align-items: flex-end; justify-content: space-between; padding-left: 55px; height: 100%;">
+    ${barsHtml}
+    </div>`;
+}
+
+// ── STATISTIQUES SERVEUR (CLIENT TORRENT - GRAPHIQUE) ─────────────────────────
+async function loadServerTorrentHistory() {
+    const chartContainer = document.getElementById('server-torrent-chart');
+    const totalContainer = document.getElementById('server-torrent-total');
+    if (!chartContainer || !totalContainer) return;
+
+    const r = await api('get_downloads', {}, 'GET');
+
+    if (r.error || (!r.torrents && !r.downloads)) {
+        chartContainer.innerHTML = `<div style="color:var(--accent3); text-align:center; padding-top:40px;">⚠️ Erreur de chargement.</div>`;
+        return;
+    }
+
+    const torrents = r.torrents || r.downloads || [];
+
+    // 1. Initialiser les 7 derniers jours à 0
+    const days = [];
+    for (let i = 6; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        d.setHours(0, 0, 0, 0); // On remet à minuit pour comparer facilement
+        days.push({ date: d, size: 0 });
+    }
+
+    // 2. Calculer le poids ajouté chaque jour (parmi les torrents actifs)
+    let totalSize = 0;
+    torrents.forEach(t => {
+        const size = t.size || t.totalSize || t.total_size || 0;
+        // Transmission et qBittorrent n'utilisent pas la même clé pour la date
+        const addedTs = t.addedDate || t.added_on || t.added_time || null;
+
+        if (addedTs) {
+            // Certains clients renvoient des secondes, JS a besoin de millisecondes
+            const addedMs = addedTs < 10000000000 ? addedTs * 1000 : addedTs;
+            const addedDate = new Date(addedMs);
+            addedDate.setHours(0, 0, 0, 0);
+
+            // Trouver le bon jour dans notre tableau des 7 jours
+            const bucket = days.find(d => d.date.getTime() === addedDate.getTime());
+            if (bucket) {
+                bucket.size += size;
+                totalSize += size;
+            }
+        }
+    });
+
+    const totalStr = formatBytes(totalSize).replace('GB', 'Go').replace('MB', 'Mo').replace('TB', 'To');
+    totalContainer.innerHTML = `${totalStr} <span style="font-size:14px; font-weight:normal; color:var(--muted);">${t('server_dl_last_week')}</span>`;
+
+    let maxSize = Math.max(...days.map(d => d.size));
+    if (maxSize === 0) maxSize = 1024 * 1024; // Évite la division par 0
+
+    const maxStr = formatBytes(maxSize).replace('GB', 'Go').replace('MB', 'Mo').replace('TB', 'To');
+    const halfStr = formatBytes(maxSize / 2).replace('GB', 'Go').replace('MB', 'Mo').replace('TB', 'To');
+
+    // 3. Dessiner le graphique
+    let barsHtml = '';
+    days.forEach(d => {
+        const dayName = d.date.toLocaleDateString(currentLocale(), { weekday: 'short' });
+        const sizeStr = formatBytes(d.size).replace('GB', 'Go').replace('MB', 'Mo').replace('TB', 'To');
+
+        const pct = (d.size / maxSize) * 100;
+        const barHeight = d.size > 0 ? Math.max(pct, 2) : 0;
+
+        // 🌟 Couleur bleue (#0ea5e9) pour différencier du graphique Radarr/Sonarr
+        barsHtml += `
+        <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 8px; height: 100%;">
+        <div style="width: 100%; max-width: 20px; height: calc(100% - 20px); display: flex; align-items: flex-end; position: relative;">
+        <div style="width: 100%; height: ${barHeight}%; background: #0ea5e9; border-radius: 6px 6px 0 0; transition: height 1s ease-out;" title="${sizeStr}"></div>
+        </div>
+        <div style="font-size: 10px; color: var(--muted); text-transform: lowercase;">${dayName}</div>
+        </div>`;
+    });
+
+    chartContainer.innerHTML = `
+    <div style="position: absolute; left: 50px; right: 0; top: 10px; bottom: 24px; display: flex; flex-direction: column; justify-content: space-between; pointer-events: none;">
+    <div style="border-top: 1px dashed rgba(255,255,255,0.05); width: 100%;"></div>
+    <div style="border-top: 1px dashed rgba(255,255,255,0.05); width: 100%;"></div>
+    <div style="border-top: 1px solid rgba(255,255,255,0.1); width: 100%;"></div>
+    </div>
+
+    <div style="position: absolute; left: 0; top: 4px; bottom: 24px; display: flex; flex-direction: column; justify-content: space-between; pointer-events: none; font-size: 9px; color: var(--muted); font-family: var(--mono); width: 45px; text-align: right;">
+    <span>${maxStr}</span>
+    <span>${halfStr}</span>
+    <span>0 Go</span>
+    </div>
+
+    <div style="display: flex; align-items: flex-end; justify-content: space-between; padding-left: 55px; height: 100%;">
+    ${barsHtml}
+    </div>`;
+}
+
+// ── STATISTIQUES SERVEUR (HISTORIQUE UNIFIÉ FAÇON CALENDRIER) ─────────────────
+async function loadServerDetailedHistory() {
+    const container = document.getElementById('server-detailed-history-container');
+    if (!container) return;
+
+    const r = await api('server_detailed_history', {}, 'GET');
+
+    if (r.error || !r.success) {
+        container.innerHTML = `<div style="color:var(--accent3); text-align:center; padding:10px;">⚠️ Erreur de chargement.</div>`;
+        return;
+    }
+
+    if (r.history.length === 0) {
+        container.innerHTML = `<div style="text-align:center; color:var(--muted); padding:10px;">${t('server_history_empty')}</div>`;
+        return;
+    }
+
+    // On met le conteneur en position relative pour accrocher le dégradé
+    container.style.padding = '0';
+    container.style.marginTop = '10px';
+    container.style.position = 'relative';
+
+    let itemsHtml = '';
+
+    r.history.forEach((item, index) => {
+        const d = new Date(item.date * 1000);
+        const dateStr = d.toLocaleDateString(currentLocale(), {day: 'numeric', month: 'short'}) + '.';
+        const timeStr = d.toLocaleTimeString(currentLocale(), {hour: '2-digit', minute:'2-digit'});
+        const timeLabel = `${dateStr} ${timeStr}`;
+
+        const isMovie = item.type === 'movie';
+        const barClass = isMovie ? 'movie' : 'episode';
+        const fallbackIcon = isMovie ? '🎬' : '📺';
+
+        let posterHtml = item.poster && item.poster !== 'assets/img/default_poster.png'
+        ? `<img class="day-event-poster" src="${item.poster}" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"><div class="day-event-poster-ph" style="display:none;">${fallbackIcon}</div>`
+        : `<div class="day-event-poster-ph">${fallbackIcon}</div>`;
+
+        if (isMovie) {
+            itemsHtml += `
+            <div class="day-event-item" style="flex-shrink: 0; margin-bottom: 0;">
+            <div class="day-event-bar ${barClass}"></div>
+            ${posterHtml}
+            <div class="day-event-info">
+            <div class="day-event-title">${esc(item.title)}</div>
+            <div class="day-event-sub" style="margin-top: 4px;">${timeLabel}</div>
+            </div>
+            </div>`;
+        } else {
+            const epCount = item.episodes.length;
+
+            if (epCount === 1) {
+                const epTitle = item.episodes[0].title;
+                itemsHtml += `
+                <div class="day-event-item" style="flex-shrink: 0; margin-bottom: 0;">
+                <div class="day-event-bar ${barClass}"></div>
+                ${posterHtml}
+                <div class="day-event-info">
+                <div class="day-event-title">${esc(item.title)}</div>
+                <div class="day-event-sub" style="margin-top: 2px;">${esc(epTitle)}</div>
+                <div style="margin-top: 4px;"><span style="font-size:11px; color:var(--muted); font-weight:600;">${timeLabel}</span></div>
+                </div>
+                </div>`;
+            } else {
+                const uniqueId = 'hist-series-' + index;
+                itemsHtml += `
+                <div class="day-event-item" style="flex-direction: column; padding: 0; overflow: hidden; flex-shrink: 0; margin-bottom: 0;">
+                <div style="display: flex; align-items: stretch; cursor: pointer;"
+                onclick="const el = document.getElementById('${uniqueId}'); const icon = document.getElementById('icon-${uniqueId}'); if(el.style.display==='none'){el.style.display='block'; icon.style.transform='rotate(180deg)';}else{el.style.display='none'; icon.style.transform='rotate(0deg)';}">
+                <div class="day-event-bar ${barClass}"></div>
+                <div style="display: flex; padding: 10px; align-items: center; gap: 12px; flex: 1;">
+                ${posterHtml}
+                <div class="day-event-info" style="flex: 1; padding: 0;">
+                <div class="day-event-title" style="font-size: 1.1em;">${esc(item.title)}</div>
+                <div class="day-event-sub" style="color: var(--sonarr); margin-top: 4px; font-weight: bold;">${t('server_history_episodes').replace('{n}', epCount)}</div>
+                </div>
+                <div id="icon-${uniqueId}" style="transition: transform 0.2s; color: var(--muted); padding: 0 10px; margin-left: auto;">▼</div>
+                </div>
+                </div>
+                <div id="${uniqueId}" style="display: none; max-height: 250px; overflow-y: auto; padding: 5px 15px 10px 15px; background: rgba(0,0,0,0.15); border-top: 1px solid var(--border);">
+                ${item.episodes.map(ep => {
+                    const epDate = new Date(ep.date * 1000);
+                    const epDateStr = epDate.toLocaleDateString(currentLocale(), {day:'numeric', month:'short'});
+                    const epTimeStr = epDate.toLocaleTimeString(currentLocale(), {hour:'2-digit', minute:'2-digit'});
+                    return `
+                    <div style="padding: 10px 0; border-bottom: 1px dashed var(--border); display:flex; align-items: center; justify-content: space-between; gap: 10px;">
+                    <span style="font-weight:bold; font-size:13px; color: var(--text);">${esc(ep.title)}</span>
+                    <span style="font-size:11px; color:var(--muted); white-space:nowrap;">${epDateStr}. ${epTimeStr}</span>
+                    </div>`;
+                }).join('')}
+                </div>
+                </div>`;
+            }
+        }
+    });
+
+    // 🌟 LOGIQUE D'AFFICHAGE "VOIR PLUS" / "VOIR MOINS"
+    let finalHtml = `
+    <div id="hist-wrapper" style="display:flex; flex-direction:column; gap:12px; max-height: 380px; overflow: hidden; transition: max-height 0.5s ease; padding-bottom: 20px;">
+    ${itemsHtml}
+
+    <!-- Le bouton Voir Moins (caché par défaut) -->
+    <div id="hist-less-btn-container" style="display:none; justify-content:center; padding: 10px 0;">
+    <button onclick="document.getElementById('hist-wrapper').style.maxHeight='380px'; document.getElementById('hist-fade').style.display='flex'; this.parentElement.style.display='none'; document.getElementById('server-detailed-history-container').scrollIntoView({behavior: 'smooth', block: 'nearest'});" style="background:none; border:none; color:var(--muted); font-weight:600; font-size:13px; cursor:pointer; display:flex; align-items:center; gap:8px; letter-spacing:0.5px; transition: color 0.2s;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted)'">
+    <span style="border:1px solid currentColor; border-radius:50%; width:16px; height:16px; display:flex; align-items:center; justify-content:center; font-size:10px; transform:rotate(-90deg);">➔</span> ${t('server_history_see_less')}
+    </div>
+    </div>`;
+
+    // S'il y a plus de 4 éléments, on active le fondu et le bouton "Voir tout" (style NZB360)
+    if (r.history.length > 4) {
+        finalHtml += `
+        <div id="hist-fade" style="position:absolute; bottom:0; left:0; right:0; height:120px; background:linear-gradient(to top, var(--bg2) 35%, transparent 100%); display:flex; align-items:flex-end; justify-content:center; padding-bottom:15px; z-index:10; border-radius: 0 0 16px 16px;">
+        <button onclick="document.getElementById('hist-wrapper').style.maxHeight='10000px'; document.getElementById('hist-fade').style.display='none'; setTimeout(() => document.getElementById('hist-less-btn-container').style.display='flex', 500);" style="background:none; border:none; color:#4ade80; font-weight:bold; font-size:13px; cursor:pointer; display:flex; align-items:center; gap:8px; letter-spacing:0.5px;">
+        ${t('server_history_see_all')} <span style="border:1px solid #4ade80; border-radius:50%; width:16px; height:16px; display:flex; align-items:center; justify-content:center; font-size:10px;">➔</span>
+        </button>
+        </div>`;
+    }
+
+    container.innerHTML = finalHtml;
+}
+
+// ── PERSONNALISATION DE L'AFFICHAGE & DE L'ORDRE (BLOCS) ──────────────────────
+
+// Configuration par défaut : ordre initial et visibilité complète
+const defaultBlocksConfig = {
+    movies: {
+        order: ['recent', 'upcoming', 'physical', 'popular', 'reco'],
+        visibility: { recent: true, upcoming: true, physical: true, popular: true, reco: true }
+    },
+    series: {
+        order: ['recent', 'upcoming', 'new', 'popular', 'reco'],
+        visibility: { recent: true, upcoming: true, new: true, popular: true, reco: true }
+    },
+    server: {
+        order: ['disk', 'dl', 'torrent', 'history'],
+        visibility: { disk: true, dl: true, torrent: true, history: true }
+    }
+};
+
+// Fonction dynamique pour récupérer les libellés traduits
+function getBlockLabels() {
+    return {
+        movies: { recent: '⬇️ ' + t('block_recent_added'), upcoming: '📅 ' + t('block_upcoming'), physical: '💿 ' + t('block_physical'), popular: '🍿 ' + t('block_popular'), reco: '💡 ' + t('block_reco_movies') },
+        series: { recent: '⬇️ ' + t('block_recent_added'), upcoming: '📺 ' + t('block_upcoming'), new: '🚀 ' + t('block_new_series'), popular: '🌟 ' + t('block_popular'), reco: '💡 ' + t('block_incomplete_series') },
+        server: { disk: '💽 ' + t('block_disk_space'), dl: '⏱️ ' + t('block_dl_history'), torrent: '⬇️ ' + t('block_recent_client'), history: '📅 ' + t('block_detailed_history') }
+    };
+}
+
+function getBlocksConfig() {
+    try {
+        const saved = JSON.parse(localStorage.getItem('serviarr_blocks_config'));
+        // Fusion de sécurité si l'ancienne structure en JSON simple est détectée
+        if (saved && !saved.movies?.order) return defaultBlocksConfig;
+        return saved || defaultBlocksConfig;
+    } catch(e) {
+        return defaultBlocksConfig;
+    }
+}
+
+// Application de la visibilité et du réordonnancement dans le DOM
+// Application de la visibilité et du réordonnancement dans le DOM
+function applyBlocksVisibility() {
+    const cfg = getBlocksConfig();
+
+    ['movies', 'series', 'server'].forEach(tab => {
+        const tabCfg = cfg[tab] || defaultBlocksConfig[tab];
+
+        // 🌟 CORRECTION ICI : On utilise l'ID exact pour l'onglet Serveur
+        const container = tab === 'server'
+        ? document.getElementById('server-blocks-container')
+        : document.querySelector(`#home-tab-${tab} .hub-section`);
+
+        if (!container) return;
+
+        tabCfg.order.forEach(blockKey => {
+            const elId = tab === 'server' ? `block-server-${blockKey}` : `block-${tab}-${blockKey}`;
+            const el = document.getElementById(elId);
+            if (el) {
+                // Réordonne physiquement l'élément dans le DOM
+                container.appendChild(el);
+                // Applique la visibilité activée/désactivée
+                el.style.display = tabCfg.visibility[blockKey] ? '' : 'none';
+            }
+        });
+    });
+}
+
+document.addEventListener('DOMContentLoaded', applyBlocksVisibility);
+
+// Modale de personnalisation avec gestion de l'ordre
+function openUiConfigModal(tab) {
+    let modal = document.getElementById('modal-ui-config');
+
+    if (!modal) {
+        const modalHtml = `
+        <div id="modal-ui-config" class="modal-bg" style="display:none; z-index:10005;">
+        <div class="modal-box" style="width: clamp(320px, 90vw, 440px); max-height: 90vh; display: flex; flex-direction: column; padding: 0; border-radius: 16px; background: var(--bg2); border: 1px solid var(--border);">
+        <h3 style="margin:0; border-bottom:1px solid var(--border); padding: 20px; background: var(--bg2); display:flex; justify-content:space-between; align-items:center;">
+        <span>⚙️ ${t('ui_config_modal_title')}</span>
+        <button onclick="closeUiConfigModal()" style="background:none; border:none; color:var(--text); cursor:pointer; font-size:16px;">✕</button>
+        </h3>
+        <div style="padding: 20px; overflow-y: auto; flex: 1;" id="ui-config-list">
+        <!-- Rempli dynamiquement -->
+        </div>
+        <div style="padding:20px; border-top:1px solid var(--border); display:flex; gap:10px;">
+        <button class="btn-primary" onclick="saveUiConfig()" style="flex:1;">💾 ${t('ui_config_save')}</button>
+        </div>
+        </div>
+        </div>`;
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        modal = document.getElementById('modal-ui-config');
+        modal.addEventListener('click', e => { if (e.target === modal) closeUiConfigModal(); });
+    }
+
+    const cfg = getBlocksConfig();
+    const tabCfg = cfg[tab] || defaultBlocksConfig[tab];
+    const listContainer = document.getElementById('ui-config-list');
+
+    renderConfigList(tab, tabCfg);
+
+    modal.style.display = 'flex';
+    setTimeout(() => modal.classList.add('open'), 10);
+}
+
+function renderConfigList(tab, tabCfg) {
+    const listContainer = document.getElementById('ui-config-list');
+    let html = `<div style="font-size:11px; color:var(--muted); text-transform:uppercase; font-weight:bold; margin-bottom:10px;">${t('ui_config_drag_hint')}</div>`;
+
+    const labels = getBlockLabels();
+    tabCfg.order.forEach((blockKey, index) => {
+        const isVisible = tabCfg.visibility[blockKey];
+        const label = labels[tab][blockKey] || blockKey;
+        const isFirst = index === 0;
+        const isLast = index === tabCfg.order.length - 1;
+
+        html += `
+        <div class="config-item-row" data-key="${blockKey}" style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; background:var(--bg3); padding:10px 15px; border-radius:8px; border:1px solid var(--border); gap:10px;">
+        <label style="display:flex; align-items:center; gap:10px; flex:1; cursor:pointer; user-select:none; min-width:0;">
+        <input type="checkbox" class="ui-block-checkbox" data-key="${blockKey}" ${isVisible ? 'checked' : ''} style="width:18px; height:18px; accent-color:var(--accent); flex-shrink:0;">
+        <span style="font-size:13px; font-weight:600; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${label}</span>
+        </label>
+        <div style="display:flex; gap:4px; flex-shrink:0;">
+        <button type="button" onclick="moveConfigItem('${tab}', ${index}, -1)" ${isFirst ? 'disabled style="opacity:0.2;cursor:not-allowed;"' : ''} style="background:var(--bg2); border:1px solid var(--border); color:var(--text); width:28px; height:28px; border-radius:6px; cursor:pointer;">⬆️</button>
+        <button type="button" onclick="moveConfigItem('${tab}', ${index}, 1)" ${isLast ? 'disabled style="opacity:0.2;cursor:not-allowed;"' : ''} style="background:var(--bg2); border:1px solid var(--border); color:var(--text); width:28px; height:28px; border-radius:6px; cursor:pointer;">⬇️</button>
+        </div>
+        </div>`;
+    });
+
+    listContainer.innerHTML = html;
+    listContainer.dataset.currentTab = tab;
+}
+
+// Déplacement dans la liste de configuration de la modale
+function moveConfigItem(tab, index, direction) {
+    // 1. On lit l'ordre et l'état ACTUELS directement depuis ce qui est affiché dans la modale
+    const currentOrder = [];
+    const currentVisibility = {};
+
+    document.querySelectorAll('.config-item-row').forEach(row => {
+        const key = row.dataset.key;
+        currentOrder.push(key);
+
+        const cb = row.querySelector('.ui-block-checkbox');
+        if (cb) {
+            currentVisibility[key] = cb.checked;
+        }
+    });
+
+    // 2. On calcule le nouvel emplacement
+    const newIndex = index + direction;
+    if (newIndex < 0 || newIndex >= currentOrder.length) return;
+
+    // 3. On inverse les éléments dans notre liste temporaire
+    const temp = currentOrder[index];
+    currentOrder[index] = currentOrder[newIndex];
+    currentOrder[newIndex] = temp;
+
+    // 4. On crée un objet de configuration temporaire pour l'affichage
+    const tempTabCfg = {
+        order: currentOrder,
+        visibility: currentVisibility
+    };
+
+    // 5. On réaffiche la liste dans la modale
+    renderConfigList(tab, tempTabCfg);
+}
+
+function closeUiConfigModal() {
+    const modal = document.getElementById('modal-ui-config');
+    if (modal) {
+        modal.classList.remove('open');
+        setTimeout(() => { modal.style.display = 'none'; }, 200);
+    }
+}
+
+// Sauvegarde finale des préférences
+function saveUiConfig() {
+    const listContainer = document.getElementById('ui-config-list');
+    const tab = listContainer.dataset.currentTab;
+    const cfg = getBlocksConfig();
+    const tabCfg = cfg[tab] || defaultBlocksConfig[tab];
+
+    // Récupère l'ordre actuel affiché dans la modale et l'état des cases
+    const newOrder = [];
+    document.querySelectorAll('.config-item-row').forEach(row => {
+        const key = row.dataset.key;
+        newOrder.push(key);
+        const cb = row.querySelector('.ui-block-checkbox');
+        if (cb) tabCfg.visibility[key] = cb.checked;
+    });
+
+        tabCfg.order = newOrder;
+        cfg[tab] = tabCfg;
+
+        localStorage.setItem('serviarr_blocks_config', JSON.stringify(cfg));
+
+        // Applique instantanément sur la page
+        applyBlocksVisibility();
+
+        closeUiConfigModal();
+        if (typeof notify === 'function') notify('Préférences enregistrées', 'ok');
+}
 
 boot();
