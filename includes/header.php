@@ -109,12 +109,14 @@ autocomplete="one-time-code" maxlength="6">
 <div id="app">
 <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
 <aside class="sidebar" id="sidebar">
-<div class="sidebar-header">
+<!-- On ajoute un onclick sur le container global pour qu'un clic n'importe où renvoie à l'accueil -->
+<div class="sidebar-header" style="cursor: pointer;" onclick="window.location.href='index.php'" title="<?= t('nav_dashboard') ?>">
 <div class="sidebar-logo">
 <img src="/assets/img/icons/gemini-svg.svg" alt="Logo">
 <span>Serviarr</span>
 </div>
 </div>
+
 
 <div class="omni-search-wrap">
 <div class="omni-search-inner">

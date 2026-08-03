@@ -1,5 +1,5 @@
 {
-  "version": "1.6",
-  "changelog": "### Updates\n - new tab on dashboard (Server)\n - disk informations\n - downloads from Radarr and Sonarr history for 1 week\n - downloads history from downloads client\n - remove notification on web and add hitory on server tab for 1 week\n - all tabs on dashboard could persolised (selection elements, you want to see and select the order you want to see them)\n - optimisation batterie for mobile",
+  "version": "1.6.1",
+  "changelog": "### Updates\n - fix bug import folders\n - fix search movie and tv show when you want to add it\n - add possibility to go to detail movie or tv show if you don't add it\n - logo and name on the top left are now clickable for return to Dashboard",
   "url": "https://github.com/Nikollot/Serviarr/releases/latest"
 }

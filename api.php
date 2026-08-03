@@ -1166,13 +1166,15 @@ if ($action === 'search_movie') {
             'tmdbId'   => $mv['tmdbId'] ?? null,
             'title'    => $mv['title'] ?? '?',
             'year'     => $mv['year'] ?? '',
-            'overview' => substr($mv['overview'] ?? '', 0, 200),
+            // 🌟 CORRECTION ICI : mb_substr au lieu de substr
+            'overview' => mb_substr($mv['overview'] ?? '', 0, 200, 'UTF-8'),
             'rating'   => round($mv['ratings']['tmdb']['value'] ?? 0, 1),
             'in_lib'   => isset($in_lib[$mv['tmdbId'] ?? null]),
             'poster'   => $poster
         ];
     }
-    echo json_encode(['results' => $results]);
+    // 🌟 SÉCURITÉ : JSON_INVALID_UTF8_SUBSTITUTE empêche le JSON de planter si un caractère est bizarre
+    echo json_encode(['results' => $results], JSON_INVALID_UTF8_SUBSTITUTE);
     exit;
 }
 
@@ -1206,14 +1208,16 @@ if ($action === 'search_serie') {
             'tmdbId'   => $s['tmdbId'] ?? null,
             'title'    => $s['title'] ?? '?',
             'year'     => $s['year'] ?? '',
-            'overview' => substr($s['overview'] ?? '', 0, 200),
+            // 🌟 CORRECTION ICI : mb_substr au lieu de substr
+            'overview' => mb_substr($s['overview'] ?? '', 0, 200, 'UTF-8'),
             'rating'   => round($s['ratings']['value'] ?? 0, 1),
             'seasons'  => count($s['seasons'] ?? []),
             'in_lib'   => isset($in_lib[$s['tvdbId'] ?? null]),
             'poster'   => $poster
         ];
     }
-    echo json_encode(['results' => $results]);
+    // 🌟 SÉCURITÉ ICI AUSSI
+    echo json_encode(['results' => $results], JSON_INVALID_UTF8_SUBSTITUTE);
     exit;
 }
 

@@ -1,7 +1,7 @@
-const APP_VERSION = "1.6";
+const APP_VERSION = "1.6.1";
 const UPDATE_URL = "https://raw.githubusercontent.com/Nikollot/Serviarr/main/version.json";
 
-const DRIVER_ICONS = {docker:'🐳', sonarr:'📺',radarr:'🎬',prowlarr:'🔍',indexer:'🔍',transmission:'⬇',download:'⬇',jellyfin:'🎵',qbittorrent:'🌊',sabnzbd:'📥',lidarr:'🎶',readarr:'📚', iframe:'🌐'};
+const DRIVER_ICONS = {docker:'🐳', sonarr:'📺',radarr:'🎬',prowlarr:'🔍',indexer:'🔍',transmission:'⬇',download:'⬇',jellyfin:'🎵',qbittorrent:'🌊',lidarr:'🎶',readarr:'📚', iframe:'🌐'};
 let appsCache = [], editingId = null;
 
 // ── SÉLECTION GROUPÉE (films / séries / téléchargements) ────────────────────
@@ -1869,6 +1869,14 @@ function closeMovieDetail(fromPopState = false) {
             if (typeof toggleListElements === 'function') toggleListElements(true);
             window.scrollTo(0, savedScrollPosition);
             content.style.transform = ''; content.style.transition = ''; content.style.opacity = '';
+            
+            // 🌟 AJOUT : Réouverture automatique de la modale de recherche si on vient de là
+            if (window._fromSearchModal) {
+                const searchModal = document.getElementById('modal-search-media');
+                if (searchModal) searchModal.style.display = 'flex';
+                window._fromSearchModal = false; // On efface le marque-page
+            }
+            
         }, 200);
     }
     if (fromPopState !== true) history.pushState(null, '', window.location.pathname + window.location.hash);
@@ -1889,6 +1897,14 @@ function closeSerieDetail(fromPopState = false) {
             if (typeof toggleListElements === 'function') toggleListElements(true);
             window.scrollTo(0, savedScrollPosition);
             content.style.transform = ''; content.style.transition = ''; content.style.opacity = '';
+            
+            // 🌟 AJOUT : Réouverture automatique de la modale de recherche si on vient de là
+            if (window._fromSearchModal) {
+                const searchModal = document.getElementById('modal-search-media');
+                if (searchModal) searchModal.style.display = 'flex';
+                window._fromSearchModal = false; // On efface le marque-page
+            }
+            
         }, 200);
     }
     if (fromPopState !== true) history.pushState(null, '', window.location.pathname + window.location.hash);
@@ -6130,39 +6146,46 @@ async function executeModalSearch(type, query) {
         if (item.in_lib) {
             actionHtml = `<div style="background:rgba(93,255,214,0.1); color:var(--accent2); text-align:center; padding:6px 12px; border-radius:6px; font-size:12px; font-weight:bold; border:1px solid rgba(93,255,214,0.3); display:inline-block;">✓ ${t('badge_library')}</div>`;
         } else {
-            actionHtml = `<button id="col-card-${index}" class="btn-pill primary-${isMovie ? 'radarr' : 'sonarr'}" style="padding:6px 16px; font-size:12px; font-weight:bold;" onclick="promptAddMedia('${type}', ${id}, '${safeTitle}', this, '${idType}')">＋ ${t('films_add')}</button>`;
+            // event.stopPropagation() pour éviter d'ouvrir la fiche quand on clique sur "Ajouter"
+            actionHtml = `<button id="col-card-${index}" class="btn-pill primary-${isMovie ? 'radarr' : 'sonarr'}" style="padding:6px 16px; font-size:12px; font-weight:bold;" onclick="event.stopPropagation(); promptAddMedia('${type}', ${id}, '${safeTitle}', this, '${idType}')">＋ ${t('films_add')}</button>`;
         }
 
         const networkText = item.network ? ` • ${esc(item.network)}` : '';
         const ratingText = item.rating ? ` • ⭐ ${item.rating}` : '';
         const overviewText = item.overview ? esc(item.overview) : t('detail_overview');
 
+        // Préparation du lien d'ouverture selon le type (et création du marque-page)
+        const rowClickAction = isMovie 
+            ? `document.getElementById('modal-search-media').style.display='none'; window._fromSearchModal=true; openTmdbMovieDetail(${item.tmdbId});` 
+            : `document.getElementById('modal-search-media').style.display='none'; window._fromSearchModal=true; openTmdbSerieDetail(${item.tmdbId});`;
+
+        // onclick et cursor:pointer placés sur la div parente
         html += `
-        <div style="display:flex; gap:15px; background:var(--bg3); padding:12px; border-radius:12px; border:1px solid var(--border); transition:background 0.2s;" onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background='var(--bg3)'">
+        <div onclick="${rowClickAction}" style="cursor:pointer; display:flex; gap:15px; background:var(--bg3); padding:12px; border-radius:12px; border:1px solid var(--border); transition:background 0.2s;" onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background='var(--bg3)'">
 
-        <div style="width: 90px; flex-shrink: 0; cursor:pointer;" onclick="${isMovie ? `openTmdbMovieDetail(${item.tmdbId})` : `openTmdbSerieDetail(${item.tmdbId})`}">
-        ${posterHtml}
-        </div>
+            <div style="width: 90px; flex-shrink: 0;">
+                ${posterHtml}
+            </div>
 
-        <div style="flex:1; min-width:0; display:flex; flex-direction:column;">
+            <div style="flex:1; min-width:0; display:flex; flex-direction:column;">
 
-        <div style="font-size:15px; font-weight:bold; color:var(--text); margin-bottom:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${esc(item.title)}">
-        ${esc(item.title)}
-        </div>
+                <div style="font-size:15px; font-weight:bold; color:var(--text); margin-bottom:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${esc(item.title)}">
+                    ${esc(item.title)}
+                </div>
 
-        <div style="font-size:11px; color:var(--muted); margin-bottom:8px; font-weight:600;">
-        <span style="color:var(--text);">${item.year || ''}</span>${networkText}${ratingText}
-        </div>
+                <div style="font-size:11px; color:var(--muted); margin-bottom:8px; font-weight:600;">
+                    <span style="color:var(--text);">${item.year || ''}</span>${networkText}${ratingText}
+                </div>
 
-        <div style="font-size:12px; color:#a0a5b5; line-height:1.4; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; margin-bottom:12px;">
-        ${overviewText}
-        </div>
+                <div style="font-size:12px; color:#a0a5b5; line-height:1.4; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; margin-bottom:12px;">
+                    ${overviewText}
+                </div>
 
-        <div style="margin-top:auto; display:flex; gap:10px; align-items:center;">
-        ${actionHtml}
-        </div>
+                <div style="margin-top:auto; display:flex; gap:10px; align-items:center;">
+                    ${actionHtml}
+                </div>
 
-        </div>
+            </div>
         </div>`;
     });
 
@@ -7378,16 +7401,17 @@ window.openLibraryImportModal = async function(type) {
                 </div>
                 
                 <div id="lib-import-step1" style="padding: 20px; background:var(--bg); flex-shrink:0; border-bottom:1px solid var(--border);">
-                    <label style="font-size:12px; font-weight:bold; color:var(--muted); text-transform:uppercase;">\${t('lib_import_root_folder')}</label>
-                    <div style="display:flex; gap:10px; margin-top:8px;">
-                        <select id="lib-import-folder-select" style="flex:1; padding:10px; background:var(--bg3); border:1px solid var(--border); color:var(--text); border-radius:6px;"></select>
-                        <button class="btn-primary" onclick="scanLibraryFolders()" style="flex-shrink:0;">🔍 \${t('lib_import_btn_scan')}</button>
+                    <label style="font-size:12px; font-weight:bold; color:var(--muted); text-transform:uppercase;">${t('lib_import_root_folder')}</label>
+                    <!-- 🌟 MODIFICATION ICI : flex-wrap et min-width ajoutés -->
+                    <div style="display:flex; flex-wrap:wrap; gap:10px; margin-top:8px;">
+                        <select id="lib-import-folder-select" style="flex:1; min-width:200px; padding:10px; background:var(--bg3); border:1px solid var(--border); color:var(--text); border-radius:6px; outline:none;"></select>
+                        <button class="btn-primary" onclick="scanLibraryFolders()" style="flex:1; width:auto; min-width:180px; margin:0;">🔍 ${t('lib_import_btn_scan')}</button>
                     </div>
                 </div>
                 
                 <div id="lib-import-results-container" style="flex:1; overflow-y:auto; padding:0; display:flex; flex-direction:column; background:var(--bg);">
                     <div id="lib-import-results" style="display:flex; flex-direction:column; gap:0;">
-                        <div style="text-align:center; color:var(--muted); padding:40px;">⏳ \${t('loading')}</div>
+                        <div style="text-align:center; color:var(--muted); padding:40px;">⏳ ${t('loading')}</div>
                     </div>
                 </div>
 
@@ -7395,7 +7419,8 @@ window.openLibraryImportModal = async function(type) {
                     <div style="display:flex; gap:10px; margin-bottom:12px;">
                         <select id="lib-import-profile" class="lib-select" style="flex:1;"></select>
                     </div>
-                    <button class="btn-primary" id="btn-process-lib-import" onclick="confirmLibraryImport()" style="width:100%;"></button>
+                    <!-- 🌟 AJOUT margin:0; par sécurité ici aussi -->
+                    <button class="btn-primary" id="btn-process-lib-import" onclick="confirmLibraryImport()" style="width:100%; margin:0;"></button>
                 </div>
             </div>
         </div>`;
@@ -7405,26 +7430,26 @@ window.openLibraryImportModal = async function(type) {
     }
     
     document.getElementById('lib-import-title').textContent = type === 'movie' ? t('lib_import_title_movie') : t('lib_import_title_serie');
-    document.getElementById('lib-import-results').innerHTML = `<div style="text-align:center; color:var(--muted); padding:40px;">⏳ \${t('lib_import_fetching')}</div>`;
+    document.getElementById('lib-import-results').innerHTML = `<div style="text-align:center; color:var(--muted); padding:40px;">⏳ ${t('lib_import_fetching')}</div>`;
     document.getElementById('lib-import-footer').style.display = 'none';
     modal.classList.add('open');
 
     const appDriver = type === 'movie' ? 'radarr' : 'sonarr';
-    const opts = await api(`get_options&app=\${appDriver}`, {}, 'GET');
+    const opts = await api(`get_options&app=${appDriver}`, {}, 'GET');
     
     if (opts.folders && opts.profiles) {
         window._libraryProfiles = opts.profiles;
         window._unmappedFoldersCache = opts.folders;
         
         const folderSelect = document.getElementById('lib-import-folder-select');
-        folderSelect.innerHTML = opts.folders.map((f, i) => `<option value="\${i}">\${esc(f.path)} (\${(f.unmappedFolders || []).length})</option>`).join('');
+        folderSelect.innerHTML = opts.folders.map((f, i) => `<option value="${i}">${esc(f.path)} (${(f.unmappedFolders || []).length})</option>`).join('');
         
         const profileSelect = document.getElementById('lib-import-profile');
-        profileSelect.innerHTML = opts.profiles.map(p => `<option value="\${p.id}">\${esc(p.name)}</option>`).join('');
+        profileSelect.innerHTML = opts.profiles.map(p => `<option value="${p.id}">${esc(p.name)}</option>`).join('');
         
-        document.getElementById('lib-import-results').innerHTML = `<div style="text-align:center; color:var(--muted); padding:40px;">\${t('lib_import_select_hint')}</div>`;
+        document.getElementById('lib-import-results').innerHTML = `<div style="text-align:center; color:var(--muted); padding:40px;">${t('lib_import_select_hint')}</div>`;
     } else {
-        document.getElementById('lib-import-results').innerHTML = `<div style="text-align:center; color:var(--accent3); padding:40px;">\${t('lib_import_err_connection')}</div>`;
+        document.getElementById('lib-import-results').innerHTML = `<div style="text-align:center; color:var(--accent3); padding:40px;">${t('lib_import_err_connection')}</div>`;
     }
 };
 
@@ -7433,12 +7458,12 @@ window.scanLibraryFolders = async function() {
     const folderObj = window._unmappedFoldersCache[folderIndex];
     
     if (!folderObj || !folderObj.unmappedFolders || folderObj.unmappedFolders.length === 0) {
-        document.getElementById('lib-import-results').innerHTML = `<div style="text-align:center; color:var(--muted); padding:40px;">\${t('lib_import_no_orphans')}</div>`;
+        document.getElementById('lib-import-results').innerHTML = `<div style="text-align:center; color:var(--muted); padding:40px;">${t('lib_import_no_orphans')}</div>`;
         document.getElementById('lib-import-footer').style.display = 'none';
         return;
     }
 
-    document.getElementById('lib-import-results').innerHTML = `<div style="text-align:center; color:var(--muted); padding:40px;">⏳ \${t('lib_import_searching').replace('{n}', folderObj.unmappedFolders.length)}</div>`;
+    document.getElementById('lib-import-results').innerHTML = `<div style="text-align:center; color:var(--muted); padding:40px;">⏳ ${t('lib_import_searching').replace('{n}', folderObj.unmappedFolders.length)}</div>`;
     
     window._unmappedPathsMap = {};
     folderObj.unmappedFolders.forEach(f => {
@@ -7450,7 +7475,7 @@ window.scanLibraryFolders = async function() {
     const r = await api('bulk_import_lookup', { type: window._importListType, terms: JSON.stringify(folderNames) });
     
     if (r.error) {
-        document.getElementById('lib-import-results').innerHTML = `<div style="text-align:center; color:var(--accent3); padding:40px;">⚠️ \${esc(r.error)}</div>`;
+        document.getElementById('lib-import-results').innerHTML = `<div style="text-align:center; color:var(--accent3); padding:40px;">⚠️ ${esc(r.error)}</div>`;
         return;
     }
 
@@ -7468,20 +7493,20 @@ window.renderLibraryImportResults = function() {
             return `<label style="display:flex; align-items:center; gap:12px; padding:12px 20px; border-bottom:1px solid var(--border); background:var(--bg3); opacity:0.6;">
                 <span style="font-size:20px;">❓</span>
                 <div style="flex:1; min-width:0;">
-                    <div style="font-size:13px; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">\${esc(r.term)}</div>
-                    <div style="font-size:11px; color:var(--accent3);">\${t('lib_import_not_found')}</div>
+                    <div style="font-size:13px; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${esc(r.term)}</div>
+                    <div style="font-size:11px; color:var(--accent3);">${t('lib_import_not_found')}</div>
                 </div>
             </label>`;
         }
         const disabled = r.in_lib;
         const checked = window._importSelected.has(i);
-        return `<label style="display:flex; align-items:center; gap:12px; padding:12px 20px; border-bottom:1px solid var(--border); background:var(--bg2); cursor:\${disabled ? 'default' : 'pointer'}; \${disabled ? 'opacity:0.5;' : ''} transition:background 0.2s;" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background='var(--bg2)'">
-            <input type="checkbox" \${checked ? 'checked' : ''} \${disabled ? 'disabled' : ''} onchange="toggleLibImportItem(\${i})" style="width:18px; height:18px; accent-color:var(--accent); flex-shrink:0;">
-            \${r.poster ? \`<img src="\${esc(r.poster)}" style="width:36px; height:54px; object-fit:cover; border-radius:4px; flex-shrink:0;">\` : '<div style="width:36px;height:54px;flex-shrink:0;background:var(--bg);border-radius:4px;border:1px solid var(--border);"></div>'}
+        return `<label style="display:flex; align-items:center; gap:12px; padding:12px 20px; border-bottom:1px solid var(--border); background:var(--bg2); cursor:${disabled ? 'default' : 'pointer'}; ${disabled ? 'opacity:0.5;' : ''} transition:background 0.2s;" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background='var(--bg2)'">
+            <input type="checkbox" ${checked ? 'checked' : ''} ${disabled ? 'disabled' : ''} onchange="toggleLibImportItem(${i})" style="width:18px; height:18px; accent-color:var(--accent); flex-shrink:0;">
+            ${r.poster ? `<img src="${esc(r.poster)}" style="width:36px; height:54px; object-fit:cover; border-radius:4px; flex-shrink:0;">` : '<div style="width:36px;height:54px;flex-shrink:0;background:var(--bg);border-radius:4px;border:1px solid var(--border);"></div>'}
             <div style="flex:1; min-width:0;">
-                <div style="font-size:14px; font-weight:bold; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">\${esc(r.title)} \${r.year ? \`(\${r.year})\` : ''}</div>
-                <div style="font-size:11px; color:var(--muted); font-family:var(--mono); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">\${t('lib_import_folder_lbl')} \${esc(r.term)}</div>
-                \${disabled ? \`<div style="font-size:11px; color:var(--accent); font-weight:bold; margin-top:2px;">\${t('lib_import_already_in_lib')}</div>\` : ''}
+                <div style="font-size:14px; font-weight:bold; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${esc(r.title)} ${r.year ? `(${r.year})` : ''}</div>
+                <div style="font-size:11px; color:var(--muted); font-family:var(--mono); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${t('lib_import_folder_lbl')} ${esc(r.term)}</div>
+                ${disabled ? `<div style="font-size:11px; color:var(--accent); font-weight:bold; margin-top:2px;">${t('lib_import_already_in_lib')}</div>` : ''}
             </div>
         </label>`;
     }).join('');
