@@ -1638,7 +1638,7 @@ if ($action === 'movie_detail') {
         ];
     }
 
-    $queue = arr_get($radarr, "/api/v3/queue?movieId=$id");
+    $queue = arr_get($radarr, "/api/v3/queue?movieId=$id&pageSize=100");
     $download_info = null;
     if (is_array($queue) && isset($queue['records']) && count($queue['records']) > 0) {
         $q = $queue['records'][0];
@@ -1747,7 +1747,7 @@ if ($action === 'serie_detail') {
     $poster_url = rtrim($sonarr['url'], '/') . '/api/v3/mediacover/' . $s['id'] . '/poster.jpg?apikey=' . $sonarr['api_key'];
     $fanart_url = rtrim($sonarr['url'], '/') . '/api/v3/mediacover/' . $s['id'] . '/fanart.jpg?apikey=' . $sonarr['api_key'];
 
-    $queue = arr_get($sonarr, "/api/v3/queue?seriesId=$id");
+    $queue = arr_get($sonarr, "/api/v3/queue?seriesId=$id&pageSize=100");
     $downloading_eps = [];
     if (is_array($queue) && isset($queue['records'])) {
         foreach ($queue['records'] as $q) {
@@ -2183,7 +2183,7 @@ if ($action === 'queue_status') {
     $app = find_app_by_driver($cfg, $type === 'movie' ? 'radarr' : 'sonarr');
     if (!$app) { echo json_encode(['error' => t('err_app_not_configured')]); exit; }
 
-    $endpoint = $type === 'movie' ? "/api/v3/queue?movieId=$id" : "/api/v3/queue?seriesId=$id";
+    $endpoint = $type === 'movie' ? "/api/v3/queue?movieId=$id&pageSize=100" : "/api/v3/queue?seriesId=$id&pageSize=100";
     $queue = arr_get($app, $endpoint);
 
     $results = [];
@@ -2839,6 +2839,8 @@ if ($action === 'get_history') {
 
             $history[] = [
                 'id'          => $r['id'],
+                'movieId'     => $r['movieId'] ?? ($r['movie']['id'] ?? null), // 🌟 AJOUT DE L'ID FILM
+                'seriesId'    => $r['seriesId'] ?? ($r['series']['id'] ?? null), // 🌟 AJOUT DE L'ID SÉRIE
                 'title'       => $title,
                 'sourceTitle' => $r['sourceTitle'] ?? $title,
                 'eventType'   => $r['eventType'] ?? 'unknown',
@@ -4284,6 +4286,7 @@ if ($action === 'server_detailed_history') {
                     if (!isset($raw_history_list[$unique_key]) || $added > $raw_history_list[$unique_key]['date']) {
                         $raw_history_list[$unique_key] = [
                             'type' => 'movie',
+                            'id' => $m_id, // 🌟 AJOUT DE L'ID
                             'title' => $m_title,
                             'date' => $added,
                             'poster' => $poster,
@@ -4333,6 +4336,7 @@ if ($action === 'server_detailed_history') {
 
                         $raw_history_list[$unique_key] = [
                             'type' => 'serie',
+                            'id' => $s_id, // 🌟 AJOUT DE L'ID
                             'title' => $s_title,
                             'date' => $added,
                             'poster' => $poster,

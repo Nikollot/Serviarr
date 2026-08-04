@@ -147,6 +147,10 @@ To receive push notifications upon downloads:
 2. In Radarr/Sonarr: Go to Settings → Connect → Add → Webhook, and paste the copied URL
 3. Check the desired events (On Import, On Upgrade...)
 
+## Docker Working on Serviarr
+
+You have to do ```sudo chmod 777 /var/run/docker.sock```
+
 ## Tech Stack
 
 - Backend: PHP 8+ (no framework, no database — JSON configuration)

@@ -1,5 +1,5 @@
 {
-  "version": "1.7",
-  "changelog": "### Updates\n - modify cache system for having datas onffline",
+  "version": "1.7.1",
+  "changelog": "### Updates\n - render clickable history on tab server\n - render clickable history tab on library\n - fix bug download view on season detail (only 10 episodes had download bar)",
   "url": "https://github.com/Nikollot/Serviarr/releases/latest"
 }

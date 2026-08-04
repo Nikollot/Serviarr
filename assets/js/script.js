@@ -1,4 +1,4 @@
-const APP_VERSION = "1.7";
+const APP_VERSION = "1.7.1";
 const UPDATE_URL = "https://raw.githubusercontent.com/Nikollot/Serviarr/main/version.json";
 
 const DRIVER_ICONS = {docker:'🐳', sonarr:'📺',radarr:'🎬',prowlarr:'🔍',indexer:'🔍',transmission:'⬇',download:'⬇',jellyfin:'🎵',qbittorrent:'🌊',lidarr:'🎶',readarr:'📚', iframe:'🌐'};
@@ -6709,7 +6709,12 @@ document.addEventListener('click', e => {
 
 let historyCache = [];
 
+// 🌟 Variable globale pour mémoriser l'onglet actif (à placer juste avant la fonction)
+let currentHistoryTab = 'movie'; 
+
 async function loadHistory(type) {
+    currentHistoryTab = type; // 🌟 On enregistre si on est sur 'movie' ou 'serie'
+    
     const container = document.getElementById('history-list');
     if (!container) return;
 
@@ -6762,11 +6767,28 @@ function renderHistory() {
         else if (item.eventType === 'downloadFolderImported') { color = 'var(--green)'; icon = '✅'; }
         else if (item.eventType === 'downloadFailed') { color = 'var(--red)'; icon = '❌'; }
 
+        // 🌟 Nouvelle détection à toute épreuve basée sur l'onglet actif
+        let clickAction = '';
+        
+        if (currentHistoryTab === 'movie') {
+            // On cherche l'ID du film là où Radarr a pu le cacher
+            const mId = item.movieId || (item.movie && item.movie.id);
+            if (mId) clickAction = `openMovieDetail(${mId})`;
+        } else {
+            // On cherche l'ID de la série là où Sonarr a pu le cacher
+            const sId = item.seriesId || (item.series && item.series.id);
+            if (sId) clickAction = `openSerieDetail(${sId})`;
+        }
+
+        const pointerStyle = clickAction ? 'cursor:pointer;' : '';
+        const hoverEffect = clickAction ? `onmouseover="this.style.opacity='0.7'" onmouseout="this.style.opacity='1'"` : '';
+        const onClickAttr = clickAction ? `onclick="${clickAction}"` : '';
+
+        // 🌟 Application des attributs cliquables
         html += `
-        <div class="card" style="padding:10px 14px; border-left:4px solid ${color}; margin-bottom:10px;">
+        <div class="card" ${onClickAttr} style="padding:10px 14px; border-left:4px solid ${color}; margin-bottom:10px; ${pointerStyle} transition:opacity 0.2s;" ${hoverEffect}>
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
         <div style="font-weight:600; font-size:13px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin-right:10px;">
-        <!-- Remplacement de "Inconnu" par la clé "word_unknown" qui existe déjà dans ton projet -->
         ${icon} ${esc(item.sourceTitle || item.title || t('word_unknown'))}
         </div>
         <div style="font-size:11px; color:var(--muted); white-space:nowrap;">${dateStr}</div>
@@ -7835,6 +7857,7 @@ async function loadServerDetailedHistory() {
     let itemsHtml = '';
 
     r.history.forEach((item, index) => {
+        const clickAction = item.type === 'movie' ? `openMovieDetail(${item.id})` : `openSerieDetail(${item.id})`;
         const d = new Date(item.date * 1000);
         const dateStr = d.toLocaleDateString(currentLocale(), {day: 'numeric', month: 'short'}) + '.';
         const timeStr = d.toLocaleTimeString(currentLocale(), {hour: '2-digit', minute:'2-digit'});
@@ -7848,9 +7871,10 @@ async function loadServerDetailedHistory() {
         ? `<img class="day-event-poster" src="${item.poster}" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"><div class="day-event-poster-ph" style="display:none;">${fallbackIcon}</div>`
         : `<div class="day-event-poster-ph">${fallbackIcon}</div>`;
 
+        // 1. FILMS : La ligne entière est cliquable
         if (isMovie) {
             itemsHtml += `
-            <div class="day-event-item" style="flex-shrink: 0; margin-bottom: 0;">
+            <div class="day-event-item" onclick="${clickAction}" style="flex-shrink: 0; margin-bottom: 0; cursor: pointer;">
             <div class="day-event-bar ${barClass}"></div>
             ${posterHtml}
             <div class="day-event-info">
@@ -7861,10 +7885,11 @@ async function loadServerDetailedHistory() {
         } else {
             const epCount = item.episodes.length;
 
+            // 2. SÉRIES (1 seul épisode) : La ligne entière est cliquable
             if (epCount === 1) {
                 const epTitle = item.episodes[0].title;
                 itemsHtml += `
-                <div class="day-event-item" style="flex-shrink: 0; margin-bottom: 0;">
+                <div class="day-event-item" onclick="${clickAction}" style="flex-shrink: 0; margin-bottom: 0; cursor: pointer;">
                 <div class="day-event-bar ${barClass}"></div>
                 ${posterHtml}
                 <div class="day-event-info">
@@ -7874,28 +7899,40 @@ async function loadServerDetailedHistory() {
                 </div>
                 </div>`;
             } else {
+                // 3. SÉRIES (Plusieurs épisodes) : La ligne déroule la liste
                 const uniqueId = 'hist-series-' + index;
                 itemsHtml += `
                 <div class="day-event-item" style="flex-direction: column; padding: 0; overflow: hidden; flex-shrink: 0; margin-bottom: 0;">
+                
+                <!-- Zone qui déroule la liste (La barre de couleur est réparée ici) -->
                 <div style="display: flex; align-items: stretch; cursor: pointer;"
-                onclick="const el = document.getElementById('${uniqueId}'); const icon = document.getElementById('icon-${uniqueId}'); if(el.style.display==='none'){el.style.display='block'; icon.style.transform='rotate(180deg)';}else{el.style.display='none'; icon.style.transform='rotate(0deg)';}">
-                <div class="day-event-bar ${barClass}"></div>
-                <div style="display: flex; padding: 10px; align-items: center; gap: 12px; flex: 1;">
-                ${posterHtml}
-                <div class="day-event-info" style="flex: 1; padding: 0;">
-                <div class="day-event-title" style="font-size: 1.1em;">${esc(item.title)}</div>
-                <div class="day-event-sub" style="color: var(--sonarr); margin-top: 4px; font-weight: bold;">${t('server_history_episodes').replace('{n}', epCount)}</div>
+                     onclick="const el = document.getElementById('${uniqueId}'); const icon = document.getElementById('icon-${uniqueId}'); if(el.style.display==='none'){el.style.display='block'; icon.style.transform='rotate(180deg)';}else{el.style.display='none'; icon.style.transform='rotate(0deg)';}">
+                    <div class="day-event-bar ${barClass}"></div>
+                    <div style="display: flex; padding: 10px; align-items: center; gap: 12px; flex: 1;">
+                        ${posterHtml}
+                        <div class="day-event-info" style="flex: 1; padding: 0;">
+                            <div class="day-event-title" style="font-size: 1.1em;">${esc(item.title)}</div>
+                            <div class="day-event-sub" style="color: var(--sonarr); margin-top: 4px; font-weight: bold;">${t('server_history_episodes').replace('{n}', epCount)}</div>
+                        </div>
+                        <div id="icon-${uniqueId}" style="transition: transform 0.2s; color: var(--muted); padding: 0 10px; margin-left: auto;">▼</div>
+                    </div>
                 </div>
-                <div id="icon-${uniqueId}" style="transition: transform 0.2s; color: var(--muted); padding: 0 10px; margin-left: auto;">▼</div>
-                </div>
-                </div>
+                
+                <!-- Liste des épisodes qui s'affiche au clic -->
                 <div id="${uniqueId}" style="display: none; max-height: 250px; overflow-y: auto; padding: 5px 15px 10px 15px; background: rgba(0,0,0,0.15); border-top: 1px solid var(--border);">
+                
+                <!-- Lien explicite en haut de la liste pour ouvrir la fiche -->
+                <div onclick="${clickAction}" style="padding: 10px 0 5px 0; text-align: center; cursor: pointer; color: var(--sonarr); font-weight: bold; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">
+                    Ouvrir la fiche de la série ➔
+                </div>
+
                 ${item.episodes.map(ep => {
                     const epDate = new Date(ep.date * 1000);
                     const epDateStr = epDate.toLocaleDateString(currentLocale(), {day:'numeric', month:'short'});
                     const epTimeStr = epDate.toLocaleTimeString(currentLocale(), {hour:'2-digit', minute:'2-digit'});
                     return `
-                    <div style="padding: 10px 0; border-bottom: 1px dashed var(--border); display:flex; align-items: center; justify-content: space-between; gap: 10px;">
+                    <!-- Chaque épisode est également cliquable -->
+                    <div onclick="${clickAction}" style="padding: 10px 0; border-bottom: 1px dashed var(--border); display:flex; align-items: center; justify-content: space-between; gap: 10px; cursor: pointer;" onmouseover="this.style.opacity='0.7'" onmouseout="this.style.opacity='1'">
                     <span style="font-weight:bold; font-size:13px; color: var(--text);">${esc(ep.title)}</span>
                     <span style="font-size:11px; color:var(--muted); white-space:nowrap;">${epDateStr}. ${epTimeStr}</span>
                     </div>`;
@@ -7918,10 +7955,10 @@ async function loadServerDetailedHistory() {
     </div>
     </div>`;
 
-    // S'il y a plus de 4 éléments, on active le fondu et le bouton "Voir tout" (style NZB360)
+    // S'il y a plus de 4 éléments, on active le fondu et le bouton "Voir tout"
     if (r.history.length > 4) {
         finalHtml += `
-        <div id="hist-fade" style="position:absolute; bottom:0; left:0; right:0; height:120px; background:linear-gradient(to top, var(--bg2) 35%, transparent 100%); display:flex; align-items:flex-end; justify-content:center; padding-bottom:15px; z-index:10; border-radius: 0 0 16px 16px;">
+        <div id="hist-fade" style="position:absolute; bottom:0; left:0; right:0; height:120px; background:linear-gradient(to top, var(--bg2) 35%, transparent 100%); display:flex; align-items:flex-end; justify-content:center; padding-bottom:15px; z-index:10;">
         <button onclick="document.getElementById('hist-wrapper').style.maxHeight='10000px'; document.getElementById('hist-fade').style.display='none'; setTimeout(() => document.getElementById('hist-less-btn-container').style.display='flex', 500);" style="background:none; border:none; color:#4ade80; font-weight:bold; font-size:13px; cursor:pointer; display:flex; align-items:center; gap:8px; letter-spacing:0.5px;">
         ${t('server_history_see_all')} <span style="border:1px solid #4ade80; border-radius:50%; width:16px; height:16px; display:flex; align-items:center; justify-content:center; font-size:10px;">➔</span>
         </button>
@@ -7969,7 +8006,6 @@ function getBlocksConfig() {
     }
 }
 
-// Application de la visibilité et du réordonnancement dans le DOM
 // Application de la visibilité et du réordonnancement dans le DOM
 function applyBlocksVisibility() {
     const cfg = getBlocksConfig();
