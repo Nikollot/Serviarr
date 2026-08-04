@@ -264,11 +264,11 @@ function clear_media_caches($type = 'all') {
     $cache_dir = __DIR__ . '/data/';
     if ($type === 'movie' || $type === 'all') {
         @unlink($cache_dir . '.cache_movies_dashboard.json');
-        generate_movies_cache();
+        @unlink($cache_dir . '.cache_library_movies.json'); // On supprime juste le fichier
     }
     if ($type === 'serie' || $type === 'all') {
         @unlink($cache_dir . '.cache_series_dashboard.json');
-        generate_series_cache();
+        @unlink($cache_dir . '.cache_library_series.json'); // Pareil ici
     }
 }
 

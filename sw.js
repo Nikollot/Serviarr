@@ -1,13 +1,123 @@
-// ── sw.js (Service Worker pour Serviarr) ──
+// ── sw.js (Service Worker pour Serviarr avec mode Hors-Ligne) ──
+
+const CACHE_NAME = 'serviarr-cache-v2'; // 🌟 v2 : Force le nettoyage des images cassées !
+
+const STATIC_ASSETS = [
+    '/',
+    '/index.php',
+    '/films.php',
+    '/series.php',
+    '/assets/css/style.css',
+    '/assets/js/i18n.js',
+    '/script.js', 
+    '/assets/img/icons/gemini-svg.svg',
+    '/manifest.json'
+];
 
 self.addEventListener('install', (event) => {
+    event.waitUntil(
+        caches.open(CACHE_NAME).then(cache => {
+            return Promise.all(
+                STATIC_ASSETS.map(url => 
+                    fetch(url).then(response => {
+                        if (response.ok) return cache.put(url, response);
+                    }).catch(err => console.log('Fichier non mis en cache:', url, err))
+                )
+            );
+        })
+    );
     self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
+    event.waitUntil(
+        caches.keys().then(keys => Promise.all(
+            keys.map(key => {
+                if (key !== CACHE_NAME) {
+                    return caches.delete(key);
+                }
+            })
+        ))
+    );
     event.waitUntil(self.clients.claim());
 });
 
+self.addEventListener('fetch', event => {
+    if (event.request.method !== 'GET') return;
+
+    const url = new URL(event.request.url);
+    const isApiRequest = url.pathname.includes('api.php');
+    const isImageRequest = event.request.destination === 'image' || url.pathname.match(/\.(png|jpg|jpeg|svg|gif|webp)$/i) || url.hostname.includes('tmdb.org');
+
+    // STRATÉGIE A : Requêtes API (Réseau en priorité, fallback sur le cache)
+    if (isApiRequest) {
+        event.respondWith(
+            fetch(event.request)
+            .then(response => {
+                // SÉCURITÉ : On ne cache que si c'est un succès (200 OK)
+                if (response && response.status === 200) {
+                    const responseClone = response.clone();
+                    caches.open(CACHE_NAME).then(cache => cache.put(event.request, responseClone));
+                }
+                return response;
+            })
+            .catch(async () => {
+                // Hors-ligne : on cherche dans le cache
+                const cachedResponse = await caches.match(event.request);
+                if (cachedResponse) return cachedResponse;
+
+                // Si rien en cache, on renvoie une erreur au format JSON pour ne pas faire planter JavaScript
+                return new Response(JSON.stringify({ error: "Mode hors-ligne : données indisponibles." }), {
+                    headers: { 'Content-Type': 'application/json' }
+                });
+            })
+        );
+        return;
+    }
+
+    if (isImageRequest) {
+        event.respondWith(
+            caches.match(event.request).then(cachedResponse => {
+                if (cachedResponse) return cachedResponse;
+                
+                return fetch(event.request).then(response => {
+                    // 🌟 SÉCURITÉ : On ne cache que les vraies images (200) ou opaques (0)
+                    // Si Sonarr plante (502, 404), on refuse de cacher l'erreur !
+                    if (response && (response.status === 200 || response.status === 0)) {
+                        const responseClone = response.clone();
+                        caches.open(CACHE_NAME).then(cache => cache.put(event.request, responseClone));
+                    }
+                    return response;
+                }).catch(() => new Response('')); 
+            })
+        );
+        return;
+    }
+
+    event.respondWith(
+        fetch(event.request)
+            .then(response => {
+                if (response && response.status === 200) {
+                    const responseClone = response.clone();
+                    caches.open(CACHE_NAME).then(cache => cache.put(event.request, responseClone));
+                }
+                return response;
+            })
+            .catch(async () => {
+                const cachedResponse = await caches.match(event.request, { ignoreSearch: true });
+                if (cachedResponse) return cachedResponse;
+
+                if (event.request.mode === 'navigate') {
+                    const indexResponse = await caches.match('/index.php') || await caches.match('/');
+                    if (indexResponse) return indexResponse;
+                }
+                
+                return new Response('', { status: 503, statusText: 'Service Unavailable' });
+            })
+    );
+});
+
+// ── GESTION DES NOTIFICATIONS PUSH ──
 self.addEventListener('push', (event) => {
     if (!event.data) return;
     const data = event.data.json();
@@ -15,28 +125,23 @@ self.addEventListener('push', (event) => {
     event.waitUntil(
         self.registration.getNotifications().then(existingNotifications => {
 
-            // 🌟 1. REGROUPEMENT DES FILMS (Dès le 2ème film)
             if (data.mediaType === 'movie') {
                 let movieNotifs = existingNotifications.filter(n => n.data && n.data.mediaType === 'movie');
                 const movieGroupTag = 'serviarr_movies_group';
                 const isAlreadyGrouped = movieNotifs.some(n => n.tag === movieGroupTag);
 
-                // Si on a déjà au moins 1 film affiché ou qu'on est déjà groupé
                 if (isAlreadyGrouped || movieNotifs.length >= 1) {
                     movieNotifs.forEach(n => n.close());
 
                     let allTitles = [];
-
-                    // On récupère les titres des notifications précédentes
                     movieNotifs.forEach(n => {
                         if (n.data.allTitles) {
-                            allTitles = allTitles.concat(n.data.allTitles); // Récupère depuis le groupe
+                            allTitles = allTitles.concat(n.data.allTitles);
                         } else if (n.data.movieTitle) {
-                            allTitles.push(n.data.movieTitle); // Récupère depuis le film seul
+                            allTitles.push(n.data.movieTitle);
                         }
                     });
 
-                    // On ajoute le nouveau film (s'il n'est pas déjà dans la liste)
                     if (data.movieTitle && !allTitles.includes(data.movieTitle)) {
                         allTitles.push(data.movieTitle);
                     }
@@ -44,7 +149,6 @@ self.addEventListener('push', (event) => {
                     const totalMovies = allTitles.length;
                     let bodyText = allTitles.join(', ');
 
-                    // Sécurité : si le texte est trop long, on coupe proprement
                     if (bodyText.length > 150) {
                         bodyText = allTitles.slice(0, 3).join(', ') + `... et ${totalMovies - 3} autres.`;
                     }
@@ -57,9 +161,9 @@ self.addEventListener('push', (event) => {
                         vibrate: [200, 100, 200],
                         renotify: true,
                         data: {
-                            url: '/', // Pour plusieurs films, on renvoie à l'accueil
+                            url: '/', 
                             mediaType: 'movie',
-                            allTitles: allTitles // On sauvegarde la liste pour le prochain !
+                            allTitles: allTitles 
                         }
                     };
 
@@ -67,7 +171,6 @@ self.addEventListener('push', (event) => {
                 }
             }
 
-            // 🌟 2. REGROUPEMENT DES SÉRIES PAR SAISON (Dès le 3ème épisode)
             if (data.mediaType === 'serie' && data.seasonNumber > 0) {
                 let seasonNotifs = existingNotifications.filter(n =>
                 n.data && n.data.mediaType === 'serie' &&
@@ -100,7 +203,6 @@ self.addEventListener('push', (event) => {
                 }
             }
 
-            // 🌟 3. LOGIQUE CLASSIQUE (1er film, 1er/2ème épisode d'une série)
             const uniqueTag = data.tag ?
             (data.tag + '-' + Math.random().toString(36).substr(2, 5)) :
             ('serviarr-' + Date.now() + '-' + Math.random().toString(36).substr(2, 5));
@@ -116,7 +218,7 @@ self.addEventListener('push', (event) => {
                 data: {
                     url: data.url || '/',
                     mediaType: data.mediaType,
-                    movieTitle: data.movieTitle, // On sauvegarde le titre pour un éventuel regroupement futur
+                    movieTitle: data.movieTitle, 
                     seriesId: data.seriesId,
                     seasonNumber: data.seasonNumber
                 }

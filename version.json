@@ -1,5 +1,5 @@
 {
-  "version": "1.6.1",
-  "changelog": "### Updates\n - fix bug import folders\n - fix search movie and tv show when you want to add it\n - add possibility to go to detail movie or tv show if you don't add it\n - logo and name on the top left are now clickable for return to Dashboard",
+  "version": "1.7",
+  "changelog": "### Updates\n - modify cache system for having datas onffline",
   "url": "https://github.com/Nikollot/Serviarr/releases/latest"
 }

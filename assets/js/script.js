@@ -1,4 +1,4 @@
-const APP_VERSION = "1.6.1";
+const APP_VERSION = "1.7";
 const UPDATE_URL = "https://raw.githubusercontent.com/Nikollot/Serviarr/main/version.json";
 
 const DRIVER_ICONS = {docker:'🐳', sonarr:'📺',radarr:'🎬',prowlarr:'🔍',indexer:'🔍',transmission:'⬇',download:'⬇',jellyfin:'🎵',qbittorrent:'🌊',lidarr:'🎶',readarr:'📚', iframe:'🌐'};
@@ -1788,7 +1788,8 @@ document.getElementById('modal-app').addEventListener('click', e => { if (e.targ
 async function api(action, data = {}, method = 'POST') {
     try {
         const isGet = method.toUpperCase() === 'GET';
-        let url = isGet ? `api.php?action=${action}&_t=${new Date().getTime()}` : `api.php?action=${action}`;
+        // 🌟 CORRECTION ICI : On supprime le &_t=... pour que le cache PWA puisse s'y retrouver
+        let url = `api.php?action=${action}`;
         const opts = { method, credentials: 'same-origin' };
         if (method === 'POST') {
             const fd = new FormData();
