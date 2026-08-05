@@ -711,5 +711,6 @@
     "unknown_movie": "不明な映画",
     "unknown_serie": "不明な番組",
     "unknown_episode": "エピソード",
-    "server_history_error": "読み込みエラー"
+    "server_history_error": "読み込みエラー",
+    "err_timeout": "接続がタイムアウトしたか、サーバーエラーが発生しました。"
 }

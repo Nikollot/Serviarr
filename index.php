@@ -4,7 +4,7 @@ $body_class = '';
 include 'includes/header.php';
 ?>
 
-<nav class="hub-nav" id="hub-nav" class="hub-nav-dashboard">
+<nav class="hub-nav" id="hub-nav">
 <button class="hub-btn active" onclick="switchHomeTab('calendar', this)">
 <span class="icon">📅</span> <span><?= t('hub_calendar') ?></span>
 </button>

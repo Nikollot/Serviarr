@@ -1,5 +1,5 @@
 {
-  "version": "1.7.1",
-  "changelog": "### Updates\n - render clickable history on tab server\n - render clickable history tab on library\n - fix bug download view on season detail (only 10 episodes had download bar)",
+  "version": "1.7.2",
+  "changelog": "### Updates\n - add test button on application parameter",
   "url": "https://github.com/Nikollot/Serviarr/releases/latest"
 }

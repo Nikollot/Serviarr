@@ -39,7 +39,7 @@ if (file_exists($config_path)) {
 </div>
 
 <!-- NAVIGATION DES ONGLETS -->
-<nav class="hub-nav dl-nav" id="series-nav">
+<nav class="hub-nav" id="series-nav">
     <button class="hub-btn active" onclick="switchContentTab('library', this)">
         <span class="icon">📺</span>
         <span><?= t('page_series') ?></span>

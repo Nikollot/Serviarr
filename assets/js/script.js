@@ -1,4 +1,4 @@
-const APP_VERSION = "1.7.1";
+const APP_VERSION = "1.7.2";
 const UPDATE_URL = "https://raw.githubusercontent.com/Nikollot/Serviarr/main/version.json";
 
 const DRIVER_ICONS = {docker:'🐳', sonarr:'📺',radarr:'🎬',prowlarr:'🔍',indexer:'🔍',transmission:'⬇',download:'⬇',jellyfin:'🎵',qbittorrent:'🌊',lidarr:'🎶',readarr:'📚', iframe:'🌐'};
@@ -714,7 +714,6 @@ async function toggleSeasonMonitor(seriesId, seasonNumber, newState, element) {
     }
 }
 
-// ── FILMS ─────────────────────────────────────────────────────────────────────
 // ── FILMS ─────────────────────────────────────────────────────────────────────
 let moviesSearchTimeout;
 function moviesSearchDebounce() { clearTimeout(moviesSearchTimeout); moviesSearchTimeout = setTimeout(() => { loadMovies(); }, 400); }
@@ -1677,18 +1676,28 @@ async function loadDriverFields() {
     <div class="form-row" style="margin-top:15px; border-top:1px solid var(--border); padding-top:15px;">
     <label style="font-size:12px; font-weight:bold; color:var(--muted); text-transform:uppercase;">${t('app_shortcut_label')}</label>
     <input type="text" id="modal-shortcut" name="shortcut" value="${esc(currentShortcut)}" placeholder="Ex: F" maxlength="1" style="width:100%; background:var(--bg3); border:1px solid var(--border); color:var(--text); border-radius:6px; padding:10px; font-size:14px; text-transform:uppercase; text-align:center; font-weight:bold;">
-    <div style="font-size:11px; color:var(--muted); margin-top:6px;">${t('app_shortcut_hint')}</div>
+	<div style="font-size:11px; color:var(--muted); margin-top:6px;">${t('app_shortcut_hint')}</div>
     </div>`;
 
     container.innerHTML = html;
 
-    // 🌟 SÉCURITÉ : Force le navigateur à appliquer la vraie valeur enregistrée dans l'application
-    if (app) {
-        container.querySelectorAll('select').forEach(sel => {
-            if (app[sel.name]) {
-                sel.value = app[sel.name];
-            }
-        });
+    // 🌟 PLACEMENT DU BOUTON TEST (AVEC TRADUCTION)
+    const actionsDiv = document.querySelector('#modal-app .modal-actions');
+    if (actionsDiv && !document.getElementById('btn-test-connection')) {
+        const testBtn = document.createElement('button');
+        testBtn.type = 'button';
+        testBtn.id = 'btn-test-connection';
+        testBtn.setAttribute('onclick', 'testConnection()');
+        
+        testBtn.style.cssText = 'margin-right: auto; background: var(--bg3); border: 1px solid var(--sonarr); color: var(--sonarr); padding: 8px 16px; border-radius: 8px; font-weight: bold; font-size: 13px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 8px;';
+        
+        testBtn.onmouseover = function() { this.style.background = 'var(--sonarr-bg)'; };
+        testBtn.onmouseout = function() { this.style.background = 'var(--bg3)'; };
+        
+        // Appel à la traduction
+        testBtn.innerHTML = '🔌 ' + t('btn_test_connection');
+        
+        actionsDiv.insertBefore(testBtn, actionsDiv.firstChild);
     }
 }
 
@@ -1788,21 +1797,31 @@ document.getElementById('modal-app').addEventListener('click', e => { if (e.targ
 async function api(action, data = {}, method = 'POST') {
     try {
         const isGet = method.toUpperCase() === 'GET';
-        // 🌟 CORRECTION ICI : On supprime le &_t=... pour que le cache PWA puisse s'y retrouver
         let url = `api.php?action=${action}`;
         const opts = { method, credentials: 'same-origin' };
+        let r;
+
         if (method === 'POST') {
             const fd = new FormData();
             fd.append('action', action);
             Object.entries(data).forEach(([k,v]) => fd.append(k, v));
             opts.body = fd;
-            const r = await fetch('api.php', opts);
+            r = await fetch('api.php', opts);
+        } else {
+            r = await fetch(url, opts);
+        }
+
+        // 🌟 SÉCURITÉ : On vérifie que la réponse est bien du JSON avant de la lire
+        const contentType = r.headers.get("content-type");
+        if (contentType && contentType.includes("application/json")) {
             return await r.json();
         } else {
-            const r = await fetch(url, opts);
-            return await r.json();
+            // Renvoie l'erreur en utilisant ton moteur de traduction
+            return { error: t('err_timeout') };
         }
-    } catch(e) { return { error: e.message }; }
+    } catch(e) {
+        return { error: e.message };
+    }
 }
 
 function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
@@ -8167,6 +8186,44 @@ function saveUiConfig() {
 
         closeUiConfigModal();
         if (typeof notify === 'function') notify('Préférences enregistrées', 'ok');
+}
+
+async function testConnection() {
+    const driver = document.getElementById('modal-driver').value;
+    if (!driver) { notify(t('modal_app_type_choose'), 'err'); return; }
+
+    const data = { driver: driver };
+    document.querySelectorAll('#modal-fields input, #modal-fields select').forEach(el => {
+        data[el.name] = el.value;
+    });
+
+    const btn = document.getElementById('btn-test-connection');
+    const origText = btn.innerHTML;
+    btn.disabled = true;
+    
+    // Appel à la traduction
+    btn.innerHTML = '⏳ ' + t('testing_connection');
+
+    const r = await api('test_connection', data);
+
+    btn.disabled = false;
+    btn.innerHTML = origText;
+
+    if (r.ok) {
+        // Appel à la traduction
+        notify('✅ ' + t('test_success'), 'ok');
+        btn.style.borderColor = 'var(--accent2)';
+        btn.style.color = 'var(--accent2)';
+    } else {
+        notify('❌ ' + (r.error || t('error_connection')), 'err');
+        btn.style.borderColor = 'var(--accent3)';
+        btn.style.color = 'var(--accent3)';
+    }
+    
+    setTimeout(() => {
+        btn.style.borderColor = 'var(--sonarr)';
+        btn.style.color = 'var(--sonarr)';
+    }, 3000);
 }
 
 boot();

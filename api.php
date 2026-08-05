@@ -766,6 +766,96 @@ if ($action === 'app_status') {
     exit;
 }
 
+// ── TEST DE CONNEXION (Avant sauvegarde) ──────────────────────────────────────
+if ($action === 'test_connection') {
+    require_auth();
+    $driver = preg_replace('/[^a-z0-9_]/', '', strtolower($_POST['driver'] ?? ''));
+    $file   = __DIR__ . "/drivers/{$driver}_driver.php";
+
+    if (!file_exists($file)) { 
+        echo json_encode(['error' => t('err_driver_unknown')]); 
+        exit; 
+    }
+    require_once $file;
+
+    // 1. On crée une fausse configuration "app" à la volée avec les données du formulaire
+    $app = ['driver' => $driver];
+    $fn_fields = $driver . '_fields';
+    if (function_exists($fn_fields)) {
+        foreach ($fn_fields() as $f) {
+            $app[$f['key']] = $_POST[$f['key']] ?? '';
+        }
+    }
+
+    // 🌟 CAS SPÉCIFIQUE : DOCKER (Connexion directe via Socket Unix)
+    if ($driver === 'docker') {
+        $socketPath = !empty($app['url']) ? $app['url'] : '/var/run/docker.sock';
+        $ch = curl_init("http://localhost/info");
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true, 
+            CURLOPT_UNIX_SOCKET_PATH => $socketPath, 
+            CURLOPT_TIMEOUT => 3
+        ]);
+        curl_exec($ch);
+        $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+        
+        if ($code === 200) {
+            echo json_encode(['ok' => true]);
+        } else {
+            echo json_encode(['error' => 'Socket inaccessible. Vérifiez les permissions ou le chemin.']);
+        }
+        exit;
+    }
+
+    // 🌟 CAS SPÉCIFIQUE : IFRAME / SUPERVISION (Simple Ping HTTP)
+    if ($driver === 'iframe' || $driver === 'supervision') {
+        $url = $app['url'] ?? '';
+        if (empty($url) || !filter_var($url, FILTER_VALIDATE_URL)) {
+            echo json_encode(['error' => 'URL invalide ou manquante.']);
+            exit;
+        }
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_NOBODY => true, // On récupère juste l'entête sans télécharger la page
+            CURLOPT_TIMEOUT => 5,
+            CURLOPT_SSL_VERIFYPEER => false
+        ]);
+        curl_exec($ch);
+        $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        // On accepte les redirections ou les erreurs 401/403 car ça prouve que le serveur existe et répond
+        if ($code > 0 && $code < 500) {
+            echo json_encode(['ok' => true]);
+        } else {
+            echo json_encode(['error' => 'Le site ne répond pas (Code HTTP: ' . $code . ').']);
+        }
+        exit;
+    }
+
+    // 🌟 CAS GÉNÉRAL (Radarr, Sonarr, Transmission, Prowlarr...)
+    $fn_status = $driver . '_status';
+    if (!function_exists($fn_status)) {
+        echo json_encode(['error' => 'Ce pilote ne supporte pas le test de connexion.']);
+        exit;
+    }
+
+    // 2. On exécute la fonction de statut du pilote avec cette configuration temporaire
+    $status = $fn_status($app);
+
+    // 3. On renvoie le résultat
+    if (isset($status['ok']) && $status['ok'] === true) {
+        echo json_encode(['ok' => true]);
+    } elseif (isset($status['error'])) {
+        echo json_encode(['error' => $status['error']]);
+    } else {
+        echo json_encode(['error' => 'Échec de la connexion. Vérifiez l\'URL et la clé API.']);
+    }
+    exit;
+}
+
 if ($action === 'change_password') {
     $cfg     = load_config();
     $current = $_POST['current'] ?? '';

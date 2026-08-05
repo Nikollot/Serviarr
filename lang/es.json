@@ -711,5 +711,6 @@
     "unknown_movie": "Película desconocida",
     "unknown_serie": "Serie desconocida",
     "unknown_episode": "Episodio",
-    "server_history_error": "Error de carga"
+    "server_history_error": "Error de carga",
+    "err_timeout": "Tiempo de espera agotado o error del servidor."
 }

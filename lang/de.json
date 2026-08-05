@@ -711,5 +711,6 @@
     "unknown_movie": "Unbekannter Film",
     "unknown_serie": "Unbekannte Serie",
     "unknown_episode": "Episode",
-    "server_history_error": "Ladefehler"
+    "server_history_error": "Ladefehler",
+    "err_timeout": "Zeitüberschreitung der Verbindung oder Serverfehler."
 }

@@ -32,7 +32,7 @@ if (file_exists($config_path)) {
     </a>
 </div>
 
-<nav class="hub-nav dl-nav" id="dl-nav">
+<nav class="hub-nav" id="dl-nav">
     <button class="hub-btn active" onclick="switchDlTab('all', this)">
         <span class="icon">📋</span>
         <span><?= t('dl_all') ?> <span class="badge" id="dl-count">—</span></span>

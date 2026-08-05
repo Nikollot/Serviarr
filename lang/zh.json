@@ -711,5 +711,6 @@
     "unknown_movie": "未知电影",
     "unknown_serie": "未知剧集",
     "unknown_episode": "剧集",
-    "server_history_error": "加载错误"
+    "server_history_error": "加载错误",
+    "err_timeout": "连接超时或服务器错误。"
 }
