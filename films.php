@@ -166,6 +166,12 @@ if (file_exists($config_path)) {
 <?php include 'includes/footer.php'; ?>
 <script>
 function switchContentTab(tabId, btn) {
+    // 🌟 AJOUT : Ferme la modale du film si elle est ouverte
+    const modalMovie = document.getElementById('modal-movie');
+    if (modalMovie && modalMovie.classList.contains('open')) {
+        closeMovieDetail(true);
+    }
+
     document.querySelectorAll('.page-tab-content').forEach(el => el.classList.remove('active'));
     document.querySelectorAll('#movies-nav .hub-btn').forEach(el => el.classList.remove('active'));
 
@@ -175,9 +181,10 @@ function switchContentTab(tabId, btn) {
     if (tabId === 'history') loadHistory('movie');
     if (tabId === 'app-settings') loadAppSystemStatus('movie');
 
-    // 🌟 Enregistre l'onglet actuel dans l'URL (sans recharger la page)
+    // Enregistre l'onglet actuel dans l'URL (sans recharger la page)
     history.replaceState(null, '', '#' + tabId);
 }
+
 
 function pageInit() {
     // 1. On charge toujours la librairie en arrière-plan

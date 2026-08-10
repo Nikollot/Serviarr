@@ -712,5 +712,8 @@
     "unknown_serie": "未知剧集",
     "unknown_episode": "剧集",
     "server_history_error": "加载错误",
-    "err_timeout": "连接超时或服务器错误。"
+    "err_timeout": "连接超时或服务器错误。",
+	"btn_test_connection": "测试",
+	"testing_connection": "测试中...",
+	"test_success": "连接成功！"
 }

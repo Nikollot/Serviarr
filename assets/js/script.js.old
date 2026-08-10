@@ -319,6 +319,12 @@ function showApp() {
 
     if (typeof pageInit === 'function') pageInit();
 
+    // 🌟 AJOUT : Vérifier les nouveautés même lors d'un lancement complet de l'app
+    if (typeof checkNewDownloadsOnFocus === 'function') {
+        // On attend 1 seconde pour laisser la page charger tranquillement
+        setTimeout(() => checkNewDownloadsOnFocus(), 1000);
+    }
+
     setTimeout(() => {
         const hash = window.location.hash;
         const urlParams = new URLSearchParams(window.location.search);
@@ -1796,9 +1802,32 @@ document.getElementById('modal-app').addEventListener('click', e => { if (e.targ
 // ── HELPERS ───────────────────────────────────────────────────────────────────
 async function api(action, data = {}, method = 'POST') {
     try {
+        // 1. On cherche si une URL de serveur a été configurée manuellement (pour l'app mobile)
+        let serverUrl = localStorage.getItem('serviarr_server_url');
+
+        // 2. Si aucune URL n'est définie (ex: 1er lancement)
+        if (!serverUrl) {
+            // On vérifie si on est dans l'app Capacitor (Mobile natif)
+            const isNative = window.Capacitor && window.Capacitor.isNativePlatform();
+            
+            if (isNative) {
+                // Sur mobile, on doit demander l'URL à l'utilisateur
+                if (typeof showServerSetup === 'function') showServerSetup(); 
+                return { error: "Veuillez configurer l'URL de votre serveur." };
+            } else {
+                // Sur le Web, on déduit l'URL automatiquement
+                serverUrl = window.location.origin;
+            }
+        }
+
+        // On s'assure qu'il n'y a pas de slash à la fin de l'URL pour éviter les doublons
+        serverUrl = serverUrl.replace(/\/$/, '');
+
         const isGet = method.toUpperCase() === 'GET';
-        let url = `api.php?action=${action}`;
-        const opts = { method, credentials: 'same-origin' };
+        let url = `${serverUrl}/api.php?action=${action}`;
+        
+        // ⚠️ TRÈS IMPORTANT : 'include' permet de garder la session (cookies) active même sur l'app mobile
+        const opts = { method, credentials: 'include' }; 
         let r;
 
         if (method === 'POST') {
@@ -1806,7 +1835,8 @@ async function api(action, data = {}, method = 'POST') {
             fd.append('action', action);
             Object.entries(data).forEach(([k,v]) => fd.append(k, v));
             opts.body = fd;
-            r = await fetch('api.php', opts);
+            // On met à jour l'URL de fetch ici aussi
+            r = await fetch(`${serverUrl}/api.php`, opts);
         } else {
             r = await fetch(url, opts);
         }
@@ -2884,7 +2914,10 @@ function toggleSeason(header) {
     }
 
     const epsContent = epDiv.innerHTML;
+
+    // 🌟 CORRECTION ICI : On englobe tout dans UNE SEULE <div> principale pour éviter le bug CSS
     const backBtn = `
+    <div style="padding: 20px; background: var(--bg2); width: 100%; box-sizing: border-box; border-radius: 12px;">
     <div style="display:flex; align-items:center; gap:12px; margin-bottom:20px;">
     <button onclick="closeSeasonView()" style="background:var(--bg3); border:1px solid var(--border); color:var(--text); padding:8px 16px; border-radius:8px; cursor:pointer; font-size:14px; display:flex; align-items:center; gap:6px;">
     ‹ ${t('detail_back')}
@@ -2893,6 +2926,7 @@ function toggleSeason(header) {
     </div>
     <div style="display:flex; flex-direction:column; gap:0; background:var(--bg3); border:1px solid var(--border); border-radius:12px; overflow:hidden;">
     ${epsContent}
+    </div>
     </div>
     `;
 
@@ -8225,5 +8259,133 @@ async function testConnection() {
         btn.style.color = 'var(--sonarr)';
     }, 3000);
 }
+
+// ── NOTIFICATION DE RETOUR SUR LA PAGE (Détails des téléchargements) ────────
+async function checkNewDownloadsOnFocus() {
+    try {
+        const data = await api('server_detailed_history', {}, 'GET');
+        if (!data || !data.history || data.history.length === 0) return;
+
+        const latestTimestamp = parseInt(data.history[0].date, 10);
+        // On récupère le timestamp mémorisé (ou 0 si c'est la toute première fois)
+        const storedTimestamp = parseInt(localStorage.getItem('serviarr_last_seen_timestamp')) || 0;
+
+        // S'il y a une nouveauté et qu'on n'est pas au premier lancement
+        if (storedTimestamp > 0 && latestTimestamp > storedTimestamp) {
+
+            // On filtre pour ne garder QUE les éléments plus récents que notre dernière visite
+            const newItems = data.history.filter(item => parseInt(item.date, 10) > storedTimestamp);
+
+            if (newItems.length > 0) {
+                showDetailedPopup(newItems);
+            }
+        }
+
+        // On met à jour la mémoire avec l'heure du dernier élément
+        localStorage.setItem('serviarr_last_seen_timestamp', latestTimestamp);
+    } catch (e) {
+        console.error("Erreur lors de la vérification des téléchargements :", e);
+    }
+}
+
+// Fonction pour fermer la popup et naviguer vers le média
+window.closeAndGoMedia = function(type, id) {
+    // 1. On ferme la popup
+    const popup = document.getElementById('instant-popup-overlay');
+    if (popup) popup.remove();
+
+    // 2. On ouvre la modale correspondante avec tes vraies fonctions
+    if (type === 'movie' || type === 'film') {
+        openMovieDetail(id);
+    } else {
+        openSerieDetail(id);
+    }
+};
+
+// Popup intelligente qui s'adapte à la taille de l'écran (Mobile & PC)
+function showDetailedPopup(items) {
+    const oldPopup = document.getElementById('instant-popup-overlay');
+    if (oldPopup) oldPopup.remove();
+
+    let innerContent = '';
+    const titleText = items.length === 1 ? "Nouveau téléchargement" : `${items.length} Nouveaux téléchargements`;
+    let backgroundHtml = '';
+
+    // 1. CAS UNIQUE : Un seul média (cliquable)
+    if (items.length === 1) {
+        const item = items[0];
+        let description = "Disponible dans ta bibliothèque.";
+        if (item.type === 'serie' && item.episodes && item.episodes.length > 0) {
+            description = item.episodes[0].title;
+        }
+
+        // 🌟 Ajout de l'événement onclick et d'un effet de zoom au survol
+        innerContent = `
+        <div onclick="closeAndGoMedia('${item.type}', ${item.id})" style="cursor:pointer; display:flex; flex-direction:column; align-items:center; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+        <img src="${item.poster}" style="width:140px; border-radius:8px; margin-bottom:18px; box-shadow:0 8px 16px rgba(0,0,0,0.5);">
+        <div style="color:var(--text); font-weight:600; font-size:18px; margin-bottom:8px; word-break:break-word;">${item.title}</div>
+        <div style="color:var(--accent3); font-size:14px; font-weight:500;">${description}</div>
+        </div>
+        `;
+        backgroundHtml = `<div style="position:absolute; inset:0; background:url('${item.poster}') center/cover; opacity:0.12; z-index:0; filter: blur(4px);"></div>`;
+    }
+    // 2. CAS MULTIPLE : Liste élargie, scrollable et cliquable
+    else {
+        innerContent = `<div style="text-align:left; width:100%; max-height:45vh; overflow-y:auto; padding-right:8px;">`;
+
+        items.slice(0, 6).forEach(item => {
+            let desc = item.type === 'movie' ? 'Film' : 'Série';
+            if (item.type === 'serie' && item.episodes && item.episodes.length > 0) {
+                desc = item.episodes.length + (item.episodes.length > 1 ? " épisodes" : " épisode");
+            }
+            // 🌟 Ajout de l'événement onclick et d'un effet de surbrillance
+            innerContent += `
+            <div onclick="closeAndGoMedia('${item.type}', ${item.id})" style="display:flex; align-items:center; gap:12px; margin-bottom:12px; background:var(--bg); padding:10px; border-radius:10px; border:1px solid var(--border); cursor:pointer; transition:all 0.2s;" onmouseover="this.style.borderColor='var(--accent3)'; this.style.background='rgba(255, 255, 255, 0.05)';" onmouseout="this.style.borderColor='var(--border)'; this.style.background='var(--bg)';">
+            <img src="${item.poster}" style="width:45px; height:65px; object-fit:cover; border-radius:6px;">
+            <div style="flex:1; overflow:hidden;">
+            <div style="color:var(--text); font-weight:600; font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-bottom:4px;">${item.title}</div>
+            <div style="color:var(--muted); font-size:13px;">${desc}</div>
+            </div>
+            </div>
+            `;
+        });
+
+        if (items.length > 6) {
+            innerContent += `<div style="color:var(--muted); font-size:14px; text-align:center; margin-top:10px; font-weight:500;">+ ${items.length - 6} autres médias...</div>`;
+        }
+        innerContent += `</div>`;
+    }
+
+    const popupHtml = `
+    <div id="instant-popup-overlay" style="position:fixed; inset:0; background:rgba(0,0,0,0.75); z-index:9999; display:flex; align-items:center; justify-content:center; backdrop-filter: blur(8px); animation: fadeIn 0.3s ease;">
+    <div style="background:var(--bg2); border:1px solid var(--border); border-radius:20px; width:92%; max-width:480px; text-align:center; box-shadow:0 20px 40px rgba(0,0,0,0.7); overflow:hidden; position:relative;">
+    ${backgroundHtml}
+    <div style="position:relative; z-index:1; padding:30px 25px;">
+    <div style="font-size:32px; margin-bottom:15px; display:inline-block; background:rgba(255, 255, 255, 0.05); border:1px solid rgba(255,255,255,0.1); color:var(--text); width:60px; height:60px; line-height:60px; border-radius:50%; box-shadow:0 8px 16px rgba(0,0,0, 0.3);">🎉</div>
+    <h3 style="color:var(--text); margin-bottom:25px; font-size:22px; font-weight:700;">${titleText}</h3>
+    <div style="background:var(--bg3); border-radius:14px; padding:20px; margin-bottom:25px; border:1px solid var(--border); display:flex; flex-direction:column; align-items:center;">
+    ${innerContent}
+    </div>
+    <button onclick="document.getElementById('instant-popup-overlay').remove()" style="width:100%; padding:14px; background:rgba(255, 255, 255, 0.05); border:1px solid rgba(255, 255, 255, 0.15); color:var(--text); border-radius:12px; cursor:pointer; font-size:15px; font-weight:600; transition:all 0.2s;">Fermer</button>
+    </div>
+    </div>
+    </div>
+    <style>
+    @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+    #instant-popup-overlay div::-webkit-scrollbar { width: 6px; }
+    #instant-popup-overlay div::-webkit-scrollbar-track { background: transparent; }
+    #instant-popup-overlay div::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 10px; }
+    #instant-popup-overlay div::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.3); }
+    </style>
+    `;
+    document.body.insertAdjacentHTML('beforeend', popupHtml);
+}
+
+// Écouteur : dès que l'utilisateur re-bascule sur l'onglet/la page
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+        checkNewDownloadsOnFocus();
+    }
+});
 
 boot();

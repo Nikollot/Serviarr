@@ -1,5 +1,5 @@
 {
-  "version": "1.7.2",
-  "changelog": "### Updates\n - add test button on application parameter",
+  "version": "1.8",
+  "changelog": "### Updates\n - decompose script and api files\n - use all screen for movies and tv shows\n - add notifications on lunch the app for see the last download from the last connection",
   "url": "https://github.com/Nikollot/Serviarr/releases/latest"
 }

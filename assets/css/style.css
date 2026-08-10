@@ -190,7 +190,7 @@ nav::-webkit-scrollbar{display:none;}
 .header-right{margin-left:auto;display:flex;gap:6px;align-items:center;flex-shrink:0;}
 .btn-ghost{background:none;border:1px solid var(--border);color:var(--muted);padding:5px 12px;border-radius:var(--radius);cursor:pointer;font-size:12px;transition:all .15s;}
 
-main{flex:1;padding:24px;max-width:1400px;width:100%;margin:0 auto;}
+main{flex:1;padding:24px;max-width:100%;width:100%;margin:0 auto;}
 .tab-page{display:none;}
 .tab-page.active{display:block;}
 .page-title{font-family:var(--mono);font-size:18px;font-weight:700;margin-bottom:20px;display:flex;align-items:center;gap:12px;}
@@ -1026,7 +1026,7 @@ padding: 20px;
 
     position: static !important;
     width: 100% !important;
-    max-width: 1200px !important;
+    max-width: 100% !important; /* 🌟 LA CORRECTION EST ICI (100% au lieu de 1200px) */
     height: auto !important;
     max-height: none !important;
     margin: 0 auto !important;
@@ -1106,19 +1106,28 @@ padding: 20px;
 
 /* ── RELEASES MODAL : layout fixe total ── */
 
-/* Le fond : fixe, couvre tout, ne défile pas */
+/* Le fond : s'adapte à l'écran et suit le menu latéral */
 #modal-releases {
 position: fixed !important;
-inset: 0 !important;
+top: 0 !important;
+right: 0 !important;
+bottom: 0 !important;
+left: 0 !important; /* Sera écrasé sur PC */
 display: none;
-flex-direction: column !important;
+
+/* 🌟 CORRECTION : On centre le contenu avec des marges de sécurité invisibles */
+justify-content: center !important;
+align-items: center !important;
+padding: 5vh 30px !important; /* 5% d'espace en haut/bas, 30px sur les côtés */
+
 z-index: 15000 !important;
 background: rgba(0,0,0,.7) !important;
-overflow: hidden !important; /* PAS de scroll ici */
+overflow: hidden !important;
+transition: left 0.3s ease !important;
 }
+
 #modal-releases.open {
 display: flex !important;
-overflow: hidden !important;
 }
 
 /* La modale intérieure : colonne flex qui remplit l'espace */
@@ -1127,14 +1136,12 @@ display: flex !important;
 flex-direction: column !important;
 padding: 0 !important;
 overflow: hidden !important;
-max-height: 90vh !important;
-margin: auto !important;
+max-height: 100% !important; /* 🌟 S'adapte à l'espace libre laissé par le padding */
+margin: 0 !important; /* Plus besoin de margin:auto */
 border-radius: 16px !important;
-/* 🌟 Modulable : reste lisible sur mobile, s'élargit confortablement sur PC
-   pour laisser respirer le tableau des releases */
-width: clamp(480px, 88vw, 960px) !important;
-max-width: 96vw !important;
+width: 100% !important;
 background: var(--bg2) !important;
+box-shadow: 0 15px 50px rgba(0,0,0,0.8) !important; /* Ajoute une belle ombre pour la détacher */
 }
 
 /* Header : fixe en haut, ne bouge jamais */
@@ -1175,15 +1182,14 @@ padding: 12px 18px 18px;
 @media (max-width: 768px) {
     #modal-releases {
     align-items: flex-end !important;
+    padding: 0 !important; /* 🌟 On retire le padding sur mobile pour coller en bas */
     }
     #modal-releases .modal {
     max-height: 88vh !important;
     border-radius: 16px 16px 0 0 !important;
-    width: 100% !important;
-    max-width: 100% !important;
     }
     .releases-modal-header {
-        border-radius: 16px 16px 0 0;
+        border-radius: 16px 16px 0 0 !important;
     }
 }
 
@@ -1970,9 +1976,6 @@ header {
 .hub-title.radarr { color: var(--radarr); }
 .hub-title.sonarr { color: var(--sonarr); }
 
-.cal-grid-wrap {
-    margin-bottom: 20px;
-}
 
 .cal-hint {
     color: var(--muted);
@@ -2015,8 +2018,8 @@ padding: 20px;
 
 /* Modal releases */
 .modal-releases-inner {
-    width: clamp(480px, 88vw, 960px);
-    max-width: 96vw;
+    width: 96vw; /* Prend 96% de la largeur de l'écran */
+    max-width: 100%;
     padding: 0;
     overflow: hidden;
 }
@@ -2432,9 +2435,18 @@ padding: 20px;
 
 /* 2. Sur Grand Écran (PC >= 1024px) : On décale la fenêtre des paramètres à droite */
 @media(min-width: 1024px) {
-    #tab-settings {
-    left: 280px !important;
-    width: calc(100% - 280px) !important;
+    #tab-settings,
+    #modal-releases {
+    left: 280px !important; /* On laisse la place du menu de 280px */
+    right: 0 !important;
+    width: auto !important; /* Remplira automatiquement l'espace restant */
+    transition: left 0.3s ease !important; /* Suit l'animation du menu */
+    }
+
+    /* 🌟 NOUVEAU : Si le menu est fermé, les fenêtres s'étirent sur tout l'écran */
+    body.sidebar-closed #tab-settings,
+    body.sidebar-closed #modal-releases {
+        left: 0 !important;
     }
 }
 
@@ -2872,11 +2884,12 @@ button.app-item-btn.danger { color: var(--accent3) !important; }
 /* 2. Ajuster le conteneur principal pour un effet "carte" parfait */
 #movie-detail-content > div,
 #serie-detail-content > div {
-    min-height: auto !important; /* Annule l'ancien mode plein écran */
-    max-height: 90vh !important;
-    border-radius: 16px !important; /* Arrondit les coins de la fenêtre globale */
-    overflow-x: hidden !important;
-    overflow-y: auto !important; /* S'assure qu'on peut toujours défiler vers le bas */
+    min-height: calc(100vh - 48px) !important; /* S'adapte à l'écran */
+    max-height: none !important; /* 🌟 Fini le bloc contraint à 90vh */
+    border-radius: 12px !important; /* Arrondi propre pour matcher avec le reste */
+    overflow: visible !important; /* 🌟 Le défilement redevient naturel via le navigateur */
+    border: 1px solid var(--border) !important;
+    box-shadow: var(--shadow) !important;
 }
 
 /* ── SCROLLBAR DISCRÈTE POUR LES MODALES ET FICHES DÉTAILS ── */
@@ -3221,5 +3234,78 @@ button.app-item-btn.danger { color: var(--accent3) !important; }
         justify-content: center !important;
         box-sizing: border-box !important;
         font-size: 16px !important; /* Grossit un peu les emojis ▶ et ⏸ */
+    }
+}
+
+/* =========================================================================
+ * ── PROPORTIONS DU CALENDRIER SUR GRAND ÉCRAN (50/50 + HAUTEUR LIMITÉE) ──
+ * ========================================================================= */
+@media (min-width: 1024px) {
+    /* 1. On remet le ratio 50/50 et on limite la largeur max */
+    .cal-grid-wrap {
+        grid-template-columns: 1fr 1fr !important; /* Moitié / Moitié */
+        max-width: 1500px !important;
+        margin: 0 auto !important;
+        align-items: start !important; /* On arrête d'étirer jusqu'en bas de l'écran */
+    }
+    
+    /* 2. On fixe une hauteur maximale élégante pour les deux cartes */
+    .cal-grid-wrap .card {
+        height: 700px !important; /* 🌟 Hauteur fixe idéale sur PC */
+        max-height: calc(100vh - 150px); /* Sécurité si l'écran est petit */
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .cal-grid-wrap .card-body {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden; /* Important pour que le scroll de droite fonctionne */
+    }
+
+    /* 3. La grille du calendrier s'adapte à cette nouvelle hauteur */
+    #cal-days {
+        flex: 1;
+        display: grid;
+        grid-template-rows: repeat(6, 1fr); /* Divise l'espace en 6 lignes égales */
+    }
+    
+    .cal-day {
+        min-height: 0 !important; 
+        height: auto !important;  
+    }
+
+    /* 4. Le panneau de droite garde la même hauteur et scrolle en interne */
+    #side-panel-content {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+    
+    #side-panel-content > div {
+        max-height: none !important;
+        flex: 1;
+        overflow-y: auto;
+        padding-right: 5px;
+    }
+}
+
+/* =========================================================================
+ * ── DÉCOLLEMENT DU CONTENU SOUS LA BARRE DE NAVIGATION (FIX STICKY) ──
+ * ========================================================================= */
+
+/* 1. On annule l'ancienne marge buggée sur la barre */
+.hub-nav {
+    margin-bottom: 0 !important;
+}
+
+/* 2. Sur PC (quand la ligne est en haut), on pousse le contenu vers le bas */
+@media (min-width: 1024px) {
+    /* Cible le contenu du Dashboard ET le contenu des autres pages (Films, Séries, DL) */
+    .home-tab-content,
+    .tab-page {
+        padding-top: 35px !important;
     }
 }

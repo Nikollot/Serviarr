@@ -712,5 +712,8 @@
     "unknown_serie": "Unknown show",
     "unknown_episode": "Episode",
     "server_history_error": "Loading error",
-    "err_timeout": "Connection timed out or server error."
+    "err_timeout": "Connection timed out or server error.",
+	"btn_test_connection": "Test",
+	"testing_connection": "Testing...",
+	"test_success": "Connection successful!"
 }

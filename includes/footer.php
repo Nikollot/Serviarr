@@ -124,6 +124,7 @@
 <div id="activity-log-list"><p class="apps-list-loading"><?= t('loading') ?></p></div>
 </div>
 </div>
+
 </div>
 </div>
 
@@ -186,6 +187,22 @@
 </div>
 
 <div id="notif"></div>
-<script src="assets/js/script.js?v=21"></script>
+<script src="assets/js/utils.js"></script>
+<script src="assets/js/auth-boot.js"></script>
+<script src="assets/js/navigation.js"></script>
+<script src="assets/js/calendar.js"></script>
+<script src="assets/js/bulk-select.js"></script>
+<script src="assets/js/movies.js"></script>
+<script src="assets/js/series.js"></script>
+<script src="assets/js/media-detail.js"></script>
+<script src="assets/js/modals.js"></script>
+<script src="assets/js/app-crud.js"></script>
+<script src="assets/js/torrents.js"></script>
+<script src="assets/js/docker.js"></script>
+<script src="assets/js/search-import.js"></script>
+<script src="assets/js/settings.js"></script>
+<script src="assets/js/notifications.js"></script>
+<script src="assets/js/history-activity.js"></script>
+<script>boot();</script>
 </body>
 </html>

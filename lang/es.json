@@ -712,5 +712,8 @@
     "unknown_serie": "Serie desconocida",
     "unknown_episode": "Episodio",
     "server_history_error": "Error de carga",
-    "err_timeout": "Tiempo de espera agotado o error del servidor."
+    "err_timeout": "Tiempo de espera agotado o error del servidor.",
+	"btn_test_connection": "Probar",
+	"testing_connection": "Probando...",
+	"test_success": "¡Conexión exitosa!"
 }

@@ -712,5 +712,8 @@
     "unknown_serie": "Unbekannte Serie",
     "unknown_episode": "Episode",
     "server_history_error": "Ladefehler",
-    "err_timeout": "Zeitüberschreitung der Verbindung oder Serverfehler."
+    "err_timeout": "Zeitüberschreitung der Verbindung oder Serverfehler.",
+	"btn_test_connection": "Testen",
+	"testing_connection": "Testen...",
+	"test_success": "Verbindung erfolgreich!"
 }

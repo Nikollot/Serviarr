@@ -167,6 +167,17 @@ if (file_exists($config_path)) {
 <?php include 'includes/footer.php'; ?>
 <script>
 function switchContentTab(tabId, btn) {
+    // 🌟 AJOUT : Ferme la modale de la série si elle est ouverte
+    const modalSerie = document.getElementById('modal-serie');
+    if (modalSerie && modalSerie.classList.contains('open')) {
+        // Si on est dans une saison, on la ferme d'abord
+        const serieContent = document.getElementById('serie-detail-content');
+        if (serieContent && serieContent.dataset.mainHtml) {
+            closeSeasonView();
+        }
+        closeSerieDetail(true);
+    }
+
     document.querySelectorAll('.page-tab-content').forEach(el => el.classList.remove('active'));
     document.querySelectorAll('#series-nav .hub-btn').forEach(el => el.classList.remove('active'));
 
@@ -176,9 +187,10 @@ function switchContentTab(tabId, btn) {
     if (tabId === 'history') loadHistory('serie');
     if (tabId === 'app-settings') loadAppSystemStatus('serie');
 
-    // 🌟 Enregistre l'onglet actuel dans l'URL (sans recharger la page)
+    // Enregistre l'onglet actuel dans l'URL (sans recharger la page)
     history.replaceState(null, '', '#' + tabId);
 }
+
 
 function pageInit() {
     // 1. On charge toujours la librairie en arrière-plan

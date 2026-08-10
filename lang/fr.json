@@ -715,5 +715,9 @@
     "err_timeout": "Délai d'attente dépassé ou erreur serveur.",
 	"btn_test_connection": "Tester",
 	"testing_connection": "Test...",
-	"test_success": "Connexion réussie !"
+	"test_success": "Connexion réussie !",
+	"setup_server_title": "Configuration",
+	"setup_server_desc": "Entrez l'adresse publique de votre serveur Serviarr",
+	"setup_server_placeholder": "https://serviarr.bouniko.fr",
+	"setup_server_btn": "Valider"
 }

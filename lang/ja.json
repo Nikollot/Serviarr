@@ -712,5 +712,8 @@
     "unknown_serie": "不明な番組",
     "unknown_episode": "エピソード",
     "server_history_error": "読み込みエラー",
-    "err_timeout": "接続がタイムアウトしたか、サーバーエラーが発生しました。"
+    "err_timeout": "接続がタイムアウトしたか、サーバーエラーが発生しました。",
+	"btn_test_connection": "テスト",
+	"testing_connection": "テスト中...",
+	"test_success": "接続に成功しました！"
 }
