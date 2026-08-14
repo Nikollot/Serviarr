@@ -715,5 +715,7 @@
     "err_timeout": "连接超时或服务器错误。",
 	"btn_test_connection": "测试",
 	"testing_connection": "测试中...",
-	"test_success": "连接成功！"
+	"test_success": "连接成功！",
+  "docker_web_name_label": "Web 界面名称（可选）",
+"docker_web_url_label": "界面 URL（可选）"
 }

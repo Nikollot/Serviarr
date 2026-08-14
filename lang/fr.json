@@ -719,5 +719,7 @@
 	"setup_server_title": "Configuration",
 	"setup_server_desc": "Entrez l'adresse publique de votre serveur Serviarr",
 	"setup_server_placeholder": "https://serviarr.bouniko.fr",
-	"setup_server_btn": "Valider"
+	"setup_server_btn": "Valider",
+  "docker_web_name_label": "Nom de l'application Web (Optionnel)",
+  "docker_web_url_label": "URL de l'interface (Optionnel)"
 }

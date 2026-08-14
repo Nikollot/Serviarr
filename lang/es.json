@@ -715,5 +715,7 @@
     "err_timeout": "Tiempo de espera agotado o error del servidor.",
 	"btn_test_connection": "Probar",
 	"testing_connection": "Probando...",
-	"test_success": "¡Conexión exitosa!"
+	"test_success": "¡Conexión exitosa!",
+  "docker_web_name_label": "Nombre de la interfaz web (Opcional)",
+"docker_web_url_label": "URL de la interfaz (Opcional)"
 }

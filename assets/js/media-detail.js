@@ -1,5 +1,81 @@
 // ===== Serviarr - media-detail.js (extrait de script.js) =====
 
+function _fdRow(label, value) {
+    if (value === undefined || value === null || value === '' || value === '?') return '';
+    return `<div style="display:flex; justify-content:space-between; gap:10px; padding:4px 0; font-size:12px;">
+    <span style="color:var(--muted); flex-shrink:0;">${esc(label)}</span>
+    <span style="color:var(--text); text-align:right; word-break:break-word;">${esc(String(value))}</span>
+    </div>`;
+}
+
+function toggleFileDetailsCard(uid) {
+    const body = document.getElementById('file-body-' + uid);
+    const chevron = document.getElementById('file-chevron-' + uid);
+    if (!body) return;
+    const open = body.style.display !== 'none';
+    body.style.display = open ? 'none' : 'block';
+    if (chevron) chevron.style.transform = open ? 'rotate(0deg)' : 'rotate(180deg)';
+}
+
+// Carte dépliable des détails d'un fichier (codecs vidéo/audio, sous-titres, chemin, formats personnalisés)
+// file: objet retourné par le backend (r.file pour un film, ep.file_details pour un épisode)
+// deleteArgs: chaîne d'arguments JS à passer à deleteFile(...), ex: "123, 'movie', 45"
+function buildFileDetailsCard(file, uid, deleteArgs) {
+    if (!file) return '';
+    const cfs = file.customFormats || [];
+    return `
+    <div style="background:var(--bg3); border:1px solid var(--border); border-radius:12px; margin-bottom:20px; overflow:hidden;">
+    <div onclick="toggleFileDetailsCard('${uid}')" style="padding:14px 16px; cursor:pointer; display:flex; justify-content:space-between; align-items:flex-start; gap:10px;">
+    <div style="min-width:0; flex:1;">
+    <div style="font-size:12px; font-weight:600; color:var(--text); word-break:break-all; line-height:1.4;">${esc(file.releaseName || '?')}</div>
+    <div style="display:flex; align-items:center; gap:8px; margin-top:6px; flex-wrap:wrap; font-size:11px;">
+    ${file.size ? `<span style="color:var(--accent2); font-weight:bold;">✓ ${esc(file.size)}</span>` : ''}
+    ${file.quality ? `<span style="background:rgba(255,255,255,0.08); padding:2px 8px; border-radius:6px; color:var(--muted);">${esc(file.quality)}</span>` : ''}
+    ${cfs.length ? `<span style="color:var(--accent2);">${cfs.length} format${cfs.length > 1 ? 's' : ''}</span>` : ''}
+    </div>
+    </div>
+    <div style="display:flex; align-items:center; gap:10px; flex-shrink:0;">
+    ${deleteArgs ? `<button onclick="event.stopPropagation(); deleteFile(${deleteArgs})" style="background:none; border:none; color:var(--accent3); cursor:pointer; padding:4px; font-size:16px;" title="${t('detail_delete')}">🗑️</button>` : ''}
+    <svg id="file-chevron-${uid}" viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="transition:transform 0.2s; margin-top:2px;"><polyline points="6 9 12 15 18 9"></polyline></svg>
+    </div>
+    </div>
+    <div id="file-body-${uid}" style="display:none; padding:0 16px 16px 16px; border-top:1px solid var(--border);">
+    ${cfs.length ? `
+    <div style="margin:14px 0 10px 0;">
+    <div style="font-size:10px; font-weight:bold; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px;">${'Formats personnalisés'}</div>
+    <div style="display:flex; flex-wrap:wrap; gap:6px;">
+    ${cfs.map(f => `<span style="border:1px solid var(--accent); color:var(--accent); padding:3px 10px; border-radius:20px; font-size:11px; font-weight:600;">${esc(f)}</span>`).join('')}
+    </div>
+    </div>` : ''}
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:14px;">
+    <div>
+    <div style="font-size:10px; font-weight:bold; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px;">${'Vidéo'}</div>
+    ${_fdRow('Résolution', file.resolution)}
+    ${_fdRow('Codec', file.videoCodec)}
+    ${_fdRow('Profondeur', file.bitDepth)}
+    ${_fdRow('Débit', file.bitRate)}
+    ${_fdRow('FPS', file.fps)}
+    </div>
+    <div>
+    <div style="font-size:10px; font-weight:bold; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px;">${'Audio'}</div>
+    ${_fdRow('Canaux', file.audioChannels)}
+    ${_fdRow('Codec', file.audioCodec)}
+    ${_fdRow('Langues', file.audioLanguages)}
+    ${_fdRow('Débit', file.audioBitRate)}
+    ${_fdRow('Flux', file.audioStreams)}
+    </div>
+    </div>
+    <div style="margin-top:14px;">
+    <div style="font-size:10px; font-weight:bold; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px;">${'Autre'}</div>
+    ${_fdRow('Durée', file.runTime)}
+    ${_fdRow('Sous-titres', file.subtitles)}
+    ${_fdRow('Groupe', file.releaseGroup)}
+    ${_fdRow('Chemin', file.path)}
+    </div>
+    </div>
+    </div>`;
+}
+
 function formatReleaseDate(dateStr) {
     if (!dateStr) return `<span style="color: var(--muted); font-style: italic;">${t('not_planned')}</span>`;
     const d = new Date(dateStr);
@@ -163,13 +239,7 @@ async function openMovieDetail(id) {
     </div>`;
 
     const fileHtml = r.file
-    ? `<div style="background:var(--bg3); border:1px solid var(--border); padding:15px; border-radius:12px; margin-bottom:25px; display:flex; justify-content:space-between; align-items:center;">
-    <div>
-    <div style="font-family:var(--mono); font-size:11px; color:var(--muted); margin-bottom:4px; word-break:break-all;">${esc(r.file.path)}</div>
-    <div style="color:var(--accent2); font-size:12px; font-weight:bold;">✓ ${esc(r.file.quality)} • ${esc(r.file.size)}</div>
-    </div>
-    <button class="btn-sm danger" onclick="deleteFile(${r.file.id}, 'movie', ${id})" style="flex-shrink:0;">🗑️</button>
-    </div>`
+    ? buildFileDetailsCard(r.file, 'movie-' + id, `${r.file.id}, 'movie', ${id}`)
     : '';
 
     let statusColor = r.hasFile ? 'var(--accent2)' : r.monitored ? 'var(--radarr)' : 'var(--muted)';
@@ -593,7 +663,7 @@ async function openSerieDetail(id) {
                 </div>
                 </div>
                 <div id="ep-actions-${ep.id}" style="display:none; background:rgba(0,0,0,0.15); border-top:1px solid rgba(255,255,255,0.03); padding:12px 16px;">
-                ${ep.fileName ? `<div style="font-family:var(--mono); font-size:10px; color:var(--muted); margin-bottom:12px; padding:8px 10px; background:rgba(0,0,0,0.2); border-radius:6px; border:1px dashed var(--border); word-break:break-all;">📄 ${esc(ep.fileName)}</div>` : ''}
+                ${ep.file_details ? buildFileDetailsCard(ep.file_details, 'ep-' + ep.id, null) : (ep.fileName ? `<div style="font-family:var(--mono); font-size:10px; color:var(--muted); margin-bottom:12px; padding:8px 10px; background:rgba(0,0,0,0.2); border-radius:6px; border:1px dashed var(--border); word-break:break-all;">📄 ${esc(ep.fileName)}</div>` : '')}
                 <div style="display:flex; gap:10px; justify-content:space-around;">
                 <button style="flex:1; background:var(--bg2); border:1px solid var(--border); border-radius:10px; color:var(--text); padding:10px 5px; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:6px; font-size:11px; transition:background 0.2s;" onclick="episodeSearchAuto(${ep.id}, this)"><span style="font-size:18px;">🔍</span> ${t('detail_auto_search')}</button>
                 <button style="flex:1; background:var(--bg2); border:1px solid var(--border); border-radius:10px; color:var(--text); padding:10px 5px; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:6px; font-size:11px; transition:background 0.2s;" onclick="openEpisodeReleases(${ep.id}, '${esc(formattedTitle).replace(/'/g, "\\'")}', ${r.id})"><span style="font-size:18px;">👤</span> ${t('detail_search_releases')}</button>

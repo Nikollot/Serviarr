@@ -1,8 +1,6 @@
 <?php
 // ===== Serviarr - api-movies.php =====
 
-
-
 // ── ADD MEDIA ─────────────────────────────────────────────────────────────────
 if ($action === 'add_movie') {
     $cfg    = load_config();
@@ -27,7 +25,6 @@ if ($action === 'add_movie') {
         'monitored'        => true,
         'addOptions'       => ['searchForMovie' => $search],
     ]);
-    // 🌟 AJOUT : Pour l'import de bibliothèque, on force le chemin exact existant
     if (!empty($_POST['path'])) {
         $body['path'] = $_POST['path'];
     }
@@ -42,8 +39,6 @@ if ($action === 'add_movie') {
     echo json_encode(['ok' => true, 'title' => $res['title'] ?? '?', 'id' => $res['id'] ?? null]);
     exit;
 }
-
-
 
 // ── TMDB DETAILS ──────────────────────────────────────────────────────────────
 if ($action === 'tmdb_movie_detail') {
@@ -88,8 +83,6 @@ if ($action === 'tmdb_movie_detail') {
     exit;
 }
 
-
-
 // ── LIBRARIES ─────────────────────────────────────────────────────────────────
 if ($action === 'library_movies') {
     $q      = strtolower($_GET['q'] ?? '');
@@ -130,8 +123,6 @@ if ($action === 'library_movies') {
     exit;
 }
 
-
-
 // ── DETAILS ───────────────────────────────────────────────────────────────────
 if ($action === 'movie_detail') {
     $cfg    = load_config();
@@ -148,15 +139,43 @@ if ($action === 'movie_detail') {
     $poster_url = rtrim($radarr['url'], '/') . '/api/v3/mediacover/' . $mv['id'] . '/poster.jpg?apikey=' . $radarr['api_key'];
     $fanart_url = rtrim($radarr['url'], '/') . '/api/v3/mediacover/' . $mv['id'] . '/fanart.jpg?apikey=' . $radarr['api_key'];
 
+    // 🌟 MODIFICATION ICI : Extraction de toutes les métadonnées vidéo/audio
     $file_info = null;
     if (!empty($mv['movieFile'])) {
         $mf = $mv['movieFile'];
+
+        // Les customFormats imbriqués dans /movie/{id} ne sont pas fiables (souvent vides).
+        // On récupère le fichier via l'endpoint dédié /moviefile, comme pour les épisodes.
+        $mfDedicated = arr_get($radarr, "/api/v3/moviefile?movieId=$id");
+        if (is_array($mfDedicated) && !isset($mfDedicated['_error']) && count($mfDedicated) > 0) {
+            $mf = $mfDedicated[0];
+        }
+        $mi = $mf['mediaInfo'] ?? [];
+        $cfs = [];
+        foreach ($mf['customFormats'] ?? [] as $cf) {
+            $cfs[] = $cf['name'];
+        }
+        
         $file_info = [
             'id'       => $mf['id'] ?? 0,
-            'path'     => basename($mf['relativePath'] ?? $mf['path'] ?? 'Fichier inconnu'),
+            'path'     => $mf['path'] ?? 'Fichier inconnu',
             'quality'  => $mf['quality']['quality']['name'] ?? '?',
             'size'     => round(($mf['size'] ?? 0) / 1073741824, 2) . ' GB',
-            'codec'    => $mf['mediaInfo']['videoCodec'] ?? '?',
+            'videoCodec' => $mi['videoCodec'] ?? '?',
+            'resolution' => ($mi['resolution'] ?? '') ?: (($mi['width'] ?? 0) . 'x' . ($mi['height'] ?? 0)),
+            'bitDepth' => $mi['videoBitDepth'] ?? '?',
+            'bitRate'  => isset($mi['videoBitrate']) ? round($mi['videoBitrate'] / 1000000, 1) . ' Mbps' : '?',
+            'fps'      => isset($mi['videoFps']) ? round($mi['videoFps'], 3) : '?',
+            'audioCodec' => $mi['audioCodec'] ?? '?',
+            'audioChannels' => $mi['audioChannels'] ?? '?',
+            'audioLanguages' => $mi['audioLanguages'] ?? '?',
+            'audioBitRate' => isset($mi['audioBitrate']) ? round($mi['audioBitrate'] / 1000) . ' Kbps' : '?',
+            'audioStreams' => $mi['audioStreamCount'] ?? '?',
+            'subtitles' => $mi['subtitles'] ?? '?',
+            'runTime'  => $mi['runTime'] ?? '?',
+            'releaseGroup' => $mf['releaseGroup'] ?? '?',
+            'customFormats' => $cfs,
+            'releaseName' => $mf['originalFilePath'] ?? $mf['relativePath'] ?? '?'
         ];
     }
 
@@ -250,8 +269,6 @@ if ($action === 'movie_detail') {
     exit;
 }
 
-
-
 // ── RELEASES & DOWNLOADS ──────────────────────────────────────────────────────
 if ($action === 'movie_releases') {
     $cfg    = load_config();
@@ -288,8 +305,6 @@ if ($action === 'movie_releases') {
     exit;
 }
 
-
-
 if ($action === 'movie_download') {
     $cfg    = load_config();
     $radarr = find_app_by_driver($cfg, 'radarr');
@@ -304,8 +319,6 @@ if ($action === 'movie_download') {
     exit;
 }
 
-
-
 if ($action === 'movie_search_auto') {
     $cfg    = load_config();
     $radarr = find_app_by_driver($cfg, 'radarr');
@@ -319,9 +332,6 @@ if ($action === 'movie_search_auto') {
     exit;
 }
 
-
-
-// ── DASHBOARDS ────────────────────────────────────────────────────────────────
 // ── DASHBOARDS ────────────────────────────────────────────────────────────────
 if ($action === 'movies_dashboard') {
     require_auth();
@@ -378,7 +388,7 @@ if ($action === 'movies_dashboard') {
     }
 
     $upcomingPool = [];
-    $physicalPool = []; // 🌟 AJOUT : Pour stocker les futures sorties physiques
+    $physicalPool = [];
     $start = date('Y-m-d');
     $end = date('Y-m-d', strtotime('+6 months'));
 
@@ -388,7 +398,6 @@ if ($action === 'movies_dashboard') {
             if (empty($mv['hasFile'])) {
                 $posterUrl = $baseUrl . '/api/v3/mediacover/' . $mv['id'] . '/poster-250.jpg?apikey=' . $radarr['api_key'];
 
-                // Sorties "générales"
                 $releaseDate = substr($mv['digitalRelease'] ?? $mv['physicalRelease'] ?? $mv['inCinemas'] ?? '', 0, 10);
                 if (!empty($releaseDate) && $releaseDate >= $start) {
                     $upcomingPool[$mv['tmdbId']] = [
@@ -401,7 +410,6 @@ if ($action === 'movies_dashboard') {
                     ];
                 }
 
-                // 🌟 AJOUT : Sorties exclusivement physiques
                 $physDate = substr($mv['physicalRelease'] ?? '', 0, 10);
                 if (!empty($physDate) && $physDate >= $start) {
                     $physicalPool[$mv['tmdbId']] = [
@@ -489,7 +497,6 @@ if ($action === 'movies_dashboard') {
     usort($upcoming, function($a, $b) { return strcmp($a['release_date'], $b['release_date']); });
     $upcoming = array_slice($upcoming, 0, 25);
 
-    // 🌟 AJOUT : Tri du tableau des sorties physiques
     $upcoming_physical = array_values($physicalPool);
     usort($upcoming_physical, function($a, $b) { return strcmp($a['release_date'], $b['release_date']); });
     $upcoming_physical = array_slice($upcoming_physical, 0, 25);
@@ -497,7 +504,7 @@ if ($action === 'movies_dashboard') {
     $finalJson = json_encode([
         'recent' => array_values($recent),
                              'upcoming' => $upcoming,
-                             'upcoming_physical' => $upcoming_physical, // 🌟 AJOUT : On inclut les données dans la réponse
+                             'upcoming_physical' => $upcoming_physical,
                              'reco' => $reco,
                              'popular' => $popular,
                              'tmdb_missing' => empty($tmdbKey)
@@ -508,8 +515,6 @@ if ($action === 'movies_dashboard') {
     echo $finalJson;
     exit;
 }
-
-
 
 // ── COLLECTION ────────────────────────────────────────────────────────────────
 if ($action === 'movie_collection') {
@@ -586,8 +591,6 @@ if ($action === 'movie_collection') {
     exit;
 }
 
-
-
 // ── COLLECTIONS GLOBALES ──────────────────────────────────────────────────────
 if ($action === 'get_all_collections') {
     require_auth();
@@ -647,7 +650,7 @@ if ($action === 'get_all_collections') {
                 }
 
                 $mapped_movies[] = [
-                    'id' => $inLib ? $libData['id'] : null, // Requis pour agir sur les films
+                    'id' => $inLib ? $libData['id'] : null,
                     'tmdbId' => $tmdbId,
                     'title' => $m['title'] ?? '?',
                     'year' => $m['year'] ?? '',
@@ -681,8 +684,6 @@ if ($action === 'get_all_collections') {
     exit;
 }
 
-
-
 // ── EDIT COLLECTION (Monitoring & Quality) ────────────────────────────────────
 if ($action === 'edit_collection') {
     require_auth();
@@ -693,7 +694,6 @@ if ($action === 'edit_collection') {
     $id = (int)($_POST['id'] ?? 0);
     if (!$id) { echo json_encode(['error' => t('err_id_missing')]); exit; }
 
-    // Récupération de la collection ciblée
     $col = arr_get($radarr, "/api/v3/collection/{$id}");
     if (isset($col['_error'])) { echo json_encode(['error' => $col['_error']]); exit; }
 
@@ -704,7 +704,6 @@ if ($action === 'edit_collection') {
         $col['qualityProfileId'] = (int)$_POST['qualityProfileId'];
     }
 
-    // Sauvegarde
     $res = arr_put_raw($radarr, "/api/v3/collection/{$id}", json_encode($col, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
 
     if ($res['code'] >= 200 && $res['code'] < 300) {

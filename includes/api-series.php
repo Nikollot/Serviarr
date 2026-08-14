@@ -1,8 +1,6 @@
 <?php
 // ===== Serviarr - api-series.php =====
 
-
-
 if ($action === 'add_serie') {
     $cfg    = load_config();
     $sonarr = find_app_by_driver($cfg, 'sonarr');
@@ -32,7 +30,6 @@ if ($action === 'add_serie') {
         'seasonFolder'     => true,
         'addOptions'       => ['searchForMissingEpisodes' => $search, 'monitor' => 'all'],
     ]);
-    // 🌟 AJOUT : Pour l'import de bibliothèque, on force le chemin exact existant
     if (!empty($_POST['path'])) {
         $body['path'] = $_POST['path'];
     }
@@ -47,8 +44,6 @@ if ($action === 'add_serie') {
     echo json_encode(['ok' => true, 'title' => $res['title'] ?? '?', 'id' => $res['id'] ?? null]);
     exit;
 }
-
-
 
 if ($action === 'tmdb_serie_detail') {
     require_auth();
@@ -112,8 +107,6 @@ if ($action === 'tmdb_serie_detail') {
     exit;
 }
 
-
-
 if ($action === 'library_series') {
     $q      = strtolower($_GET['q'] ?? '');
     $filter = $_GET['filter'] ?? 'all';
@@ -147,8 +140,6 @@ if ($action === 'library_series') {
     exit;
 }
 
-
-
 if ($action === 'serie_detail') {
     $cfg    = load_config();
     $sonarr = find_app_by_driver($cfg, 'sonarr');
@@ -162,15 +153,44 @@ if ($action === 'serie_detail') {
     $fileMap = [];
     $fileSizeMap = [];
     $fileQualityMap = [];
+    $fileDetailedMap = []; // 🌟 AJOUT : Pour la vue détaillée du fichier
+
     if (is_array($epFiles) && !isset($epFiles['_error'])) {
         foreach ($epFiles as $ef) {
             $fileMap[$ef['id']] = basename($ef['relativePath'] ?? $ef['path'] ?? '');
             $fileSizeMap[$ef['id']] = $ef['size'] ?? 0;
             $fileQualityMap[$ef['id']] = $ef['quality']['quality']['name'] ?? '';
+
+            // 🌟 AJOUT : Extraction métadonnées pour chaque fichier d'épisode
+            $mi = $ef['mediaInfo'] ?? [];
+            $cfs = [];
+            foreach ($ef['customFormats'] ?? [] as $cf) {
+                $cfs[] = $cf['name'];
+            }
+            $fileDetailedMap[$ef['id']] = [
+                'id'       => $ef['id'] ?? 0,
+                'path'     => $ef['path'] ?? '',
+                'quality'  => $ef['quality']['quality']['name'] ?? '?',
+                'size'     => round(($ef['size'] ?? 0) / 1073741824, 2) . ' GB',
+                'videoCodec' => $mi['videoCodec'] ?? '?',
+                'resolution' => ($mi['resolution'] ?? '') ?: (($mi['width'] ?? 0) . 'x' . ($mi['height'] ?? 0)),
+                'bitDepth' => $mi['videoBitDepth'] ?? '?',
+                'bitRate'  => isset($mi['videoBitrate']) ? round($mi['videoBitrate'] / 1000000, 1) . ' Mbps' : '?',
+                'fps'      => isset($mi['videoFps']) ? round($mi['videoFps'], 3) : '?',
+                'audioCodec' => $mi['audioCodec'] ?? '?',
+                'audioChannels' => $mi['audioChannels'] ?? '?',
+                'audioLanguages' => $mi['audioLanguages'] ?? '?',
+                'audioBitRate' => isset($mi['audioBitrate']) ? round($mi['audioBitrate'] / 1000) . ' Kbps' : '?',
+                'audioStreams' => $mi['audioStreamCount'] ?? '?',
+                'subtitles' => $mi['subtitles'] ?? '?',
+                'runTime'  => $mi['runTime'] ?? '?',
+                'releaseGroup' => $ef['releaseGroup'] ?? '?',
+                'customFormats' => $cfs,
+                'releaseName' => $ef['originalFilePath'] ?? $ef['relativePath'] ?? '?'
+            ];
         }
     }
     if (isset($s['_error'])) { echo json_encode(['error' => $s['_error']]); exit; }
-
     if (isset($s['message'])) { echo json_encode(['error' => t('err_serie_not_in_library')]); exit; }
 
     $poster_url = rtrim($sonarr['url'], '/') . '/api/v3/mediacover/' . $s['id'] . '/poster.jpg?apikey=' . $sonarr['api_key'];
@@ -215,6 +235,7 @@ if ($action === 'serie_detail') {
                 'fileName'      => isset($fileMap[$fileId]) ? $fileMap[$fileId] : '',
                 'size'          => isset($fileSizeMap[$fileId]) ? $fileSizeMap[$fileId] : 0,
                 'quality'       => isset($fileQualityMap[$fileId]) ? $fileQualityMap[$fileId] : '',
+                'file_details'  => $fileDetailedMap[$fileId] ?? null, // 🌟 AJOUT
                 'download_info' => $downloading_eps[$ep['id']] ?? null,
             ];
         }
@@ -341,8 +362,6 @@ if ($action === 'serie_detail') {
     exit;
 }
 
-
-
 if ($action === 'episode_releases') {
     $cfg    = load_config();
     $sonarr = find_app_by_driver($cfg, 'sonarr');
@@ -375,8 +394,6 @@ if ($action === 'episode_releases') {
     echo json_encode(['releases' => $releases]);
     exit;
 }
-
-
 
 if ($action === 'season_releases') {
     $cfg    = load_config();
@@ -412,8 +429,6 @@ if ($action === 'season_releases') {
     exit;
 }
 
-
-
 if ($action === 'episode_download') {
     $cfg    = load_config();
     $sonarr = find_app_by_driver($cfg, 'sonarr');
@@ -429,8 +444,6 @@ if ($action === 'episode_download') {
     exit;
 }
 
-
-
 if ($action === 'episode_search_auto') {
     $cfg    = load_config();
     $sonarr = find_app_by_driver($cfg, 'sonarr');
@@ -443,8 +456,6 @@ if ($action === 'episode_search_auto') {
     echo json_encode(['ok' => true]);
     exit;
 }
-
-
 
 if ($action === 'season_search_auto') {
     $cfg      = load_config();
@@ -459,8 +470,6 @@ if ($action === 'season_search_auto') {
     echo json_encode(['ok' => true]);
     exit;
 }
-
-
 
 if ($action === 'toggle_season_monitor') {
     $cfg = load_config();
@@ -497,8 +506,6 @@ if ($action === 'toggle_season_monitor') {
     }
     echo json_encode(['error' => "Saison introuvable"]); exit;
 }
-
-
 
 if ($action === 'series_dashboard') {
     require_auth();
@@ -571,7 +578,7 @@ if ($action === 'series_dashboard') {
                         'title' => $titleWithEpisode,
                         'poster' => 'api.php?action=proxy_image&url=' . urlencode($posterUrl),
                         'is_new' => false,
-                        'release_date' => substr($ep['airDateUtc'] ?? $ep['airDate'] ?? '', 0, 10) // 🌟 AJOUT DE LA DATE
+                        'release_date' => substr($ep['airDateUtc'] ?? $ep['airDate'] ?? '', 0, 10)
                     ];
                 }
             }
@@ -613,7 +620,7 @@ if ($action === 'series_dashboard') {
                     'title' => $s['name'],
                     'poster' => 'https://image.tmdb.org/t/p/w500' . $s['poster_path'],
                     'is_new' => !$is_in_lib,
-                    'release_date' => $s['first_air_date'] ?? '' // 🌟 AJOUT DE LA DATE
+                    'release_date' => $s['first_air_date'] ?? ''
                 ];
                 if (count($upcoming_series) >= 15) break;
             }

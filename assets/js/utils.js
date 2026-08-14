@@ -1,6 +1,6 @@
 // ===== Serviarr - utils.js (extrait de script.js) =====
 
-const APP_VERSION = "1.8";
+const APP_VERSION = "1.8.1";
 
 const UPDATE_URL = "https://raw.githubusercontent.com/Nikollot/Serviarr/main/version.json";
 
@@ -146,4 +146,110 @@ function displayVersionInSidebar(latestVersion = null, releaseUrl = '#') {
     else {
         versionDiv.innerHTML = `v${APP_VERSION}`;
     }
+}
+
+// ===== Glisser-déposer réutilisable (souris + tactile) pour réordonner une liste =====
+// container : élément parent contenant les lignes (doit avoir position:relative, ajouté automatiquement)
+// itemSelector : sélecteur CSS des lignes déplaçables (ex: '.app-item-row')
+// handleSelector : sélecteur CSS de la poignée qui déclenche le drag (ex: '.drag-handle')
+// onDrop(orderedEls) : callback appelé à la fin du drag avec les éléments dans leur nouvel ordre
+function initDragReorder(container, itemSelector, handleSelector, onDrop) {
+    if (!container || container._dragReorderBound) return;
+    container._dragReorderBound = true;
+
+    const containerStyle = getComputedStyle(container);
+    if (containerStyle.position === 'static') container.style.position = 'relative';
+
+    let draggedEl = null;
+    let placeholder = null;
+    let offsetX = 0, offsetY = 0;
+
+    function getItems() {
+        return Array.from(container.querySelectorAll(itemSelector));
+    }
+
+    function onPointerDown(e) {
+        const handle = e.target.closest(handleSelector);
+        if (!handle || !container.contains(handle)) return;
+        const item = handle.closest(itemSelector);
+        if (!item) return;
+
+        e.preventDefault();
+
+        draggedEl = item;
+        const containerRect = container.getBoundingClientRect();
+        const itemRect = item.getBoundingClientRect();
+
+        offsetX = e.clientX - itemRect.left;
+        offsetY = e.clientY - itemRect.top;
+
+        // Espace réservé qui prend la place de la ligne dans le flux normal pendant le drag
+        placeholder = document.createElement('div');
+        placeholder.className = 'drag-placeholder';
+        placeholder.style.height = itemRect.height + 'px';
+        item.after(placeholder);
+
+        item.style.position = 'absolute';
+        item.style.top = (itemRect.top - containerRect.top) + 'px';
+        item.style.left = (itemRect.left - containerRect.left) + 'px';
+        item.style.width = itemRect.width + 'px';
+        item.style.zIndex = '50';
+        item.style.pointerEvents = 'none';
+        item.classList.add('drag-active');
+
+        document.body.classList.add('drag-noselect');
+
+        try { handle.setPointerCapture(e.pointerId); } catch (err) {}
+
+        document.addEventListener('pointermove', onPointerMove, { passive: false });
+        document.addEventListener('pointerup', onPointerUp);
+        document.addEventListener('pointercancel', onPointerUp);
+    }
+
+    function onPointerMove(e) {
+        if (!draggedEl) return;
+        e.preventDefault();
+
+        const containerRect = container.getBoundingClientRect();
+        draggedEl.style.top = (e.clientY - containerRect.top - offsetY) + 'px';
+        draggedEl.style.left = (e.clientX - containerRect.left - offsetX) + 'px';
+
+        const elAtPoint = document.elementFromPoint(e.clientX, e.clientY);
+        const target = elAtPoint ? elAtPoint.closest(itemSelector) : null;
+
+        if (target && target !== draggedEl && container.contains(target)) {
+            const rect = target.getBoundingClientRect();
+            const midY = rect.top + rect.height / 2;
+            if (e.clientY < midY) target.before(placeholder);
+            else target.after(placeholder);
+        }
+    }
+
+    function onPointerUp() {
+        if (!draggedEl) return;
+
+        placeholder.replaceWith(draggedEl);
+
+        draggedEl.style.position = '';
+        draggedEl.style.top = '';
+        draggedEl.style.left = '';
+        draggedEl.style.width = '';
+        draggedEl.style.zIndex = '';
+        draggedEl.style.pointerEvents = '';
+        draggedEl.classList.remove('drag-active');
+
+        document.body.classList.remove('drag-noselect');
+
+        document.removeEventListener('pointermove', onPointerMove);
+        document.removeEventListener('pointerup', onPointerUp);
+        document.removeEventListener('pointercancel', onPointerUp);
+
+        const finishedEl = draggedEl;
+        draggedEl = null;
+        placeholder = null;
+
+        if (typeof onDrop === 'function') onDrop(getItems(), finishedEl);
+    }
+
+    container.addEventListener('pointerdown', onPointerDown);
 }

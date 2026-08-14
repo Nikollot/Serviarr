@@ -715,5 +715,7 @@
     "err_timeout": "Zeitüberschreitung der Verbindung oder Serverfehler.",
 	"btn_test_connection": "Testen",
 	"testing_connection": "Testen...",
-	"test_success": "Verbindung erfolgreich!"
+	"test_success": "Verbindung erfolgreich!",
+  "docker_web_name_label": "Name der Weboberfläche (Optional)",
+"docker_web_url_label": "URL der Weboberfläche (Optional)"
 }

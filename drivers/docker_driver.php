@@ -9,10 +9,16 @@ function docker_fields() {
             'placeholder' => '/var/run/docker.sock'
         ],
         [
-            'key' => 'portainer_url',
-            'label' => t('docker_portainer_label'),
+            'key' => 'web_name',
+            'label' => t('docker_web_name_label'), // 🌟 Traduction au lieu de texte brut
             'type' => 'text',
-            'placeholder' => 'https://portainer.mondomaine.fr'
+            'placeholder' => 'Portainer, Dozzle, Yacht...'
+        ],
+        [
+            'key' => 'portainer_url',
+            'label' => t('docker_web_url_label'), // 🌟 Traduction au lieu de texte brut
+            'type' => 'text',
+            'placeholder' => 'https://mon-docker.domaine.fr'
         ]
     ];
 }

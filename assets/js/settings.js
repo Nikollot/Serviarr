@@ -272,15 +272,31 @@ function renderConfigList(tab, tabCfg) {
         <input type="checkbox" class="ui-block-checkbox" data-key="${blockKey}" ${isVisible ? 'checked' : ''} style="width:18px; height:18px; accent-color:var(--accent); flex-shrink:0;">
         <span style="font-size:13px; font-weight:600; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${label}</span>
         </label>
-        <div style="display:flex; gap:4px; flex-shrink:0;">
-        <button type="button" onclick="moveConfigItem('${tab}', ${index}, -1)" ${isFirst ? 'disabled style="opacity:0.2;cursor:not-allowed;"' : ''} style="background:var(--bg2); border:1px solid var(--border); color:var(--text); width:28px; height:28px; border-radius:6px; cursor:pointer;">⬆️</button>
-        <button type="button" onclick="moveConfigItem('${tab}', ${index}, 1)" ${isLast ? 'disabled style="opacity:0.2;cursor:not-allowed;"' : ''} style="background:var(--bg2); border:1px solid var(--border); color:var(--text); width:28px; height:28px; border-radius:6px; cursor:pointer;">⬇️</button>
+        <div style="display:flex; align-items:center; gap:4px; flex-shrink:0;">
+        <button type="button" onclick="moveConfigItem('${tab}', ${index}, -1)" ${isFirst ? 'disabled style="opacity:0.2;cursor:not-allowed;"' : ''} style="background:var(--bg2); border:1px solid var(--border); color:var(--text); width:28px; height:28px; border-radius:6px; cursor:pointer; display:flex; align-items:center; justify-content:center;"><svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg></button>
+        <button type="button" onclick="moveConfigItem('${tab}', ${index}, 1)" ${isLast ? 'disabled style="opacity:0.2;cursor:not-allowed;"' : ''} style="background:var(--bg2); border:1px solid var(--border); color:var(--text); width:28px; height:28px; border-radius:6px; cursor:pointer; display:flex; align-items:center; justify-content:center;"><svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></button>
+        <div class="drag-handle config-item-drag-handle" title="Glisser pour réordonner"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg></div>
         </div>
         </div>`;
     });
 
     listContainer.innerHTML = html;
     listContainer.dataset.currentTab = tab;
+
+    initDragReorder(listContainer, '.config-item-row', '.config-item-drag-handle', (orderedEls) => {
+        // 🌟 CORRECTION : On récupère le nouvel ordre après le glissé-déposé
+        const currentOrder = orderedEls.map(el => el.dataset.key);
+        const currentVisibility = {};
+        
+        // On récupère aussi l'état des cases à cocher pour ne pas les perdre
+        orderedEls.forEach(el => {
+            const cb = el.querySelector('.ui-block-checkbox');
+            if (cb) currentVisibility[el.dataset.key] = cb.checked;
+        });
+        
+        // On regénère la liste pour corriger les flèches haut/bas
+        renderConfigList(tab, { order: currentOrder, visibility: currentVisibility });
+    });
 }
 
 function moveConfigItem(tab, index, direction) {

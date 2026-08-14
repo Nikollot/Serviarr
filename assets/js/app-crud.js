@@ -278,7 +278,7 @@ function renderAppsListHtml() {
         const isLast = index === appsCache.length - 1;
 
         return `
-        <div class="app-item-row">
+        <div class="app-item-row" data-id="${app.id}">
         <div class="app-item-icon">${getAppIconHtml(app)}</div>
 
         <div class="app-item-text">
@@ -287,8 +287,8 @@ function renderAppsListHtml() {
         </div>
 
         <div class="app-item-actions">
-        <button class="app-item-btn" onclick="moveApp(-1, ${index})" ${isFirst ? 'disabled style="opacity:0.2;cursor:not-allowed;"' : ''} title="${t('btn_move_up')}">⬆️</button>
-        <button class="app-item-btn" onclick="moveApp(1, ${index})" ${isLast ? 'disabled style="opacity:0.2;cursor:not-allowed;"' : ''} title="${t('btn_move_down')}">⬇️</button>
+        <button class="app-item-btn" onclick="moveApp(-1, ${index})" ${isFirst ? 'disabled style="opacity:0.2;cursor:not-allowed;"' : ''} title="${t('btn_move_up')}"><svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg></button>
+        <button class="app-item-btn" onclick="moveApp(1, ${index})" ${isLast ? 'disabled style="opacity:0.2;cursor:not-allowed;"' : ''} title="${t('btn_move_down')}"><svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></button>
         <button class="app-item-btn" onclick="editApp('${app.id}')" title="${t('edit_title')}">⚙️</button>
         <button class="app-item-btn danger" onclick="deleteApp('${app.id}', '${esc(app.name)}')" title="${t('detail_delete')}">🗑️</button>
         </div>
@@ -296,10 +296,26 @@ function renderAppsListHtml() {
         <div class="app-item-switch">
         <button class="toggle ${app.enabled ? 'on' : ''}" onclick="toggleApp('${app.id}', this)" style="margin:0;"></button>
         </div>
+
+        <div class="app-item-drag drag-handle app-item-drag-handle" title="${t('btn_reorder_drag') || 'Glisser pour réordonner'}"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg></div>
         </div>`;
     }).join('');
 
     list.innerHTML = html;
+
+    initDragReorder(list, '.app-item-row', '.app-item-drag-handle', async (orderedEls) => {
+        const newOrder = orderedEls.map(el => el.dataset.id);
+        appsCache.sort((a, b) => newOrder.indexOf(String(a.id)) - newOrder.indexOf(String(b.id)));
+        
+        // 🌟 CORRECTION : On regénère le HTML pour actualiser les index et les flèches grisées
+        renderAppsListHtml(); 
+        
+        updateSidebar(appsCache);
+        if (typeof updateHubVisibility === 'function') updateHubVisibility();
+
+        const r = await api('reorder_apps', { order: JSON.stringify(newOrder) });
+        if (!r.ok) notify(t('notif_error'), 'err');
+    });
 }
 
 async function moveApp(direction, index) {

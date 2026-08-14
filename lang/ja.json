@@ -715,5 +715,7 @@
     "err_timeout": "接続がタイムアウトしたか、サーバーエラーが発生しました。",
 	"btn_test_connection": "テスト",
 	"testing_connection": "テスト中...",
-	"test_success": "接続に成功しました！"
+	"test_success": "接続に成功しました！",
+  "docker_web_name_label": "Webインターフェース名（オプション）",
+"docker_web_url_label": "インターフェースURL（オプション）"
 }

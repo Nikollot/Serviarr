@@ -5,11 +5,18 @@ include 'includes/header.php';
 
 $config_path = __DIR__ . '/data/config.json';
 $portainer_url = '';
+$web_name = 'Portainer'; // Valeur de secours par défaut
+
 if (file_exists($config_path)) {
     $cfg = json_decode(file_get_contents($config_path), true);
     foreach ($cfg['apps'] ?? [] as $app) {
-        if (($app['driver'] ?? '') === 'docker' && !empty($app['portainer_url'])) {
-            $portainer_url = rtrim($app['portainer_url'], '/');
+        if (($app['driver'] ?? '') === 'docker') {
+            if (!empty($app['portainer_url'])) {
+                $portainer_url = rtrim($app['portainer_url'], '/');
+            }
+            if (!empty($app['web_name'])) {
+                $web_name = $app['web_name'];
+            }
             break;
         }
     }
@@ -22,7 +29,8 @@ if (file_exists($config_path)) {
         <?php if ($portainer_url): ?>
         <a href="<?= htmlspecialchars($portainer_url) ?>" target="_blank" class="btn-app-link">
             <span class="icon">🌐</span>
-            <span class="btn-torrent-text"><?= t('docker_open_portainer') ?></span>
+            <!-- 🌟 Utilise la traduction globale pour "Ouvrir" + le nom dynamique -->
+            <span class="btn-torrent-text"><?= t('dl_open_client_prefix') ?> <?= htmlspecialchars($web_name) ?></span>
         </a>
         <?php endif; ?>
     </div>

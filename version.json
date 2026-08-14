@@ -1,5 +1,5 @@
 {
-  "version": "1.8",
-  "changelog": "### Updates\n - decompose script and api files\n - use all screen for movies and tv shows\n - add notifications on lunch the app for see the last download from the last connection",
+  "version": "1.8.1",
+  "changelog": "### Updates\n - change up and down system on parameter\n - add media informations and custom format in modal detail",
   "url": "https://github.com/Nikollot/Serviarr/releases/latest"
 }
