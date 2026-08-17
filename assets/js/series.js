@@ -556,6 +556,7 @@ async function openActorCredits(actorName) {
             const itemsHTML = groups[year].map(mv => {
                 let statusBadge = '';
                 let actionButton = '';
+                let cardClickAction = '';
 
                 if (mv.inLib) {
                     if (mv.hasFile) {
@@ -564,15 +565,20 @@ async function openActorCredits(actorName) {
                         statusBadge = `<span style="background:#ffa03c; color:#000; font-size:9px; padding:3px 6px; border-radius:6px; font-weight:bold; display:inline-block;">⏳ ${t('cal_wait_short')}</span>`;
                     }
                     const closeAndOpenAction = mv.media_type === 'movie'
-                    ? `closeActorModal(); openMovieDetail(${mv.localId});`
-                    : `closeActorModal(); openSerieDetail(${mv.localId});`;
-                    actionButton = `<button class="actor-card-btn" onclick="${closeAndOpenAction}">${t('detail_back')}</button>`;
+                    ? `window._returnToActor = currentActiveActor; closeActorModal(); closeAnyFullscreenDetail(); openMovieDetail(${mv.localId});`
+                    : `window._returnToActor = currentActiveActor; closeActorModal(); closeAnyFullscreenDetail(); openSerieDetail(${mv.localId});`;
+                    cardClickAction = closeAndOpenAction;
+                    actionButton = `<button class="actor-card-btn" onclick="event.stopPropagation(); ${closeAndOpenAction}">${t('detail_back')}</button>`;
                 } else {
                     statusBadge = `<span style="background:var(--bg3); border:1px solid var(--border); color:var(--muted); font-size:9px; padding:3px 6px; border-radius:6px; font-weight:bold; display:inline-block;">${t('badge_unmonitored')}</span>`;
 
                     const mediaTypeParam = mv.media_type === 'movie' ? 'movie' : 'serie';
                     const titleEsced = esc(mv.title).replace(/'/g, "\\'");
-                    actionButton = `<button class="actor-card-btn primary" onclick="promptAddMedia('${mediaTypeParam}', ${mv.tmdbId}, '${titleEsced}', this, 'tmdb')">＋ ${t('films_add')}</button>`;
+                    const closeAndOpenTmdb = mv.media_type === 'movie'
+                    ? `window._returnToActor = currentActiveActor; closeActorModal(); closeAnyFullscreenDetail(); openTmdbMovieDetail(${mv.tmdbId});`
+                    : `window._returnToActor = currentActiveActor; closeActorModal(); closeAnyFullscreenDetail(); openTmdbSerieDetail(${mv.tmdbId});`;
+                    cardClickAction = closeAndOpenTmdb;
+                    actionButton = `<button class="actor-card-btn primary" onclick="event.stopPropagation(); promptAddMedia('${mediaTypeParam}', ${mv.tmdbId}, '${titleEsced}', this, 'tmdb')">＋ ${t('films_add')}</button>`;
                 }
 
                 const posterImg = mv.poster
@@ -580,7 +586,7 @@ async function openActorCredits(actorName) {
                 : `<div class="actor-card-ph">${mv.media_type === 'movie' ? '🎬' : '📺'}</div>`;
 
                 return `
-                <div class="actor-card">
+                <div class="actor-card" style="cursor:pointer;" onclick="${cardClickAction}">
                 ${posterImg}
                 <div class="actor-card-content">
                 <div class="actor-card-header">

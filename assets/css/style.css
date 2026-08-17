@@ -2088,7 +2088,7 @@ padding: 20px;
     inset: 0 !important;
     background: rgba(13, 16, 22, 0.72) !important;
     backdrop-filter: blur(6px) !important;
-    z-index: 2147483647 !important;
+    z-index: 10000000 !important; /* 🌟 CORRECTIF : sous la modale d'ajout (99999999) pour qu'elle puisse s'afficher par-dessus */
     
     /* 🌟 La correction est ici : On gère le scroll sur le fond sombre et on aligne en haut */
     overflow-y: auto !important; 
@@ -2778,14 +2778,14 @@ input[type="submit"] {
 
 .app-item-icon {
     grid-area: icon;
-    width: 32px;
-    height: 32px;
-    font-size: 16px;
+    width: 40px;
+    height: 40px;
+    font-size: 20px;
     display: flex;
     align-items: center;
     justify-content: center;
     background: var(--bg3);
-    border-radius: 7px;
+    border-radius: 8px;
 }
 
 .app-item-text {
@@ -2795,8 +2795,8 @@ input[type="submit"] {
     justify-content: center;
     min-width: 0;
 }
-.app-item-name { font-weight: bold; font-size: 13px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.1; }
-.app-item-driver { font-size: 9px; color: var(--muted); font-family: var(--mono); text-transform: lowercase; margin-top: 1px; line-height: 1; }
+.app-item-name { font-weight: bold; font-size: 14px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.1; }
+.app-item-driver { font-size: 10px; color: var(--muted); font-family: var(--mono); text-transform: lowercase; margin-top: 2px; }
 
 .app-item-actions {
     grid-area: actions;
@@ -2812,27 +2812,6 @@ input[type="submit"] {
     align-items: center;
     justify-content: center;
 }
-
-/* 🛡️ PROTECTION MAXIMALE DES PETITS BOUTONS */
-button.app-item-btn {
-    background: transparent !important;
-    border: none !important;
-    color: var(--muted) !important;
-    font-size: 14px !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    cursor: pointer !important;
-    padding: 0 !important;
-    min-width: 34px !important;
-    min-height: 34px !important;
-    border-radius: 8px !important;
-    box-shadow: none !important;
-    margin: 0 !important;
-}
-button.app-item-btn:hover:not(:disabled) { color: var(--text) !important; background: var(--bg3) !important; }
-button.app-item-btn.danger { color: var(--accent3) !important; }
-.app-item-btn svg { width: 1em; height: 1em; flex-shrink: 0; }
 
 /* ── Poignée de glisser-déposer (réutilisée aussi pour les blocs de hub) ── */
 .drag-handle {
@@ -2865,6 +2844,25 @@ body.drag-noselect * {
     user-select: none !important;
     -webkit-user-select: none !important;
 }
+
+/* 🛡️ PROTECTION MAXIMALE DES PETITS BOUTONS */
+button.app-item-btn {
+    background: transparent !important;
+    border: none !important;
+    color: var(--muted) !important;
+    font-size: 16px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    cursor: pointer !important;
+    padding: 4px 6px !important;
+    border-radius: 6px !important;
+    min-height: 0 !important;
+    box-shadow: none !important;
+    margin: 0 !important;
+}
+button.app-item-btn:hover:not(:disabled) { color: var(--text) !important; background: var(--bg3) !important; }
+button.app-item-btn.danger { color: var(--accent3) !important; }
 
 .app-item-switch { grid-area: switch; }
 
@@ -3213,6 +3211,11 @@ body.drag-noselect * {
     color: #fbc02d; /* Couleur d'accentuation (jaune Radarr) */
 }
 
+/* Boutons compacts "tout démarrer / tout mettre en pause" à côté de la recherche (mobile uniquement) */
+.dl-search-quick-action {
+    display: none;
+}
+
 /* =========================================================================
  * ── CORRECTION MOBILE : RECHERCHE, TRI ET ACTIONS OPTIMISÉS
  * ========================================================================= */
@@ -3235,6 +3238,24 @@ body.drag-noselect * {
     .dl-toolbar .lib-search {
         height: 38px !important;
         box-sizing: border-box !important;
+    }
+
+    /* Boutons compacts à côté de la recherche : visibles sur mobile, taille carrée cohérente */
+    .dl-search-quick-action {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        height: 38px !important;
+        width: 38px !important;
+        padding: 0 !important;
+        flex-shrink: 0 !important;
+        box-sizing: border-box !important;
+    }
+
+    /* On cache les boutons "Tout reprendre / Tout mettre en pause" d'origine sur mobile,
+       remplacés par leur version compacte à côté de la recherche */
+    .dl-actions button.dl-global-action {
+        display: none !important;
     }
 
     /* 3. On cache le texte inutile sur mobile */

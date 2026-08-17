@@ -124,6 +124,7 @@
     "dl_sort_size": "Tamaño",
     "dl_sort_ratio": "Ratio",
     "dl_sort_status": "Estado",
+    "dl_sort_tracker": "Tracker",
     "dl_resume_all": "Reanudar todo",
     "dl_pause_all": "Pausar todo",
     "dl_loading": "Cargando descargas...",
@@ -377,6 +378,8 @@
     "push_permission_denied": "Permiso denegado",
     "err_invalid_file": "Archivo inválido",
     "dl_search_placeholder": "Buscar un torrent...",
+    "dl_tracker_filter_label": "Tracker",
+    "dl_tracker_all": "Todos los trackers",
     "tooltip_sort": "Ordenar",
     "tooltip_reverse": "Invertir",
     "tooltip_default": "Por defecto",
@@ -713,9 +716,9 @@
     "unknown_episode": "Episodio",
     "server_history_error": "Error de carga",
     "err_timeout": "Tiempo de espera agotado o error del servidor.",
-	"btn_test_connection": "Probar",
-	"testing_connection": "Probando...",
-	"test_success": "¡Conexión exitosa!",
-  "docker_web_name_label": "Nombre de la interfaz web (Opcional)",
-"docker_web_url_label": "URL de la interfaz (Opcional)"
+    "btn_test_connection": "Probar",
+    "testing_connection": "Probando...",
+    "test_success": "¡Conexión exitosa!",
+    "docker_web_name_label": "Nombre de la interfaz web (Opcional)",
+    "docker_web_url_label": "URL de la interfaz (Opcional)"
 }

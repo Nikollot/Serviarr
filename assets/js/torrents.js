@@ -19,7 +19,7 @@ function getTransmissionStatus(code) {
     return statuses[code] || { text: t('status_unknown'), color: 'var(--muted)' };
 }
 
-let dlSortField = 'addedDate', dlSortReverse = false, dlTorrentsCache = [], dlFilterTab = 'all';
+let dlSortField = 'addedDate', dlSortReverse = false, dlTorrentsCache = [], dlFilterTab = 'all', dlTrackerFilter = 'all';
 
 function formatEta(seconds) {
     if (!seconds || seconds < 0) return '∞';
@@ -35,10 +35,20 @@ function formatDate(ts) {
     return d.toLocaleDateString(currentLocale(), { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' });
 }
 
+// Extrait un nom de tracker exploitable pour le tri (hostname si possible)
+function getTorrentTrackerKey(t) {
+    if (t.trackers && t.trackers.length > 0) {
+        try { return new URL(t.trackers[0].announce).hostname; } catch (e) { return t.trackers[0].announce || ''; }
+    }
+    if (t.tracker) return t.tracker;
+    return '';
+}
+
 function sortTorrents(torrents) {
     const sorted = [...torrents].sort((a, b) => {
         switch (dlSortField) {
             case 'name':        return (a.name || '').localeCompare(b.name || '');
+            case 'tracker':     return getTorrentTrackerKey(a).localeCompare(getTorrentTrackerKey(b));
             // Pour tous les autres, on inverse l'ordre (b - a) pour avoir le plus grand/récent en premier
             case 'percentDone': return (b.percentDone || 0) - (a.percentDone || 0);
             case 'totalSize':   return (b.totalSize || 0) - (a.totalSize || 0);
@@ -88,7 +98,40 @@ function getVisibleTorrents() {
     if (searchQuery) {
         torrents = torrents.filter(t => (t.name || '').toLowerCase().includes(searchQuery));
     }
+    if (dlTrackerFilter !== 'all') {
+        torrents = torrents.filter(t => getTorrentTrackerKey(t) === dlTrackerFilter);
+    }
     return sortTorrents(torrents);
+}
+
+// Remplit le menu déroulant avec la liste des trackers distincts présents dans les torrents actuels
+function populateTrackerFilterOptions() {
+    const sel = document.getElementById('dl-tracker-filter');
+    if (!sel) return;
+
+    const trackers = new Set();
+    dlTorrentsCache.forEach(t => {
+        const key = getTorrentTrackerKey(t);
+        if (key) trackers.add(key);
+    });
+
+    const sorted = Array.from(trackers).sort((a, b) => a.localeCompare(b));
+    const previousValue = dlTrackerFilter;
+
+    let html = `<option value="all">${t('dl_tracker_all') || 'Tous les trackers'}</option>`;
+    sorted.forEach(name => {
+        html += `<option value="${esc(name)}">${esc(name)}</option>`;
+    });
+    sel.innerHTML = html;
+
+    // Si le tracker précédemment sélectionné n'existe plus dans la liste, on revient sur "Tous"
+    sel.value = sorted.includes(previousValue) ? previousValue : 'all';
+    dlTrackerFilter = sel.value;
+}
+
+function setDlTrackerFilter(value) {
+    dlTrackerFilter = value;
+    renderTorrents();
 }
 
 function renderTorrents() {
@@ -184,6 +227,7 @@ async function loadDownloads() {
 
     dlTorrentsCache = r.torrents;
     document.getElementById('dl-count').textContent = r.torrents.length;
+    populateTrackerFilterOptions();
     renderTorrents();
 }
 

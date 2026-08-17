@@ -459,6 +459,17 @@ async function openTmdbMovieDetail(tmdbId) {
         ${releaseDatesHtml}
         <h3 style="margin:0 0 10px 0; font-size:16px; color:var(--text);">${t('detail_overview')}</h3>
         <p style="font-size:13.5px; line-height:1.6; color:#a0a5b5; margin:0 0 25px 0;">${esc(r.overview) || t('no_movie_found')}</p>
+
+        ${r.collection ? `
+            <div onclick="openMovieCollection('${esc(r.collection.title).replace(/'/g, "\\'")}', 0, ${r.collection.tmdbId || 0})"
+            style="margin-bottom:25px; padding:15px; background:var(--bg3); border:1px solid var(--border); border-left:4px solid var(--radarr); border-radius:12px; display:flex; align-items:center; gap:15px; cursor:pointer;">
+            <span style="font-size:24px;">🎞️</span>
+            <div style="flex:1;">
+            <div style="font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:2px;">${t('detail_collection')}</div>
+            <div style="font-size:14px; font-weight:bold; color:var(--text);">${esc(r.collection.title)}</div>
+            </div>
+            <span style="color:var(--muted); font-size:20px;">›</span>
+            </div>` : ''}
         </div>
         </div>`;
         animateContentSlideIn(content);

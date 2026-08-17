@@ -1,5 +1,5 @@
 {
-  "version": "1.8.1",
-  "changelog": "### Updates\n - change up and down system on parameter\n - add media informations and custom format in modal detail",
+  "version": "1.8.2",
+  "changelog": "### Updates\n - see detail movie or tv shows on click from actor profile\n - fix bug modale add on actor profile\n - modify buttons place on downlaod page on mobile\n - add tracker filter on downloads\n - add collection for movie not added",
   "url": "https://github.com/Nikollot/Serviarr/releases/latest"
 }

@@ -1,6 +1,6 @@
 // ===== Serviarr - utils.js (extrait de script.js) =====
 
-const APP_VERSION = "1.8.1";
+const APP_VERSION = "1.8.2";
 
 const UPDATE_URL = "https://raw.githubusercontent.com/Nikollot/Serviarr/main/version.json";
 

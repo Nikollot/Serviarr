@@ -61,8 +61,10 @@ if (file_exists($config_path)) {
 
 <div class="tab-page active">
     <div class="dl-toolbar">
-        <div style="margin-bottom: 15px; display: flex;">
+        <div style="margin-bottom: 15px; display: flex; gap: 8px;">
         <input type="text" id="dl-search" class="lib-search" placeholder="<?= t('dl_search_placeholder') ?>" oninput="renderTorrents()" style="flex: 1;">
+        <button class="btn-sort dl-search-quick-action" onclick="torrentActionGlobale('torrent-start')" title="<?= t('dl_resume_all') ?>">▶</button>
+        <button class="btn-sort dl-search-quick-action" onclick="torrentActionGlobale('torrent-stop')" title="<?= t('dl_pause_all') ?>">⏸</button>
         </div>
         <div class="dl-sort-wrap">
             <label class="dl-sort-label"><?= t('dl_sort_by') ?></label>
@@ -73,16 +75,23 @@ if (file_exists($config_path)) {
                 <option value="totalSize"><?= t('dl_sort_size') ?></option>
                 <option value="uploadRatio"><?= t('dl_sort_ratio') ?></option>
                 <option value="status"><?= t('dl_sort_status') ?></option>
+                <option value="tracker"><?= t('dl_sort_tracker') ?></option>
             </select>
             <button class="btn-sort btn-dl-sort-reverse" onclick="dlSortReverse=!dlSortReverse; renderTorrents();"
                     title="<?= t('tooltip_reverse') ?>">⇅</button>
         </div>
+        <div class="dl-sort-wrap">
+            <label class="dl-sort-label"><?= t('dl_tracker_filter_label') ?></label>
+            <select id="dl-tracker-filter" class="lib-select" onchange="setDlTrackerFilter(this.value)">
+                <option value="all"><?= t('dl_tracker_all') ?></option>
+            </select>
+        </div>
                 <div class="dl-actions">
             <button class="btn-sort" id="btn-bulk-toggle" onclick="toggleBulkMode()" title="<?= t('bulk_select_toggle') ?>">☑️</button>
-            <button class="btn-sort dl-action-btn" style="width: auto; padding: 0 14px; font-size: 13px; font-weight: 600; gap: 6px;" onclick="torrentActionGlobale('torrent-start')" title="<?= t('dl_resume_all') ?>">
+            <button class="btn-sort dl-action-btn dl-global-action" style="width: auto; padding: 0 14px; font-size: 13px; font-weight: 600; gap: 6px;" onclick="torrentActionGlobale('torrent-start')" title="<?= t('dl_resume_all') ?>">
                 ▶ <span class="hide-mobile"><?= t('dl_resume_all') ?></span>
             </button>
-            <button class="btn-sort dl-action-btn" style="width: auto; padding: 0 14px; font-size: 13px; font-weight: 600; gap: 6px;" onclick="torrentActionGlobale('torrent-stop')" title="<?= t('dl_pause_all') ?>">
+            <button class="btn-sort dl-action-btn dl-global-action" style="width: auto; padding: 0 14px; font-size: 13px; font-weight: 600; gap: 6px;" onclick="torrentActionGlobale('torrent-stop')" title="<?= t('dl_pause_all') ?>">
                 ⏸ <span class="hide-mobile"><?= t('dl_pause_all') ?></span>
             </button>
         </div>

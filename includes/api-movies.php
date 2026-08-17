@@ -78,7 +78,11 @@ if ($action === 'tmdb_movie_detail') {
                      'inCinemas'       => $lookup['inCinemas'] ?? null,
                      'digitalRelease'  => $lookup['digitalRelease'] ?? null,
                      'physicalRelease' => $lookup['physicalRelease'] ?? null,
-                     'youtubeTrailerId'=> $youtubeTrailerId
+                     'youtubeTrailerId'=> $youtubeTrailerId,
+                     'collection' => !empty($lookup['collection']['title']) ? [
+                         'title'  => $lookup['collection']['title'],
+                         'tmdbId' => $lookup['collection']['tmdbId'] ?? 0,
+                     ] : null
     ], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_IGNORE);
     exit;
 }
@@ -144,11 +148,13 @@ if ($action === 'movie_detail') {
     if (!empty($mv['movieFile'])) {
         $mf = $mv['movieFile'];
 
-        // Les customFormats imbriqués dans /movie/{id} ne sont pas fiables (souvent vides).
-        // On récupère le fichier via l'endpoint dédié /moviefile, comme pour les épisodes.
-        $mfDedicated = arr_get($radarr, "/api/v3/moviefile?movieId=$id");
-        if (is_array($mfDedicated) && !isset($mfDedicated['_error']) && count($mfDedicated) > 0) {
-            $mf = $mfDedicated[0];
+        // Les customFormats imbriqués dans /movie/{id} ne sont pas fiables (souvent absents).
+        // Il faut interroger /api/v3/moviefile/{fileId} (par ID de fichier) séparément pour les récupérer.
+        if (!empty($mf['id'])) {
+            $mfDedicated = arr_get($radarr, "/api/v3/moviefile/{$mf['id']}");
+            if (is_array($mfDedicated) && !isset($mfDedicated['_error']) && !empty($mfDedicated['id'])) {
+                $mf = $mfDedicated;
+            }
         }
         $mi = $mf['mediaInfo'] ?? [];
         $cfs = [];
@@ -542,7 +548,59 @@ if ($action === 'movie_collection') {
     }
 
     if (!$target_collection) {
-        echo json_encode(['error' => t('err_collection_not_found_radarr')]); exit;
+        // 🌟 Repli : la collection n'existe pas encore dans Radarr (aucun de ses films n'a jamais été ajouté).
+        // On interroge TMDB directement pour récupérer la liste des films de la collection.
+        $tmdbKey = $cfg['tmdb_api_key'] ?? '';
+        if (!$collection_tmdbid || empty($tmdbKey)) {
+            echo json_encode(['error' => t('err_collection_not_found_radarr')]); exit;
+        }
+
+        $tmdb_url = "https://api.themoviedb.org/3/collection/{$collection_tmdbid}?api_key={$tmdbKey}&language={$TMDB_LANG}";
+        $tmdb_data = http_get_secure($tmdb_url);
+
+        if (!is_array($tmdb_data) || isset($tmdb_data['_error']) || empty($tmdb_data['parts'])) {
+            echo json_encode(['error' => t('err_collection_not_found_radarr')]); exit;
+        }
+
+        $library = arr_get($radarr, '/api/v3/movie');
+        $in_library = [];
+        if (!isset($library['_error'])) {
+            foreach ($library as $mv) {
+                $in_library[$mv['tmdbId']] = $mv;
+            }
+        }
+
+        $all_movies = [];
+        foreach ($tmdb_data['parts'] as $mv) {
+            $tmdbId = $mv['id'] ?? null;
+            $libData = $in_library[$tmdbId] ?? null;
+            $inLib = ($libData !== null);
+
+            $poster = null;
+            if ($inLib) {
+                $poster = $base_url . '/api/v3/mediacover/' . $libData['id'] . '/poster-250.jpg?apikey=' . $radarr['api_key'];
+            } elseif (!empty($mv['poster_path'])) {
+                $poster = 'https://image.tmdb.org/t/p/w342' . $mv['poster_path'];
+            }
+
+            $all_movies[] = [
+                'id'       => $libData['id'] ?? null,
+                'tmdbId'   => $tmdbId,
+                'title'    => $mv['title'] ?? '?',
+                'year'     => !empty($mv['release_date']) ? substr($mv['release_date'], 0, 4) : '',
+                'rating'   => round($mv['vote_average'] ?? 0, 1),
+                'hasFile'  => $libData ? ($libData['hasFile'] ?? false) : false,
+                'monitored'=> $libData ? ($libData['monitored'] ?? false) : false,
+                'inLib'    => $inLib,
+                'quality'  => $libData ? ($libData['movieFile']['quality']['quality']['name'] ?? null) : null,
+                'poster'   => $poster,
+                'overview' => substr($mv['overview'] ?? '', 0, 200),
+            ];
+        }
+
+        usort($all_movies, fn($a, $b) => ($a['year'] ?? 0) - ($b['year'] ?? 0));
+        echo json_encode(['movies' => $all_movies, 'collection' => $tmdb_data['name'] ?? $collection_title], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_IGNORE);
+        exit;
     }
 
     $library = arr_get($radarr, '/api/v3/movie');

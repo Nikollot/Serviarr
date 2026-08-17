@@ -124,6 +124,7 @@
     "dl_sort_size": "大小",
     "dl_sort_ratio": "分享率",
     "dl_sort_status": "状态",
+    "dl_sort_tracker": "Tracker",
     "dl_resume_all": "全部继续",
     "dl_pause_all": "全部暂停",
     "dl_loading": "正在加载下载内容...",
@@ -377,6 +378,8 @@
     "push_permission_denied": "权限被拒绝",
     "err_invalid_file": "无效文件",
     "dl_search_placeholder": "搜索种子...",
+    "dl_tracker_filter_label": "Tracker",
+    "dl_tracker_all": "所有 Tracker",
     "tooltip_sort": "排序",
     "tooltip_reverse": "反转",
     "tooltip_default": "默认",
@@ -713,9 +716,9 @@
     "unknown_episode": "剧集",
     "server_history_error": "加载错误",
     "err_timeout": "连接超时或服务器错误。",
-	"btn_test_connection": "测试",
-	"testing_connection": "测试中...",
-	"test_success": "连接成功！",
-  "docker_web_name_label": "Web 界面名称（可选）",
-"docker_web_url_label": "界面 URL（可选）"
+    "btn_test_connection": "测试",
+    "testing_connection": "测试中...",
+    "test_success": "连接成功！",
+    "docker_web_name_label": "Web 界面名称（可选）",
+    "docker_web_url_label": "界面 URL（可选）"
 }

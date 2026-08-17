@@ -124,6 +124,7 @@
     "dl_sort_size": "サイズ",
     "dl_sort_ratio": "比率",
     "dl_sort_status": "ステータス",
+    "dl_sort_tracker": "トラッカー",
     "dl_resume_all": "全て再開",
     "dl_pause_all": "全て一時停止",
     "dl_loading": "ダウンロードを読み込み中...",
@@ -377,6 +378,8 @@
     "push_permission_denied": "許可が拒否されました",
     "err_invalid_file": "無効なファイル",
     "dl_search_placeholder": "Torrentを検索...",
+    "dl_tracker_filter_label": "トラッカー",
+    "dl_tracker_all": "すべてのトラッカー",
     "tooltip_sort": "並べ替え",
     "tooltip_reverse": "反転",
     "tooltip_default": "デフォルト",
@@ -713,9 +716,9 @@
     "unknown_episode": "エピソード",
     "server_history_error": "読み込みエラー",
     "err_timeout": "接続がタイムアウトしたか、サーバーエラーが発生しました。",
-	"btn_test_connection": "テスト",
-	"testing_connection": "テスト中...",
-	"test_success": "接続に成功しました！",
-  "docker_web_name_label": "Webインターフェース名（オプション）",
-"docker_web_url_label": "インターフェースURL（オプション）"
+    "btn_test_connection": "テスト",
+    "testing_connection": "テスト中...",
+    "test_success": "接続に成功しました！",
+    "docker_web_name_label": "Webインターフェース名（オプション）",
+    "docker_web_url_label": "インターフェースURL（オプション）"
 }
