@@ -1,5 +1,5 @@
 {
   "version": "1.8.2",
-  "changelog": "### Updates\n - see detail movie or tv shows on click from actor profile\n - fix bug modale add on actor profile\n - modify buttons place on downlaod page on mobile\n - add tracker filter on downloads\n - add collection for movie not added",
+  "changelog": "### Updates\n - see detail movie or tv shows on click from actor profile\n - fix bug modale add on actor profile\n - modify buttons place on downlaod page on mobile\n - add tracker filter on downloads\n - add collection for movie not added\n - add filter on indexer",
   "url": "https://github.com/Nikollot/Serviarr/releases/latest"
 }

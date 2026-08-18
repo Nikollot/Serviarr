@@ -222,7 +222,9 @@ if ($action === 'prowlarr_search') {
             $results[] = [
                 'title' => $res['Title'] ?? 'Inconnu', 'indexer' => $res['Tracker'] ?? 'Jackett', 'size' => $res['Size'] ?? 0,
                 'seeders' => $res['Seeders'] ?? 0, 'leechers' => $res['Peers'] ? max(0, $res['Peers'] - ($res['Seeders'] ?? 0)) : 0,
-                'magnetUrl' => $res['MagnetUri'] ?? '', 'downloadUrl' => $res['Link'] ?? '', 'infoUrl' => $res['Details'] ?? '', 'age' => $ageHours
+                'magnetUrl' => $res['MagnetUri'] ?? '', 'downloadUrl' => $res['Link'] ?? '', 'infoUrl' => $res['Details'] ?? '', 'age' => $ageHours,
+                'grabs' => $res['Grabs'] ?? 0,
+                'category' => $res['CategoryDesc'] ?? (is_array($res['Category'] ?? null) ? implode(', ', $res['Category']) : '')
             ];
         }
     } else {

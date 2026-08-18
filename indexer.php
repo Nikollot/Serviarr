@@ -53,6 +53,21 @@ if (file_exists($config_path)) {
         <button class="btn-primary btn-search-prowlarr" onclick="searchProwlarr()"><?= t('prowlarr_search_btn') ?></button>
     </div>
 
+    <div class="lib-toolbar prowlarr-toolbar">
+        <div class="lib-sort-wrap" style="display:flex; align-items:center;">
+            <label class="dl-sort-label" style="margin-right:8px; font-size:12px; font-weight:bold; color:var(--muted); text-transform:uppercase;"><?= t('dl_sort_by') ?></label>
+            <select id="prowlarr-sort-select" class="lib-select" onchange="sortProwlarrResults(this.value)">
+                <option value="title"><?= t('sort_title') ?></option>
+                <option value="age" selected><?= t('prowlarr_sort_age') ?></option>
+                <option value="indexer"><?= t('prowlarr_sort_indexer') ?></option>
+                <option value="size"><?= t('sort_size') ?></option>
+                <option value="category"><?= t('prowlarr_sort_category') ?></option>
+                <option value="grabs"><?= t('prowlarr_sort_grabs') ?></option>
+            </select>
+            <button class="btn-sort" onclick="sortProwlarrResults(_prowlarrSortCriteria)" title="<?= t('tooltip_reverse') ?>" style="margin-left:8px;">⇅</button>
+        </div>
+    </div>
+
     <div id="prowlarr-content" class="prowlarr-content">
         <div class="prowlarr-placeholder"><?= t('prowlarr_loading') ?></div>
     </div>

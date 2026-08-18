@@ -185,6 +185,10 @@
     "prowlarr_all_categories": "Toutes les catégories",
     "prowlarr_all_indexers": "Tous les indexers",
     "prowlarr_search_btn": "Chercher",
+    "prowlarr_sort_age": "Âge",
+    "prowlarr_sort_indexer": "Indexer",
+    "prowlarr_sort_category": "Catégorie",
+    "prowlarr_sort_grabs": "Grabs",
     "prowlarr_loading": "Chargement de l'interface Prowlarr...",
     "settings_apps": "Applications",
     "settings_apps_loading": "Chargement...",
@@ -719,6 +723,10 @@
     "btn_test_connection": "Tester",
     "testing_connection": "Test...",
     "test_success": "Connexion réussie !",
+    "setup_server_title": "Configuration",
+    "setup_server_desc": "Entrez l'adresse publique de votre serveur Serviarr",
+    "setup_server_placeholder": "https://serviarr.bouniko.fr",
+    "setup_server_btn": "Valider",
     "docker_web_name_label": "Nom de l'application Web (Optionnel)",
     "docker_web_url_label": "URL de l'interface (Optionnel)"
 }

@@ -753,6 +753,7 @@ async function searchProwlarr() {
     if (!query && indexer === "0" && category === "0") {
         if (typeof loadProwlarrIndexers === 'function') loadProwlarrIndexers();
         document.getElementById('prowlarr-results-count').textContent = '—';
+        window._prowlarrResults = [];
         return;
     }
 
@@ -766,17 +767,65 @@ async function searchProwlarr() {
     }
 
     const results = r.results || [];
+    window._prowlarrResults = results;
     document.getElementById('prowlarr-results-count').textContent = results.length;
 
-    if (results.length === 0) {
+    sortProwlarrResults(_prowlarrSortCriteria, true);
+}
+
+// Extrait un libellé de catégorie exploitable, que le résultat vienne de Jackett (déjà mappé en string)
+// ou de Prowlarr (tableau brut d'objets {id, name})
+function getResultCategoryLabel(res) {
+    if (res.category) return res.category;
+    if (Array.isArray(res.categories) && res.categories.length) {
+        return res.categories.map(c => (typeof c === 'object' ? (c.name || c.id) : c)).join(', ');
+    }
+    return '';
+}
+
+let _prowlarrSortCriteria = 'age';
+let _prowlarrSortAsc = true;
+
+function sortProwlarrResults(criteria, skipToggle = false) {
+    if (!skipToggle) {
+        if (_prowlarrSortCriteria === criteria) {
+            _prowlarrSortAsc = !_prowlarrSortAsc;
+        } else {
+            _prowlarrSortCriteria = criteria;
+            _prowlarrSortAsc = (criteria === 'title' || criteria === 'indexer' || criteria === 'category');
+        }
+    }
+
+    const sel = document.getElementById('prowlarr-sort-select');
+    if (sel) sel.value = _prowlarrSortCriteria;
+
+    const container = document.getElementById('prowlarr-content');
+    const allResults = window._prowlarrResults || [];
+    document.getElementById('prowlarr-results-count').textContent = allResults.length;
+
+    if (allResults.length === 0) {
         container.innerHTML = `<div class="empty-state"><div class="icon">🔍</div><h3>${t('releases_none')}</h3></div>`;
         return;
     }
+
+    const dir = _prowlarrSortAsc ? 1 : -1;
+    const results = [...allResults].sort((a, b) => {
+        switch (_prowlarrSortCriteria) {
+            case 'title':    return dir * (a.title || '').localeCompare(b.title || '', 'fr', { sensitivity: 'base' });
+            case 'age':      return dir * ((a.age || 0) - (b.age || 0));
+            case 'indexer':  return dir * (a.indexer || '').localeCompare(b.indexer || '', 'fr', { sensitivity: 'base' });
+            case 'size':     return dir * ((a.size || 0) - (b.size || 0));
+            case 'category': return dir * getResultCategoryLabel(a).localeCompare(getResultCategoryLabel(b), 'fr', { sensitivity: 'base' });
+            case 'grabs':    return dir * ((a.grabs || 0) - (b.grabs || 0));
+            default:         return 0;
+        }
+    });
 
     let html = '<div style="display:flex; flex-direction:column; gap:10px;">';
     results.forEach(res => {
         const size = formatBytes(res.size || 0);
         const ageInDays = Math.floor((res.age || 0) / 24) || '< 1';
+        const category = getResultCategoryLabel(res);
         const magnetOrTorrent = res.magnetUrl || res.downloadUrl || '';
 
         const downloadBtn = magnetOrTorrent
@@ -794,9 +843,11 @@ async function searchProwlarr() {
         </div>
         <div style="display:flex; flex-wrap:wrap; gap:10px; font-size:12px; align-items:center;">
         <span style="color:var(--accent); background:var(--accent-bg); padding:2px 6px; border-radius:4px; font-weight:bold; border:none;">${esc(res.indexer)}</span>
+        ${category ? `<span style="color:var(--muted); background:var(--bg2); padding:2px 6px; border-radius:4px;">${esc(category)}</span>` : ''}
         <span style="color:var(--muted);">📁 ${size}</span>
         <span style="color:var(--muted);">🌱 ${res.seeders || 0} / 🧛 ${res.leechers || 0}</span>
         <span style="color:var(--muted);">📅 ${ageInDays} j</span>
+        <span style="color:var(--muted);">🔗 ${res.grabs || 0}</span>
         </div>
         </div>`;
     });
