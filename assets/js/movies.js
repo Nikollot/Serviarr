@@ -13,21 +13,47 @@ async function openMovieDetailByTitle(title) {
 
 let moviesSearchTimeout;
 
-function moviesSearchDebounce() { clearTimeout(moviesSearchTimeout); moviesSearchTimeout = setTimeout(() => { loadMovies(); }, 400); }
+// 🌟 VARIABLES DU CACHE GLOBAL
+let _moviesSortCriteria = 'title';
+let _moviesSortAsc = true;
+let _moviesSortOpen = false;
+let _moviesAllData = [];
+let _moviesDataLoaded = false;
 
-function moviesReload() { loadMovies(); }
+function moviesSearchDebounce() { 
+    clearTimeout(moviesSearchTimeout); 
+    const mode = document.getElementById('movies-mode').value;
+    if (mode === 'search') {
+        moviesSearchTimeout = setTimeout(() => { loadMovies(); }, 400); 
+    } else {
+        // En mode local, on filtre très vite sans recharger l'API
+        moviesSearchTimeout = setTimeout(() => { renderFilteredMovies(); }, 200); 
+    }
+}
+
+function moviesReload(forceRefresh = false) { 
+    if (forceRefresh) {
+        _moviesDataLoaded = false; // Force la purge du cache
+        loadMovies();
+    } else {
+        const mode = document.getElementById('movies-mode').value;
+        if (mode === 'search') loadMovies();
+        else renderFilteredMovies(); 
+    }
+}
 
 async function loadMovies() {
     const recentContainer = document.getElementById('dash-recent-movies');
     const upcomingContainer = document.getElementById('dash-upcoming-movies');
-    const physicalContainer = document.getElementById('dash-upcoming-physical-movies'); // 🌟 AJOUT
+    const physicalContainer = document.getElementById('dash-upcoming-physical-movies');
     const recoContainer = document.getElementById('dash-reco-movies');
     const popularContainer = document.getElementById('dash-popular-movies');
 
+    // --- GESTION DU DASHBOARD (Ne change pas) ---
     if (recentContainer || upcomingContainer || physicalContainer || recoContainer || popularContainer) {
         if (recentContainer) recentContainer.innerHTML = `<p style="color:var(--muted);">${t('status_loading')}</p>`;
         if (upcomingContainer) upcomingContainer.innerHTML = `<p style="color:var(--muted);">${t('status_loading')}</p>`;
-        if (physicalContainer) physicalContainer.innerHTML = `<p style="color:var(--muted);">${t('status_loading')}</p>`; // 🌟 AJOUT
+        if (physicalContainer) physicalContainer.innerHTML = `<p style="color:var(--muted);">${t('status_loading')}</p>`;
         if (recoContainer) recoContainer.innerHTML = `<p style="color:var(--muted);">${t('status_loading')}</p>`;
         if (popularContainer) popularContainer.innerHTML = `<p style="color:var(--muted);">${t('status_loading')}</p>`;
 
@@ -40,7 +66,7 @@ async function loadMovies() {
                 const errHtml = `<p style="color:var(--accent3);">⚠️ ${errMsg}</p>`;
                 if (recentContainer) recentContainer.innerHTML = errHtml;
                 if (upcomingContainer) upcomingContainer.innerHTML = errHtml;
-                if (physicalContainer) physicalContainer.innerHTML = errHtml; // 🌟 AJOUT
+                if (physicalContainer) physicalContainer.innerHTML = errHtml;
                 if (recoContainer) recoContainer.innerHTML = errHtml;
                 if (popularContainer) popularContainer.innerHTML = errHtml;
                 return;
@@ -57,7 +83,6 @@ async function loadMovies() {
                     : `sessionStorage.setItem('serviarr_hub_tab', 'movies'); window.location.href='films.php?movie=${mv.id}'`;
                     const badge = mv.is_new ? `<div class="dash-badge" style="background:var(--accent); color:#000;">+ ${t('badge_discover')}</div>` : '';
 
-                    // 🌟 AJOUT : Calcul du temps restant avant la sortie
                     let dateBadge = '';
                     if (mv.release_date) {
                         const relDate = new Date(mv.release_date);
@@ -109,11 +134,11 @@ async function loadMovies() {
                 </div>`;
                 recoContainer.innerHTML = missingKeyMsg;
                 if (upcomingContainer) upcomingContainer.innerHTML = '';
-                if (physicalContainer) physicalContainer.innerHTML = ''; // 🌟 AJOUT
+                if (physicalContainer) physicalContainer.innerHTML = '';
                 if (popularContainer) popularContainer.innerHTML = '';
             } else {
                 if (upcomingContainer && data.upcoming) upcomingContainer.innerHTML = renderHubRow(data.upcoming);
-                if (physicalContainer && data.upcoming_physical) physicalContainer.innerHTML = renderHubRow(data.upcoming_physical); // 🌟 AJOUT
+                if (physicalContainer && data.upcoming_physical) physicalContainer.innerHTML = renderHubRow(data.upcoming_physical);
                 if (recoContainer && data.reco) recoContainer.innerHTML = renderHubRow(data.reco);
                 if (popularContainer && data.popular) popularContainer.innerHTML = renderHubRow(data.popular);
             }
@@ -121,7 +146,7 @@ async function loadMovies() {
             const failMsg = `<p style="color:var(--accent3);">⚠️ ${t('err_conn_server')}</p>`;
             if (recentContainer) recentContainer.innerHTML = failMsg;
             if (upcomingContainer) upcomingContainer.innerHTML = failMsg;
-            if (physicalContainer) physicalContainer.innerHTML = failMsg; // 🌟 AJOUT
+            if (physicalContainer) physicalContainer.innerHTML = failMsg;
             if (recoContainer) recoContainer.innerHTML = failMsg;
             if (popularContainer) popularContainer.innerHTML = failMsg;
         }
@@ -130,13 +155,12 @@ async function loadMovies() {
 
     const grid = document.getElementById('movies-grid');
     if (!grid) return;
-    const mode   = document.getElementById('movies-mode').value;
-    const q      = document.getElementById('movies-search').value.trim();
-    const filter = document.getElementById('movies-filter').value;
+    const mode = document.getElementById('movies-mode').value;
+    const q = document.getElementById('movies-search').value.trim();
 
-    grid.innerHTML = Array(12).fill('<div class="media-card"><div class="media-card-poster-placeholder">🎬</div><div class="media-card-body"><div class="shimmer" style="height:11px;width:80%;margin-bottom:6px;"></div><div class="shimmer" style="height:10px;width:50%;"></div></div></div>').join('');
-
+    // 🌟 GESTION DE LA RECHERCHE EN LIGNE (TMDB)
     if (mode === 'search') {
+        grid.innerHTML = Array(12).fill('<div class="media-card"><div class="media-card-poster-placeholder">🎬</div><div class="media-card-body"><div class="shimmer" style="height:11px;width:80%;margin-bottom:6px;"></div><div class="shimmer" style="height:10px;width:50%;"></div></div></div>').join('');
         if (!q) {
             grid.innerHTML = `<div class="empty-state"><div class="icon">🔍</div><h3>${t('search_type_title')}</h3><p>${t('search_type_hint')}</p></div>`;
             return;
@@ -155,26 +179,76 @@ async function loadMovies() {
     } else {
         if (document.getElementById('movies-filter')) document.getElementById('movies-filter').style.display = '';
 
-        const r = await api(`library_movies&q=${encodeURIComponent(q)}&filter=${filter}`, {}, 'GET');
+        // 🌟 CACHE PERSISTANT (Ne se supprime jamais, se met à jour en arrière-plan)
+        if (!_moviesDataLoaded) {
+            
+            // 1. Affichage instantané depuis le stockage du navigateur
+            const localCache = localStorage.getItem('serviarr_movies_library');
+            if (localCache) {
+                try {
+                    _moviesAllData = JSON.parse(localCache);
+                    renderFilteredMovies(); // ⚡ Zéro attente
+                } catch (e) {}
+            } else {
+                grid.innerHTML = Array(12).fill('<div class="media-card"><div class="media-card-poster-placeholder">🎬</div><div class="media-card-body"><div class="shimmer" style="height:11px;width:80%;margin-bottom:6px;"></div><div class="shimmer" style="height:10px;width:50%;"></div></div></div>').join('');
+            }
 
-        if (r.error) {
-            const titleEsced = typeof esc === 'function' ? esc(r.error) : r.error;
-            grid.innerHTML = `<div class="empty-state"><div class="icon">❌</div><h3>${t('err_conn_server')}</h3><p>${titleEsced}</p></div>`;
-            if (document.getElementById('movies-count')) document.getElementById('movies-count').textContent = t('err_title');
-            return;
+            // 2. Synchronisation silencieuse avec le serveur (Ajouts, suppressions, modifications)
+            api(`library_movies&q=&filter=all`, {}, 'GET').then(r => {
+                if (!r.error && r.movies) {
+                    const newDataString = JSON.stringify(r.movies);
+                    // S'il y a eu un changement côté serveur, on met à jour !
+                    if (newDataString !== localStorage.getItem('serviarr_movies_library')) {
+                        _moviesAllData = r.movies;
+                        localStorage.setItem('serviarr_movies_library', newDataString);
+                        renderFilteredMovies(); // Mise à jour fluide
+                    }
+                } else if (r.error && !localCache) {
+                    grid.innerHTML = `<div class="empty-state"><div class="icon">❌</div><h3>${t('err_conn_server')}</h3><p>${esc(r.error)}</p></div>`;
+                }
+            });
+
+            _moviesDataLoaded = true; // On verrouille pour éviter de spammer le serveur
+        } else {
+            renderFilteredMovies(); // Déjà chargé en RAM, on filtre juste
         }
-
-        if (document.getElementById('movies-count')) document.getElementById('movies-count').textContent = (r.total || 0) + ` ${t('count_movies')}`;
-        grid.innerHTML = '';
-        _moviesAllData = r.movies || [];
-        const sorted = applySortToMovies([..._moviesAllData]);
-
-        const fragment = document.createDocumentFragment();
-        sorted.forEach(mv => fragment.appendChild(makeMovieCard(mv, false)));
-        grid.appendChild(fragment);
-
-        if (document.getElementById('movies-pagination')) document.getElementById('movies-pagination').innerHTML = '';
     }
+}
+
+// 🌟 MOTEUR DE RENDU ET FILTRAGE 100% LOCAL
+function renderFilteredMovies() {
+    const grid = document.getElementById('movies-grid');
+    if (!grid) return;
+
+    const q = document.getElementById('movies-search').value.trim().toLowerCase();
+    const filterEl = document.getElementById('movies-filter');
+    const filter = filterEl ? filterEl.value : 'all';
+
+    let filtered = _moviesAllData.filter(mv => {
+        // Filtre par texte
+        if (q && !(mv.title || '').toLowerCase().includes(q)) return false;
+        
+        // Filtres par statut
+        if (filter === 'monitored' && !mv.monitored) return false;
+        if (filter === 'unmonitored' && mv.monitored) return false;
+        if (filter === 'downloaded' && !mv.hasFile) return false;
+        if (filter === 'missing' && (mv.hasFile || !mv.monitored)) return false;
+        
+        return true;
+    });
+
+    const countEl = document.getElementById('movies-count');
+    if (countEl) countEl.textContent = filtered.length + ` ${t('count_movies')}`;
+
+    const sorted = applySortToMovies(filtered);
+
+    grid.innerHTML = '';
+    const fragment = document.createDocumentFragment();
+    sorted.forEach(mv => fragment.appendChild(makeMovieCard(mv, false)));
+    grid.appendChild(fragment);
+
+    const paginationEl = document.getElementById('movies-pagination');
+    if (paginationEl) paginationEl.innerHTML = '';
 }
 
 function makeMovieCard(mv, isSearch) {
@@ -192,7 +266,6 @@ function makeMovieCard(mv, isSearch) {
     ? `<button class="btn-add" onclick="event.stopPropagation();promptAddMedia('movie', ${mv.tmdbId}, '${esc(mv.title).replace(/'/g,"\\'").replace(/"/g,'&quot;')}', this)">＋</button>`
     : '';
     const qualityBadge = mv.quality ? `<span style="font-size:10px;color:var(--radarr)">${esc(mv.quality)}</span>` : '';
-    // 🌟 Le badge de poids avec la puce :
     const sizeBadge = mv.sizeOnDisk > 0 ? `<span style="font-size:10px;color:var(--muted);font-weight:600;margin-left:4px;">${mv.sizeOnDisk} GB</span>` : '';
     const poster = mv.poster ? `<img class="media-card-poster" src="${esc(mv.poster)}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">` : '';
     const placeholder = `<div class="media-card-poster-placeholder" style="${mv.poster?'display:none':''}">🎬</div>`;
@@ -226,7 +299,7 @@ function makeMovieCard(mv, isSearch) {
     if (bulkSelectedIds.has(mv.id)) div.classList.add('bulk-selected');
 
     div.innerHTML = `
-    ${fanartHtml} <!-- 🌟 Fanart placé à la racine pour couvrir toute la carte -->
+    ${fanartHtml}
     ${bulkCheckbox}
     ${poster}${placeholder}
     <div class="monitored-badge">${!isSearch ? `<div class="monitored-badge" style="cursor:pointer;" onclick="event.stopPropagation(); toggleMonitor(${mv.id}, 'movie', ${!monitored}, this)">${monitored ? ICON_MONITORED : ICON_UNMONITORED}</div>` : ''}</div>
@@ -270,7 +343,6 @@ async function openMovieCollection(collectionTitle, fromMovieId, collectionTmdbI
     const total      = movies.length;
     const inLib      = movies.filter(m => m.inLib).length;
     const downloaded = movies.filter(m => m.hasFile).length;
-    // 🌟 ON SAUVEGARDE LES FILMS MANQUANTS POUR L'AJOUT MASSIF
     window.currentCollectionUnmonitored = movies.filter(m => !m.inLib);
 
     const cards = movies.map(mv => {
@@ -413,7 +485,6 @@ async function promptAddCollection(title) {
     document.getElementById('add-media-loader').style.display = 'none';
     document.getElementById('add-media-form').style.display = 'block';
 
-    // 🌟 On intercepte le clic du bouton Valider pour notre boucle personnalisée
     document.getElementById('btn-confirm-add').onclick = confirmAddCollection;
 }
 
@@ -426,7 +497,6 @@ async function confirmAddCollection() {
 
     const modal = document.getElementById('modal-add-media');
 
-    // On cache le formulaire et on affiche une barre de progression
     document.getElementById('add-media-form').style.display = 'none';
     const loader = document.getElementById('add-media-loader');
     loader.style.display = 'block';
@@ -461,7 +531,6 @@ async function confirmAddCollection() {
     modal.classList.remove('open');
     notify(`${t('collection_added_success')} : ${successCount}/${total} ${t('word_movies').toLowerCase()}`, 'ok');
 
-    // On rafraîchit la page de la collection pour voir les nouveaux statuts (Tout passera en "Coché")
     if (currentActiveCollection) {
         setTimeout(() => openMovieCollection(currentActiveCollection.title, currentActiveCollection.fromId, currentActiveCollection.tmdbId), 1000);
     }
@@ -484,14 +553,6 @@ async function openMovieReleases(id, title) {
     renderReleasesTable(r.releases || [], 'movie', id);
 }
 
-let _moviesSortCriteria = 'title';
-
-let _moviesSortAsc = true;
-
-let _moviesSortOpen = false;
-
-let _moviesAllData = [];
-
 function toggleMoviesSort() {
     _moviesSortOpen = !_moviesSortOpen;
     const menu = document.getElementById('movies-sort-menu');
@@ -499,13 +560,7 @@ function toggleMoviesSort() {
 }
 
 function renderMoviesGridOnly() {
-    const sorted = applySortToMovies([..._moviesAllData]);
-    const grid = document.getElementById('movies-grid');
-    if (!grid) return;
-    grid.innerHTML = '';
-    const fragment = document.createDocumentFragment();
-    sorted.forEach(mv => fragment.appendChild(makeMovieCard(mv, false)));
-    grid.appendChild(fragment);
+    renderFilteredMovies();
 }
 
 function sortMovies(criteria) {
@@ -516,18 +571,10 @@ function sortMovies(criteria) {
         _moviesSortAsc = (criteria === 'title');
     }
 
-    // Met à jour la liste déroulante au cas où on inverse le tri sans changer de critère
     const sel = document.getElementById('movies-sort-select');
     if (sel) sel.value = criteria;
 
-    const sorted = applySortToMovies([..._moviesAllData]);
-    const grid = document.getElementById('movies-grid');
-    if (!grid) return;
-    grid.innerHTML = '';
-
-    const fragment = document.createDocumentFragment();
-    sorted.forEach(mv => fragment.appendChild(makeMovieCard(mv, false)));
-    grid.appendChild(fragment);
+    renderFilteredMovies();
 }
 
 function applySortToMovies(movies) {
@@ -1125,7 +1172,6 @@ window.openLibraryImportModal = async function(type) {
                 
                 <div id="lib-import-step1" style="padding: 20px; background:var(--bg); flex-shrink:0; border-bottom:1px solid var(--border);">
                     <label style="font-size:12px; font-weight:bold; color:var(--muted); text-transform:uppercase;">${t('lib_import_root_folder')}</label>
-                    <!-- 🌟 MODIFICATION ICI : flex-wrap et min-width ajoutés -->
                     <div style="display:flex; flex-wrap:wrap; gap:10px; margin-top:8px;">
                         <select id="lib-import-folder-select" style="flex:1; min-width:200px; padding:10px; background:var(--bg3); border:1px solid var(--border); color:var(--text); border-radius:6px; outline:none;"></select>
                         <button class="btn-primary" onclick="scanLibraryFolders()" style="flex:1; width:auto; min-width:180px; margin:0;">🔍 ${t('lib_import_btn_scan')}</button>
@@ -1142,7 +1188,6 @@ window.openLibraryImportModal = async function(type) {
                     <div style="display:flex; gap:10px; margin-bottom:12px;">
                         <select id="lib-import-profile" class="lib-select" style="flex:1;"></select>
                     </div>
-                    <!-- 🌟 AJOUT margin:0; par sécurité ici aussi -->
                     <button class="btn-primary" id="btn-process-lib-import" onclick="confirmLibraryImport()" style="width:100%; margin:0;"></button>
                 </div>
             </div>
@@ -1276,5 +1321,11 @@ window.confirmLibraryImport = async function() {
     notify(t('lib_import_success').replace('{n}', successCount), 'ok');
     document.getElementById('modal-library-import').classList.remove('open');
     
-    if (window._importListType === 'movie') loadMovies(); else loadSeries();
+    // 🌟 On purge le cache local avant de recharger
+    if (window._importListType === 'movie') {
+        _moviesDataLoaded = false;
+        loadMovies();
+    } else {
+        loadSeries();
+    }
 };

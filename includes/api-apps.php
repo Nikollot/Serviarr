@@ -222,16 +222,18 @@ if ($action === 'change_password') {
 
 
 
-// ── SYSTÈME ET STATISTIQUES (RADARR / SONARR) ─────────────────────────────────
+// ── SYSTÈME ET STATISTIQUES (RADARR / SONARR / LIDARR) ────────────────────────
 if ($action === 'app_sys_status') {
     require_auth();
     $cfg = load_config();
     $type = $_POST['type'] ?? 'movie';
-    $app = find_app_by_driver($cfg, $type === 'movie' ? 'radarr' : 'sonarr');
+    $driverName = $type === 'movie' ? 'radarr' : ($type === 'artist' ? 'lidarr' : 'sonarr');
+    $apiVer = $type === 'artist' ? 'v1' : 'v3';
+    $app = find_app_by_driver($cfg, $driverName);
     if (!$app) { echo json_encode(['error' => t('err_app_not_configured')]); exit; }
 
-    $status = arr_get($app, '/api/v3/system/status');
-    $updates = arr_get($app, '/api/v3/update');
+    $status = arr_get($app, "/api/$apiVer/system/status");
+    $updates = arr_get($app, "/api/$apiVer/update");
 
     $update_available = false;
     if (is_array($updates) && !isset($updates['_error'])) {
@@ -254,6 +256,16 @@ if ($action === 'app_sys_status') {
                 if ($m['hasFile'] ?? false) $stats['downloaded']++;
                 else $stats['missing']++;
                 $stats['sizeOnDisk'] += $m['sizeOnDisk'] ?? 0;
+            }
+        }
+    } elseif ($type === 'artist') {
+        $artists = arr_get($app, '/api/v1/artist');
+        if (is_array($artists) && !isset($artists['_error'])) {
+            $stats['total'] = count($artists);
+            foreach ($artists as $a) {
+                $stats['downloaded'] += $a['statistics']['trackFileCount'] ?? 0;
+                $stats['missing'] += ($a['statistics']['totalTrackCount'] ?? 0) - ($a['statistics']['trackFileCount'] ?? 0);
+                $stats['sizeOnDisk'] += $a['statistics']['sizeOnDisk'] ?? 0;
             }
         }
     } else {
@@ -284,8 +296,10 @@ if ($action === 'app_sys_command') {
     $cfg = load_config();
     $type = $_POST['type'] ?? 'movie';
     $command = $_POST['command'] ?? '';
+    $driverName = $type === 'movie' ? 'radarr' : ($type === 'artist' ? 'lidarr' : 'sonarr');
+    $apiVer = $type === 'artist' ? 'v1' : 'v3';
 
-    $app = find_app_by_driver($cfg, $type === 'movie' ? 'radarr' : 'sonarr');
+    $app = find_app_by_driver($cfg, $driverName);
     if (!$app) { echo json_encode(['error' => t('err_app_not_configured')]); exit; }
 
     $payload = ['name' => $command];
@@ -295,7 +309,7 @@ if ($action === 'app_sys_command') {
         $payload['importMode'] = 'auto';
     }
 
-    $res = arr_post($app, '/api/v3/command', $payload);
+    $res = arr_post($app, "/api/$apiVer/command", $payload);
     if (isset($res['_error'])) { echo json_encode(['error' => $res['_error']]); exit; }
 
     echo json_encode(['ok' => true]);

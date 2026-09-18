@@ -31,7 +31,8 @@ $get_safe_actions = [
 'tmdb_movie_detail', 'tmdb_serie_detail', 'get_torrent_files',
 'calendar', 'search_movie', 'search_serie', 'get_media_raw', 'actor_credits',
 'prowlarr_search', 'export_media_list', 'prowlarr_categories', 'get_recent_movies', 'get_history', 'get_all_collections',
-'manual_import_scan', 'manual_import_process', 'server_stats', 'server_dl_stats', 'server_detailed_history'
+'manual_import_scan', 'manual_import_process', 'server_stats', 'server_dl_stats', 'server_detailed_history',
+'library_artists', 'artist_detail', 'mb_artist_detail', 'album_releases', 'artists_dashboard', 'search_artist'
 ];
 
 
@@ -54,6 +55,7 @@ require_once __DIR__ . '/includes/api-settings.php';
 require_once __DIR__ . '/includes/api-notifications.php';
 require_once __DIR__ . '/includes/api-history.php';
 require_once __DIR__ . '/includes/api-calendar.php';
+require_once __DIR__ . '/includes/api-music.php';
 
 
 

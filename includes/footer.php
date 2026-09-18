@@ -38,46 +38,6 @@
 </div>
 
 <div class="settings-section">
-<div class="settings-section-header">🔔 <?= t('settings_notifications') ?></div>
-<div class="settings-section-body">
-<h3 class="vapid-title"><?= t('settings_webhook_title') ?></h3>
-<p class="settings-api-hint"><?= t('settings_webhook_hint') ?></p>
-<div class="input-btn-row">
-<input type="text" id="setting-webhook-url" class="vapid-input mono" readonly placeholder="…">
-<button class="btn-sm accent" onclick="copyWebhookUrl()"><?= t('settings_webhook_copy') ?></button>
-</div>
-</div>
-<div class="settings-section-body">
-<h3 class="vapid-title"><?= t('settings_vapid_title') ?></h3>
-<p class="settings-api-hint">
-<?= t('settings_vapid_hint') ?>
-<a href="https://www.attheminute.com/vapid-key-generator" target="_blank" class="link-accent">vapid-key-generator</a>
-</p>
-<div class="vapid-form">
-<div class="vapid-field">
-<label class="vapid-label"><?= t('settings_vapid_email') ?></label>
-<input type="email" id="setting-vapid-email" class="vapid-input" placeholder="votre.email@example.com">
-</div>
-<div class="vapid-field">
-<label class="vapid-label"><?= t('settings_vapid_public') ?></label>
-<input type="text" id="setting-vapid-public" class="vapid-input mono" placeholder="...">
-</div>
-<div class="vapid-field">
-<label class="vapid-label"><?= t('settings_vapid_private') ?></label>
-<input type="password" id="setting-vapid-private" class="vapid-input mono" placeholder="...">
-</div>
-<button id="btn-save-push" class="btn-primary" onclick="savePushConfig()"><?= t('settings_vapid_save') ?></button>
-</div>
-</div>
-<div class="settings-section-body">
-<p class="settings-notif-hint">
-<?= t('settings_notif_hint') ?>
-</p>
-<button class="btn-sm accent" onclick="enableWebNotifications()"><?= t('settings_notif_allow') ?></button>
-</div>
-</div>
-
-<div class="settings-section">
 <div class="settings-section-header">🔒 <?= t('settings_security') ?></div>
 <div class="settings-section-body settings-body-sm">
 <div class="form-row"><label><?= t('settings_current_pw') ?></label><div style="position: relative;"><input type="password" id="pw-current" placeholder="••••••••" style="padding-right: 40px;"><span onclick="togglePassword('pw-current', this)" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); cursor: pointer; color: var(--muted); user-select: none;">👁️</span></div></div>
@@ -194,6 +154,7 @@
 <script src="assets/js/bulk-select.js"></script>
 <script src="assets/js/movies.js"></script>
 <script src="assets/js/series.js"></script>
+<script src="assets/js/music.js"></script>
 <script src="assets/js/media-detail.js"></script>
 <script src="assets/js/modals.js"></script>
 <script src="assets/js/app-crud.js"></script>

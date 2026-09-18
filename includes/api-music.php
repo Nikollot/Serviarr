@@ -101,12 +101,14 @@ if ($action === 'library_artists') {
         if ($filter === 'complete' && $pct < 100) continue;
         if ($filter === 'incomplete' && $pct >= 100) continue;
 
-        $posterUrl = $baseUrl . '/api/v1/mediacover/' . $a['id'] . '/poster-250.jpg?apikey=' . $lidarr['api_key'];
+        // 1. On remplace poster-250 par poster.jpg
+        $posterUrl = $baseUrl . '/MediaCover/' . $a['id'] . '/poster.jpg?apikey=' . $lidarr['api_key'];
 
         $artists[] = [
             'id'        => $a['id'],
             'title'     => $title,
-            'poster'    => 'api.php?action=proxy_image&url=' . urlencode($posterUrl),
+            // 2. On supprime le passage par le proxy !
+            'poster'    => $posterUrl,
             'monitored' => $a['monitored'] ?? false,
             'pct'       => $pct,
             'albumCount'=> $a['statistics']['albumCount'] ?? 0,
@@ -130,8 +132,8 @@ if ($action === 'artist_detail') {
     if (isset($a['_error'])) { echo json_encode(['error' => $a['_error']]); exit; }
     if (isset($a['message'])) { echo json_encode(['error' => t('err_artist_not_in_library')]); exit; }
 
-    $poster_url = rtrim($lidarr['url'], '/') . '/api/v1/mediacover/' . $a['id'] . '/poster.jpg?apikey=' . $lidarr['api_key'];
-    $fanart_url = rtrim($lidarr['url'], '/') . '/api/v1/mediacover/' . $a['id'] . '/fanart.jpg?apikey=' . $lidarr['api_key'];
+    $poster_url = rtrim($lidarr['url'], '/') . '/MediaCover/' . $a['id'] . '/poster.jpg?apikey=' . $lidarr['api_key'];
+    $fanart_url = rtrim($lidarr['url'], '/') . '/MediaCover/' . $a['id'] . '/fanart.jpg?apikey=' . $lidarr['api_key'];
 
     // Fichiers pistes pour ce artiste (pour retrouver taille/qualité/detail par fichier)
     $trackFiles = arr_get($lidarr, "/api/v1/trackfile?artistId=$id");
@@ -147,7 +149,7 @@ if ($action === 'artist_detail') {
                 'audioCodec' => $mi['audioCodec'] ?? '?',
                 'audioBitRate' => isset($mi['audioBitrate']) ? round($mi['audioBitrate'] / 1000) . ' Kbps' : '?',
                 'audioChannels'=> $mi['audioChannels'] ?? '?',
-                'sampleRate' => $mi['audioSampleRate'] ?? '?',
+                'sampleRate' => $mi['audioSampleRate'] ?? '?'
             ];
         }
     }
@@ -200,7 +202,16 @@ if ($action === 'artist_detail') {
             $albId = $alb['id'];
             $albumPoster = null;
             foreach ($alb['images'] ?? [] as $img) {
-                if ($img['coverType'] === 'cover') { $albumPoster = $img['remoteUrl'] ?? $img['url'] ?? null; break; }
+                if ($img['coverType'] === 'cover') {
+                    if (!empty($img['remoteUrl'])) {
+                        $albumPoster = $img['remoteUrl'];
+                    } elseif (!empty($img['url'])) {
+                        // Chemin local Lidarr (relatif) : on construit une URL absolue, servie via proxy_image
+                        $absoluteLocalUrl = rtrim($lidarr['url'], '/') . $img['url'] . (strpos($img['url'], '?') !== false ? '&' : '?') . 'apikey=' . $lidarr['api_key'];
+                        $albumPoster = 'api.php?action=proxy_image&url=' . urlencode($absoluteLocalUrl);
+                    }
+                    break;
+                }
             }
             $albums[] = [
                 'id'            => $albId,
@@ -217,7 +228,32 @@ if ($action === 'artist_detail') {
             ];
         }
     }
-    usort($albums, fn($x, $y) => strcmp($y['releaseDate'], $x['releaseDate']));
+    // Tri par type d'album (Album / EP / Single / ...) selon l'ordre du Metadata Profile de l'artiste,
+    // puis par date de sortie décroissante à l'intérieur d'un même type.
+    // Ordre par défaut (celui utilisé nativement par Lidarr) au cas où le profil ne serait pas
+    // trouvé ou que l'appel à /api/v1/metadataprofile échoue : on ne se retrouve jamais avec
+    // un tri uniquement par date qui mélangerait les types.
+    $typeOrder = ['Album' => 0, 'EP' => 1, 'Single' => 2, 'Broadcast' => 3, 'Other' => 4];
+    $metaProfiles = arr_get($lidarr, '/api/v1/metadataprofile');
+    if (is_array($metaProfiles) && !isset($metaProfiles['_error'])) {
+        foreach ($metaProfiles as $mp) {
+            if ($mp['id'] == ($a['metadataProfileId'] ?? 0)) {
+                $foundOrder = [];
+                foreach ($mp['primaryAlbumTypes'] ?? [] as $idx => $pt) {
+                    $tname = $pt['albumType']['name'] ?? '';
+                    if ($tname !== '') $foundOrder[$tname] = $idx;
+                }
+                if (!empty($foundOrder)) $typeOrder = $foundOrder;
+                break;
+            }
+        }
+    }
+    usort($albums, function ($x, $y) use ($typeOrder) {
+        $ox = $typeOrder[$x['type']] ?? PHP_INT_MAX;
+        $oy = $typeOrder[$y['type']] ?? PHP_INT_MAX;
+        if ($ox !== $oy) return $oy <=> $ox; // ordre inversé (constaté à l'usage)
+        return strcmp($y['releaseDate'], $x['releaseDate']);
+    });
 
     $profiles = arr_get($lidarr, '/api/v1/qualityprofile');
     $profileName = t('profile_unknown');
@@ -311,6 +347,19 @@ if ($action === 'album_search_auto') {
     exit;
 }
 
+if ($action === 'artist_search_auto') {
+    $cfg    = load_config();
+    $lidarr = find_app_by_driver($cfg, 'lidarr');
+    if (!$lidarr) { echo json_encode(['error' => t('err_lidarr_not_configured')]); exit; }
+    $artistId = (int)($_POST['artistId'] ?? 0);
+    if (!$artistId) { echo json_encode(['error' => t('err_artist_id_missing')]); exit; }
+
+    $res = arr_post($lidarr, '/api/v1/command', ['name' => 'ArtistSearch', 'artistId' => $artistId]);
+    if (isset($res['_error'])) { echo json_encode(['error' => $res['_error']]); exit; }
+    echo json_encode(['ok' => true]);
+    exit;
+}
+
 if ($action === 'toggle_album_monitor') {
     $cfg = load_config();
     $albumId = (int)($_POST['albumId'] ?? 0);
@@ -328,6 +377,143 @@ if ($action === 'toggle_album_monitor') {
 
     clear_media_caches('artist');
     echo json_encode(['ok' => true, 'monitored' => $monitored]);
+    exit;
+}
+
+if ($action === 'toggle_artist_monitor') {
+    $cfg    = load_config();
+    $lidarr = find_app_by_driver($cfg, 'lidarr');
+    if (!$lidarr) { echo json_encode(['error' => t('err_lidarr_not_configured')]); exit; }
+    $artistId  = (int)($_POST['artistId'] ?? 0);
+    $monitored = filter_var($_POST['monitored'] ?? 'false', FILTER_VALIDATE_BOOLEAN);
+    if (!$artistId) { echo json_encode(['error' => t('err_id_missing')]); exit; }
+
+    $a = arr_get($lidarr, "/api/v1/artist/$artistId");
+    if (isset($a['_error']) || isset($a['message'])) { echo json_encode(['error' => t('err_artist_not_in_library')]); exit; }
+
+    $a['monitored'] = $monitored;
+    $res = arr_put($lidarr, "/api/v1/artist/$artistId", $a);
+    if ($res['code'] < 200 || $res['code'] >= 300) {
+        echo json_encode(['error' => "Erreur API Lidarr ({$res['code']})"]); exit;
+    }
+
+    clear_media_caches('artist');
+    echo json_encode(['ok' => true, 'monitored' => $monitored]);
+    exit;
+}
+
+if ($action === 'delete_track_file') {
+    $cfg    = load_config();
+    $lidarr = find_app_by_driver($cfg, 'lidarr');
+    if (!$lidarr) { echo json_encode(['error' => t('err_lidarr_not_configured')]); exit; }
+    $fileId = (int)($_POST['fileId'] ?? 0);
+    if (!$fileId) { echo json_encode(['error' => t('err_id_missing')]); exit; }
+
+    $url = rtrim($lidarr['url'], '/') . "/api/v1/trackfile/$fileId";
+    $ch = curl_init($url);
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_TIMEOUT => 10,
+        CURLOPT_CUSTOMREQUEST => 'DELETE',
+        CURLOPT_HTTPHEADER => ['X-Api-Key: ' . $lidarr['api_key']],
+        CURLOPT_SSL_VERIFYPEER => false,
+    ]);
+    curl_exec($ch);
+    $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+
+    if ($code < 200 || $code >= 300) {
+        echo json_encode(['error' => "Erreur API Lidarr ($code)"]); exit;
+    }
+
+    clear_media_caches('artist');
+    log_activity('delete_file', 'artist', $fileId, t('page_music'));
+    echo json_encode(['ok' => true]);
+    exit;
+}
+
+if ($action === 'refresh_artist') {
+    $cfg    = load_config();
+    $lidarr = find_app_by_driver($cfg, 'lidarr');
+    if (!$lidarr) { echo json_encode(['error' => t('err_lidarr_not_configured')]); exit; }
+    $artistId = (int)($_POST['artistId'] ?? 0);
+    if (!$artistId) { echo json_encode(['error' => t('err_id_missing')]); exit; }
+
+    $res = arr_post($lidarr, '/api/v1/command', ['name' => 'RefreshArtist', 'artistId' => $artistId]);
+    if (isset($res['_error'])) { echo json_encode(['error' => $res['_error']]); exit; }
+
+    clear_media_caches('artist');
+    echo json_encode(['ok' => true]);
+    exit;
+}
+
+if ($action === 'delete_artist') {
+    $cfg    = load_config();
+    $lidarr = find_app_by_driver($cfg, 'lidarr');
+    if (!$lidarr) { echo json_encode(['error' => t('err_lidarr_not_configured')]); exit; }
+    $artistId = (int)($_POST['artistId'] ?? 0);
+    $deleteFiles = filter_var($_POST['deleteFiles'] ?? 'false', FILTER_VALIDATE_BOOLEAN);
+    if (!$artistId) { echo json_encode(['error' => t('err_id_missing')]); exit; }
+
+    $url = rtrim($lidarr['url'], '/') . "/api/v1/artist/$artistId?deleteFiles=" . ($deleteFiles ? 'true' : 'false');
+    $ch = curl_init($url);
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_TIMEOUT => 15,
+        CURLOPT_CUSTOMREQUEST => 'DELETE',
+        CURLOPT_HTTPHEADER => ['X-Api-Key: ' . $lidarr['api_key']],
+        CURLOPT_SSL_VERIFYPEER => false,
+    ]);
+    curl_exec($ch);
+    $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+
+    if ($code < 200 || $code >= 300) {
+        echo json_encode(['error' => "Erreur API Lidarr ($code)"]); exit;
+    }
+
+    clear_media_caches('artist');
+    log_activity('delete_artist', 'artist', $artistId, t('page_music'));
+    echo json_encode(['ok' => true]);
+    exit;
+}
+
+if ($action === 'search_artist') {
+    $cfg    = load_config();
+    $lidarr = find_app_by_driver($cfg, 'lidarr');
+    if (!$lidarr) { echo json_encode(['error' => t('err_lidarr_not_configured')]); exit; }
+    $q = trim($_GET['q'] ?? '');
+    if (!$q) { echo json_encode(['results' => []]); exit; }
+
+    $lookup = arr_get($lidarr, '/api/v1/artist/lookup?term=' . urlencode($q));
+    if (isset($lookup['_error'])) { echo json_encode(['error' => $lookup['_error']]); exit; }
+
+    $existing = arr_get($lidarr, '/api/v1/artist');
+    $existingByMbId = [];
+    if (is_array($existing) && !isset($existing['_error'])) {
+        foreach ($existing as $e) {
+            if (!empty($e['foreignArtistId'])) $existingByMbId[$e['foreignArtistId']] = $e;
+        }
+    }
+
+    $results = [];
+    foreach ($lookup as $a) {
+        $mbId = $a['foreignArtistId'] ?? null;
+        $inLib = $mbId && isset($existingByMbId[$mbId]);
+        $poster = null;
+        foreach ($a['images'] ?? [] as $img) {
+            if ($img['coverType'] === 'poster') { $poster = $img['remoteUrl'] ?? $img['url'] ?? null; break; }
+        }
+        $results[] = [
+            'mbId'    => $mbId,
+            'title'   => $a['artistName'] ?? '?',
+            'poster'  => $poster,
+            'in_lib'  => $inLib,
+            'id'      => $inLib ? $existingByMbId[$mbId]['id'] : null,
+        ];
+    }
+
+    echo json_encode(['results' => $results], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_IGNORE);
     exit;
 }
 
@@ -355,11 +541,12 @@ if ($action === 'artists_dashboard') {
             if (isset($record['artist'])) {
                 $ar = $record['artist'];
                 if (!isset($recent[$ar['id']])) {
-                    $posterUrl = $baseUrl . '/api/v1/mediacover/' . $ar['id'] . '/poster-250.jpg?apikey=' . $lidarr['api_key'];
+                    // Suppression de l'encapsulation proxy ici aussi
+                    $posterUrl = $baseUrl . '/MediaCover/' . $ar['id'] . '/poster.jpg?apikey=' . $lidarr['api_key'];
                     $recent[$ar['id']] = [
                         'id' => $ar['id'],
                         'title' => $ar['artistName'],
-                        'poster' => 'api.php?action=proxy_image&url=' . urlencode($posterUrl),
+                        'poster' => $posterUrl,
                         'is_new' => false
                     ];
                     if (count($recent) >= 15) break;
@@ -376,12 +563,13 @@ if ($action === 'artists_dashboard') {
         foreach ($calendarData as $alb) {
             $arId = $alb['artistId'] ?? null;
             if ($arId && !isset($upcoming[$arId])) {
-                $posterUrl = $baseUrl . '/api/v1/mediacover/' . $arId . '/poster-250.jpg?apikey=' . $lidarr['api_key'];
+                // Et suppression de l'encapsulation proxy ici
+                $posterUrl = $baseUrl . '/MediaCover/' . $arId . '/poster.jpg?apikey=' . $lidarr['api_key'];
                 $titleWithAlbum = ($alb['artist']['artistName'] ?? '?') . ' — ' . ($alb['title'] ?? '?');
                 $upcoming[$arId] = [
                     'id' => $arId,
                     'title' => $titleWithAlbum,
-                    'poster' => 'api.php?action=proxy_image&url=' . urlencode($posterUrl),
+                    'poster' => $posterUrl,
                     'is_new' => false,
                     'release_date' => substr($alb['releaseDate'] ?? '', 0, 10)
                 ];
@@ -391,7 +579,7 @@ if ($action === 'artists_dashboard') {
 
     $finalJson = json_encode([
         'recent' => array_values($recent),
-        'upcoming' => array_values($upcoming),
+                             'upcoming' => array_values($upcoming),
     ]);
 
     file_put_contents($cacheFile, $finalJson);

@@ -10,9 +10,7 @@ if (isset($_SERVER['HTTP_ORIGIN'])) {
 }
 
 header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
-
 header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With");
-
 
 // Si le téléphone fait une requête de pré-vérification (OPTIONS), on valide immédiatement
 if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
@@ -20,11 +18,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
     exit;
 }
 
-
 use Minishlink\WebPush\WebPush;
-
 use Minishlink\WebPush\Subscription;
-
 
 // 🔒 Cookie de session : SameSite=Lax empêche l'envoi du cookie depuis un site tiers (protection CSRF)
 $_is_https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
@@ -40,25 +35,17 @@ session_set_cookie_params([
 
 session_start();
 
-
 ini_set('memory_limit', '512M');
-
 set_time_limit(300);
-
 error_reporting(E_ALL & ~E_DEPRECATED & ~E_NOTICE);
 
 header('Content-Type: application/json');
-
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
-
 header('Pragma: no-cache');
-
 
 // ── MOTEUR DE LANGUE POUR L'API ──
 $lang = $_COOKIE['serviarr_lang'] ?? 'fr';
-
 $lang_file = APP_ROOT . "/lang/{$lang}.json";
-
 
 $translations = [];
 
@@ -70,14 +57,12 @@ if (file_exists($lang_file)) {
     }
 }
 
-
 if (!function_exists('t')) {
     function t($key) {
         global $translations;
         return $translations[$key] ?? $key;
     }
 }
-
 
 // ── TMDB : langue/région dynamiques ──
 function tmdb_lang_code() {
@@ -99,12 +84,9 @@ function tmdb_region_code() {
 }
 
 $TMDB_LANG   = tmdb_lang_code();
-
 $TMDB_REGION = tmdb_region_code();
 
-
 $config_file = APP_ROOT . '/data/config.json';
-
 
 function load_config() {
     global $config_file, $_config_cache;
@@ -113,13 +95,11 @@ function load_config() {
     return $_config_cache = json_decode(file_get_contents($config_file), true) ?? ['apps' => [], 'user' => null];
 }
 
-
 function save_config($cfg) {
     global $config_file, $_config_cache;
     $_config_cache = $cfg;
     return file_put_contents($config_file, json_encode($cfg, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)) !== false;
 }
-
 
 function get_webhook_token() {
     $cfg = load_config();
@@ -130,12 +110,9 @@ function get_webhook_token() {
     return $cfg['webhook_token'];
 }
 
-
 // ── JOURNAL D'ACTIVITÉ ──
 $activity_log_file = APP_ROOT . '/data/activity_log.jsonl';
-
 const ACTIVITY_LOG_MAX_LINES = 500;
-
 
 function log_activity($type, $target_type = null, $target_id = null, $detail = '') {
     global $activity_log_file;
@@ -163,17 +140,12 @@ function log_activity($type, $target_type = null, $target_id = null, $detail = '
     }
 }
 
-
 // ── PROTECTION ANTI-BRUTE-FORCE ──
 $lockout_file = APP_ROOT . '/data/lockout.json';
-
 const LOCKOUT_MAX_ATTEMPTS = 5;
-
 const LOCKOUT_DURATION = 300;
 
-
 function get_client_ip() { return $_SERVER['REMOTE_ADDR'] ?? 'unknown'; }
-
 
 function load_lockout_data() {
     global $lockout_file;
@@ -181,12 +153,10 @@ function load_lockout_data() {
     return json_decode(file_get_contents($lockout_file), true) ?? [];
 }
 
-
 function save_lockout_data($data) {
     global $lockout_file;
     file_put_contents($lockout_file, json_encode($data), LOCK_EX);
 }
-
 
 function check_lockout($key) {
     $data = load_lockout_data();
@@ -201,7 +171,6 @@ function check_lockout($key) {
     return 0;
 }
 
-
 function register_failed_attempt($key) {
     $data = load_lockout_data();
     $entry = $data[$key] ?? ['attempts' => 0, 'locked_at' => 0];
@@ -213,7 +182,6 @@ function register_failed_attempt($key) {
     save_lockout_data($data);
 }
 
-
 function reset_lockout($key) {
     $data = load_lockout_data();
     if (isset($data[$key])) {
@@ -221,7 +189,6 @@ function reset_lockout($key) {
         save_lockout_data($data);
     }
 }
-
 
 function require_auth() {
     if (empty($_SESSION['auth'])) {
@@ -231,7 +198,6 @@ function require_auth() {
     }
     session_write_close();
 }
-
 
 // ── FONCTIONS DE GÉNÉRATION ET MISE À JOUR DES CACHES ─────────────────────────
 function generate_movies_cache() {
@@ -280,7 +246,6 @@ function generate_movies_cache() {
     return true;
 }
 
-
 function generate_series_cache() {
     $cfg = load_config();
     $sonarr = find_app_by_driver($cfg, 'sonarr');
@@ -320,19 +285,22 @@ function generate_series_cache() {
     return true;
 }
 
-
 function clear_media_caches($type = 'all') {
     $cache_dir = APP_ROOT . '/data/';
     if ($type === 'movie' || $type === 'all') {
         @unlink($cache_dir . '.cache_movies_dashboard.json');
-        @unlink($cache_dir . '.cache_library_movies.json'); // On supprime juste le fichier
+        @unlink($cache_dir . '.cache_library_movies.json');
     }
     if ($type === 'serie' || $type === 'all') {
         @unlink($cache_dir . '.cache_series_dashboard.json');
-        @unlink($cache_dir . '.cache_library_series.json'); // Pareil ici
+        @unlink($cache_dir . '.cache_library_series.json');
+    }
+    // 🌟 AJOUT : On permet enfin au cache de la musique d'être vidé !
+    if ($type === 'artist' || $type === 'all') {
+        @unlink($cache_dir . '.cache_artists_dashboard.json');
+        @unlink($cache_dir . '.cache_library_artists.json');
     }
 }
-
 
 // ── OUTILS 2FA (TOTP) ─────────────────────────────────────────────────────────
 function base32_decode($b32) {
@@ -350,7 +318,6 @@ function base32_decode($b32) {
     }
     return $dec;
 }
-
 
 function verify_totp($secret, $code) {
     $key = base32_decode($secret);
@@ -370,14 +337,12 @@ function verify_totp($secret, $code) {
     return false;
 }
 
-
 function generate_base32_secret($length = 16) {
     $chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
     $secret = '';
     for ($i = 0; $i < $length; $i++) $secret .= $chars[random_int(0, 31)];
     return $secret;
 }
-
 
 function find_app_by_driver($cfg, $driver) {
     foreach ($cfg['apps'] ?? [] as $app) {
@@ -386,8 +351,7 @@ function find_app_by_driver($cfg, $driver) {
     return null;
 }
 
-
-// ── FONCTIONS HTTP ──
+// ── FONCTIONS HTTP (AVEC GESTION DE L'URL LOCALE) ──
 function http_get($url, $headers = []) {
     $ch = curl_init($url);
     curl_setopt_array($ch, [
@@ -405,7 +369,6 @@ function http_get($url, $headers = []) {
     if ($decoded === null) return ['_error' => 'Invalid JSON: ' . substr($res, 0, 200), '_code' => $code];
     return $decoded;
 }
-
 
 function http_get_secure($url, $headers = []) {
     $ch = curl_init($url);
@@ -425,7 +388,6 @@ function http_get_secure($url, $headers = []) {
     return $decoded;
 }
 
-
 function http_post($url, $headers = [], $body = []) {
     $ch = curl_init($url);
     curl_setopt_array($ch, [
@@ -433,8 +395,8 @@ function http_post($url, $headers = [], $body = []) {
         CURLOPT_TIMEOUT        => 300,
         CURLOPT_POST           => true,
         CURLOPT_POSTFIELDS     => json_encode($body),
-                      CURLOPT_HTTPHEADER     => array_merge(['Content-Type: application/json'], $headers),
-                      CURLOPT_SSL_VERIFYPEER => false,
+        CURLOPT_HTTPHEADER     => array_merge(['Content-Type: application/json'], $headers),
+        CURLOPT_SSL_VERIFYPEER => false,
     ]);
     $res = curl_exec($ch);
     $err = curl_error($ch);
@@ -443,7 +405,6 @@ function http_post($url, $headers = [], $body = []) {
     return json_decode($res, true) ?? ['_error' => 'Invalid JSON'];
 }
 
-
 function http_put($url, $headers = [], $body = []) {
     $ch = curl_init($url);
     curl_setopt_array($ch, [
@@ -451,15 +412,14 @@ function http_put($url, $headers = [], $body = []) {
         CURLOPT_TIMEOUT        => 300,
         CURLOPT_CUSTOMREQUEST  => 'PUT',
         CURLOPT_POSTFIELDS     => json_encode($body, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
-                      CURLOPT_HTTPHEADER     => array_merge(['Content-Type: application/json'], $headers),
-                      CURLOPT_SSL_VERIFYPEER => false,
+        CURLOPT_HTTPHEADER     => array_merge(['Content-Type: application/json'], $headers),
+        CURLOPT_SSL_VERIFYPEER => false,
     ]);
     $res  = curl_exec($ch);
     $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
     return ['body' => json_decode($res, true), 'code' => $code];
 }
-
 
 function http_put_raw($url, $headers = [], $body_encoded = '') {
     $ch = curl_init($url);
@@ -469,14 +429,13 @@ function http_put_raw($url, $headers = [], $body_encoded = '') {
         CURLOPT_CUSTOMREQUEST  => 'PUT',
         CURLOPT_POSTFIELDS     => $body_encoded,
         CURLOPT_HTTPHEADER     => array_merge(['Content-Type: application/json'], $headers),
-                      CURLOPT_SSL_VERIFYPEER => false,
+        CURLOPT_SSL_VERIFYPEER => false,
     ]);
     $res  = curl_exec($ch);
     $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
     return ['body' => json_decode($res, true), 'code' => $code];
 }
-
 
 function http_delete($url, $headers = []) {
     $ch = curl_init($url);
@@ -493,36 +452,34 @@ function http_delete($url, $headers = []) {
     return ['body' => json_decode($res, true), 'code' => $code];
 }
 
+function get_backend_url($app) {
+    return !empty($app['local_url']) ? rtrim($app['local_url'], '/') : rtrim($app['url'], '/');
+}
 
 function arr_get($app, $endpoint) {
-    $url = rtrim($app['url'], '/') . $endpoint;
+    $url = get_backend_url($app) . $endpoint;
     return http_get($url, ['X-Api-Key: ' . $app['api_key']]);
 }
 
-
 function arr_post($app, $endpoint, $body) {
-    $url = rtrim($app['url'], '/') . $endpoint;
+    $url = get_backend_url($app) . $endpoint;
     return http_post($url, ['X-Api-Key: ' . $app['api_key']], $body);
 }
 
-
 function arr_put($app, $endpoint, $body) {
-    $url = rtrim($app['url'], '/') . $endpoint;
+    $url = get_backend_url($app) . $endpoint;
     return http_put($url, ['X-Api-Key: ' . $app['api_key']], $body);
 }
 
-
 function arr_put_raw($app, $endpoint, $body_encoded) {
-    $url = rtrim($app['url'], '/') . $endpoint;
+    $url = get_backend_url($app) . $endpoint;
     return http_put_raw($url, ['X-Api-Key: ' . $app['api_key']], $body_encoded);
 }
 
-
 function arr_delete($app, $endpoint) {
-    $url = rtrim($app['url'], '/') . $endpoint;
+    $url = get_backend_url($app) . $endpoint;
     return http_delete($url, ['X-Api-Key: ' . $app['api_key']]);
 }
-
 
 // ── FONCTION POUR RÉCUPÉRER LE TRAILER YOUTUBE VIA TMDB ──
 function get_tmdb_trailer($type, $tmdb_id) {

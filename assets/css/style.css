@@ -9,6 +9,7 @@
     --radius:10px; --shadow:0 4px 24px rgba(0,0,0,.4);
     --radarr:#ffc132; --radarr-bg:rgba(255,193,50,.1); --radarr-border:rgba(255,193,50,.25);
     --sonarr:#00caff; --sonarr-bg:rgba(0,202,255,.1); --sonarr-border:rgba(0,202,255,.25);
+    --lidarr:#0b8750; --lidarr-bg:rgba(11,135,80,.1); --lidarr-border:rgba(11,135,80,.25);
     --accent-bg: rgba(74, 222, 128, 0.1);
 }
 
@@ -139,6 +140,23 @@ body.theme-series {
     --accent-grad: linear-gradient(90deg, var(--sonarr) 0%, var(--sonarr) 100%);
     --accent-grad-bg: linear-gradient(90deg, var(--sonarr-bg) 0%, var(--sonarr-bg) 100%);
     --accent-bg: var(--sonarr-bg);
+}
+
+/* 🎵 Thème Lidarr (Musique) */
+body.theme-music {
+    --accent: var(--lidarr);
+    --accent-grad: linear-gradient(90deg, var(--lidarr) 0%, var(--lidarr) 100%);
+    --accent-grad-bg: linear-gradient(90deg, var(--lidarr-bg) 0%, var(--lidarr-bg) 100%);
+    --accent-bg: var(--lidarr-bg);
+}
+/* Le vert Lidarr est plus foncé que l'orange Radarr / le bleu Sonarr : le texte
+   noir prévu pour ces boutons (pensé pour une couleur claire) devient illisible. */
+body.theme-music .btn-torrent-add,
+body.theme-music .btn-sm.accent,
+body.theme-music #btn-bulk-toggle.active,
+body.theme-music #btn-add-tmdb,
+body.theme-music .btn-pill {
+    color: #fff !important;
 }
 
 /* On applique le dégradé sur le logo en haut à gauche et les titres modales */
@@ -1311,6 +1329,8 @@ padding: 12px 18px 18px;
         max-height: 100vh;
         margin: 0;
         border-radius: 0;
+        border: none !important;
+        box-shadow: none !important;
         padding: 0;
         overflow-y: auto;
         background: var(--bg);
@@ -1318,10 +1338,41 @@ padding: 12px 18px 18px;
         flex-direction: column;
     }
 
+    /* 🌟 LA VRAIE CAUSE DE LA MARGE : <main> a un padding:24px appliqué tout le
+       temps (ligne 194), et la modale plein écran passe en position:static
+       (ligne 1004) donc s'insère DANS ce padding au lieu de l'ignorer.
+       On neutralise ce padding uniquement quand une fiche est ouverte en plein écran. */
+    body:has(#modal-movie.is-fullscreen.open) main,
+    body:has(#modal-serie.is-fullscreen.open) main {
+        padding: 0 !important;
+    }
+
+    /* 🌟 Idem pour le petit padding top/bottom du fond de modale (pensé large écran) */
+    #modal-movie.is-fullscreen, #modal-serie.is-fullscreen {
+        padding: 0 !important;
+    }
+
     /* Reset du conteneur interne pour enlever les marges de l'ancienne modale */
     #movie-detail-content,
     #serie-detail-content {
     padding: 0;
+    }
+
+    /* 🌟 Annule l'effet "carte" (coins arrondis, bordure, ombre, hauteur réduite)
+       pensé pour le PC (règle plus bas dans ce fichier, sans media query) :
+       sur mobile on veut un vrai plein écran, bord à bord. */
+    #movie-detail-content > div,
+    #serie-detail-content > div {
+        border-radius: 0 !important;
+        border: none !important;
+        box-shadow: none !important;
+        min-height: 100vh !important;
+    }
+    /* 🌟 Coins arrondis assumés sur l'affiche de fond (juste en haut, pas de cadre/ombre) */
+    #movie-detail-content > div > div:nth-child(2),
+    #serie-detail-content > div > div:nth-child(2) {
+        border-radius: 20px 20px 0 0 !important;
+        overflow: hidden;
     }
 
     /* 2. Bouton fermer par-dessus le backdrop */
@@ -2910,7 +2961,12 @@ button.app-item-btn.danger { color: var(--accent3) !important; }
     max-height: 90vh !important; /* S'assure que la modale ne dépasse pas la hauteur de l'écran */
 }
 
-/* ── ARRONDIS DES AFFICHES (FANART) DANS LES FICHES DÉTAILS ── */
+/* ── ARRONDIS DES AFFICHES (FANART) DANS LES FICHES DÉTAILS ──
+   🌟 Scopé au PC uniquement (min-width:769px) : sur mobile ces règles gagnaient
+   quand même contre le reset du bloc @media (max-width:768px) plus haut, car à
+   spécificité et !important égaux, c'est l'ordre dans le fichier qui tranche —
+   et cette règle est plus bas dans le fichier, donc plus forte. */
+@media (min-width: 769px) {
 
 /* 1. Arrondir les coins de la grande image de fond */
 #movie-detail-content > div > div:nth-child(2),
@@ -2930,6 +2986,8 @@ button.app-item-btn.danger { color: var(--accent3) !important; }
     overflow: visible !important; /* 🌟 Le défilement redevient naturel via le navigateur */
     border: 1px solid var(--border) !important;
     box-shadow: var(--shadow) !important;
+}
+
 }
 
 /* ── SCROLLBAR DISCRÈTE POUR LES MODALES ET FICHES DÉTAILS ── */
@@ -3371,4 +3429,28 @@ button.app-item-btn.danger { color: var(--accent3) !important; }
     .tab-page {
         padding-top: 35px !important;
     }
+}
+
+/* =========================================================================
+ * 🌟 CORRECTION : AFFICHAGE DES FLÈCHES HAUT/BAS (SVGs)
+ * ========================================================================= */
+/* Empêche les icônes vectorielles (flèches) de s'écraser à 0 pixel dans les grilles */
+.app-item-actions button svg,
+.modal-box button svg,
+.btn-sort svg {
+    width: 18px !important;
+    height: 18px !important;
+    min-width: 18px !important;
+    min-height: 18px !important;
+    display: block !important;
+}
+
+/* Redonne un espacement correct aux boutons des listes de tri */
+.app-item-actions button,
+.modal-box button[onclick*="move"] {
+    min-width: 32px !important;
+    min-height: 32px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
 }

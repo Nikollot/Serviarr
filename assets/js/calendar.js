@@ -1,7 +1,6 @@
 // ===== Serviarr - calendar.js (extrait de script.js) =====
 
 let calYear = new Date().getFullYear(), calMonth = new Date().getMonth();
-
 let calEvents = {};
 
 async function loadHome() {
@@ -11,7 +10,6 @@ async function loadHome() {
 }
 
 let calTouchStartX = 0;
-
 let calTouchStartY = 0;
 
 function initCalendarSwipe() {
@@ -106,6 +104,10 @@ function makeCalDay(date, otherMonth, isToday) {
     let html = `<div class="day-num">${date.getDate()}</div><div class="cal-dots">`;
     if (events.some(ev => ev.type === 'movie')) html += `<div class="cal-dot movie"></div>`;
     if (events.some(ev => ev.type === 'episode')) html += `<div class="cal-dot episode"></div>`;
+
+    // 🌟 Traduction du petit halo pour les albums
+    if (events.some(ev => ev.type === 'album')) html += `<div class="cal-dot album" style="background:var(--lidarr); box-shadow: 0 0 5px var(--lidarr);"></div>`;
+
     html += '</div>';
 
     if (isNewSeason) {
@@ -123,9 +125,19 @@ function selectCalDay(key, date) {
         const num = d.querySelector('.day-num');
         if (num && parseInt(num.textContent) === date.getDate() && !d.classList.contains('other-month')) d.classList.add('selected');
     });
-        selectedCalDay = key;
-        showDayEvents(key, date);
+    selectedCalDay = key;
+    showDayEvents(key, date);
 }
+
+// 🌟 UTILITAIRE PROXY IMAGE FIABLE
+const getSafePoster = (url) => {
+    let p = url || '';
+    if (p && p.toLowerCase().includes('mediacover') && !p.includes('proxy_image')) {
+        const cb = p.includes('?') ? '&cb=5' : '?cb=5';
+        return `api.php?action=proxy_image&url=${encodeURIComponent(p + cb)}`;
+    }
+    return p;
+};
 
 function showDayEvents(key, date) {
     const events = calEvents[key] || [];
@@ -150,9 +162,11 @@ function showDayEvents(key, date) {
 
     const groupedSeries = {};
     const movies = [];
+    const albums = []; // 🌟 NOUVEAU TABLEAU POUR LA MUSIQUE
 
     events.forEach(ev => {
         if (ev.type === 'movie') movies.push(ev);
+        else if (ev.type === 'album') albums.push(ev); // 🌟 TRI DE LA MUSIQUE
         else {
             if (!groupedSeries[ev.title]) groupedSeries[ev.title] = { poster: ev.poster, episodes: [] };
             groupedSeries[ev.title].episodes.push(ev);
@@ -161,10 +175,10 @@ function showDayEvents(key, date) {
 
     let html = '';
 
+    // -- 1. FILMS --
     movies.forEach(ev => {
         const safeTitle = esc(ev.title).replace(/'/g, "\\'");
-        let posterUrl = ev.poster || '';
-        if (posterUrl && !posterUrl.startsWith('http')) posterUrl = `api.php?action=proxy_image&driver=radarr&url=${encodeURIComponent(posterUrl)}`;
+        let posterUrl = getSafePoster(ev.poster);
 
         const badge = ev.grabbed ? `<span class="day-event-badge grabbed">✓ ${t('cal_available')}</span>` : `<span class="day-event-badge pending">⏳ ${t('cal_waiting')}</span>`;
         const releaseLabel = ev.releaseType?.includes('Cinéma') ? `🎬 ${t('rel_cinema')}` : ev.releaseType?.includes('Digital') ? `💻 ${t('rel_digital')}` : ev.releaseType?.includes('Physique') ? `📦 ${t('rel_physical')}` : '';
@@ -183,13 +197,13 @@ function showDayEvents(key, date) {
         </div>`;
     });
 
+    // -- 2. SÉRIES --
     Object.entries(groupedSeries).forEach(([seriesTitle, data], index) => {
         const eps = data.episodes;
         const safeTitle = esc(seriesTitle).replace(/'/g, "\\'");
         const uniqueId = 'cal-series-' + index;
 
-        let posterUrl = data.poster || '';
-        if (posterUrl && !posterUrl.startsWith('http')) posterUrl = `api.php?action=proxy_image&driver=sonarr&url=${encodeURIComponent(posterUrl)}`;
+        let posterUrl = getSafePoster(data.poster);
 
         if (eps.length === 1) {
             const ev = eps[0];
@@ -243,6 +257,28 @@ function showDayEvents(key, date) {
             </div>
             </div>`;
         }
+    });
+
+    // 🌟 3. NOUVEAU : MUSIQUE (Lidarr)
+    albums.forEach(ev => {
+        let posterUrl = getSafePoster(ev.poster);
+        const badge = ev.grabbed ? `<span class="day-event-badge grabbed">✓ ${t('cal_available')}</span>` : `<span class="day-event-badge pending">⏳ ${t('cal_waiting')}</span>`;
+        
+        // Redirection vers la page détaillée de l'artiste
+        const clickAction = `sessionStorage.setItem('serviarr_hub_tab', 'calendar'); window.location.href='music.php?artist=${ev.lidarrId}'`;
+
+        html += `<div class="day-event-item" style="flex-shrink: 0;" onclick="${clickAction}">
+        <div class="day-event-bar album" style="background:var(--lidarr)"></div>
+        ${posterUrl ? `<img class="day-event-poster" style="aspect-ratio: 1/1;" src="${posterUrl}" loading="lazy">` : `<div class="day-event-poster-ph" style="aspect-ratio: 1/1;">🎵</div>`}
+        <div class="day-event-info">
+        <div class="day-event-title">${esc(ev.title)}</div>
+        <div class="day-event-sub" style="color:var(--text);">${esc(ev.sub || '')}</div>
+        <div style="display:flex;gap:5px;align-items:center;flex-wrap:wrap;margin-top:4px;">
+            <span style="font-size:10px;font-weight:800;color:var(--lidarr);background:rgba(74, 222, 128, 0.15);border:1px solid rgba(74, 222, 128, 0.3);padding:2px 7px;border-radius:10px;">💿 ALBUM</span>
+            ${badge}
+        </div>
+        </div>
+        </div>`;
     });
 
     panel.innerHTML = `<div style="max-height:460px;overflow-y:auto;padding-right:2px;display:flex;flex-direction:column;gap:10px;">${html}</div>`;

@@ -9,7 +9,6 @@ function getAppIconHtml(app) {
         <img src="${esc(app.icon_url)}" style="width:20px; height:20px; object-fit:contain; border-radius:4px; display:block;" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-flex';">
         <span style="display:none; align-items:center; justify-content:center; font-size:18px;">${fallbackEmoji}</span>`;
     }
-    // 🌟 AJOUT DE 'indexer' ICI
     const imageDrivers = ['radarr', 'sonarr', 'prowlarr', 'indexer'];
     if (imageDrivers.includes(app.driver)) {
         return `
@@ -35,7 +34,6 @@ async function promptAddMedia(type, id, title, btn, idType = 'default') {
     modal.style.position = 'fixed';
     modal.style.zIndex = '99999999';
 
-    // 🌟 PATCH FLEXBOX POUR FIGER LE TITRE EN HAUT
     const modalInner = modal.querySelector('.modal-box') || modal.querySelector('.modal');
     if (modalInner && !modalInner.dataset.flexPatched) {
         modalInner.dataset.flexPatched = 'true';
@@ -68,7 +66,7 @@ async function promptAddMedia(type, id, title, btn, idType = 'default') {
 
     modal.classList.add('open');
 
-    const appDriver = type === 'movie' ? 'radarr' : 'sonarr';
+    const appDriver = type === 'movie' ? 'radarr' : (type === 'artist' ? 'lidarr' : 'sonarr');
     const r = await api(`get_options&app=${appDriver}`, {}, 'GET');
 
     if (r.error || !r.profiles) {
@@ -128,26 +126,26 @@ async function confirmAddMedia() {
     let payload = { qualityProfileId: profileId, rootFolderPath: rootPath, search: searchNow };
 
     if (type === 'movie') payload.tmdbId = id;
+    else if (type === 'artist') payload.mbId = id;
     else {
         if (idType === 'tmdb') payload.tmdbId = id;
         else payload.tvdbId = id;
     }
 
-    const action = type === 'movie' ? 'add_movie' : 'add_serie';
+    const action = type === 'movie' ? 'add_movie' : (type === 'artist' ? 'add_artist' : 'add_serie');
     const r = await api(action, payload);
 
     if (r.ok) {
-        const mediaTypeTranslated = type === 'movie' ? t('type_movie') : t('type_serie');
+        const mediaTypeTranslated = type === 'movie' ? t('type_movie') : (type === 'artist' ? t('type_artist') : t('type_serie'));
         notify(t('media_added_ok').replace('{type}', mediaTypeTranslated), 'ok');
 
-        // 🌟 FERMETURE AUTO DE LA MODALE DE RECHERCHE AU SUCCÈS
         const searchModal = document.getElementById('modal-search-media');
         if (searchModal && searchModal.style.display !== 'none') {
             searchModal.style.display = 'none';
         }
 
         if (btn) {
-            const openClickAction = type === 'movie' ? `openMovieDetail(${r.id})` : `openSerieDetail(${r.id})`;
+            const openClickAction = type === 'movie' ? `openMovieDetail(${r.id})` : (type === 'artist' ? `openArtistDetail(${r.id})` : `openSerieDetail(${r.id})`);
 
             if (btn.tagName && btn.tagName.toLowerCase() === 'button') {
                 btn.disabled = false;
@@ -185,14 +183,20 @@ async function confirmAddMedia() {
             const hash = window.location.hash;
             const moviesMode = document.getElementById('movies-mode') ? document.getElementById('movies-mode').value : '';
             const seriesMode = document.getElementById('series-mode') ? document.getElementById('series-mode').value : '';
+            const musicMode = document.getElementById('music-mode') ? document.getElementById('music-mode').value : '';
 
             if (hash === '#hub_films' && type === 'movie' && moviesMode !== 'search') {
                 if (typeof loadMovies === 'function') loadMovies();
             } else if (hash === '#hub_series' && type === 'serie' && seriesMode !== 'search') {
                 if (typeof loadSeries === 'function') loadSeries();
+            } else if (type === 'artist' && musicMode !== 'search') {
+                // 🌟 On purge le cache local pour s'assurer que Lidarr soit interrogé
+                if (typeof _musicDataLoaded !== 'undefined') _musicDataLoaded = false;
+                if (typeof loadArtists === 'function') loadArtists();
             }
         }, 600);
 
+        // 🌟 OUVERTURE AUTO DE LA FICHE : Ajout du cas "Artiste" corrigé
         if (type === 'movie' && r.id) {
             const currentTmdb = new URLSearchParams(window.location.search).get('tmdb');
             if (currentTmdb == id) setTimeout(() => openMovieDetail(r.id), 800);
@@ -200,6 +204,10 @@ async function confirmAddMedia() {
         if (type === 'serie' && r.id) {
             const currentTmdbSerie = new URLSearchParams(window.location.search).get('tmdb_serie');
             if (currentTmdbSerie == id) setTimeout(() => openSerieDetail(r.id), 800);
+        }
+        if (type === 'artist' && r.id) {
+            // S'il vient de la barre de recherche globale, on l'ouvre direct !
+            setTimeout(() => openArtistDetail(r.id), 800);
         }
 
     } else {
@@ -262,7 +270,6 @@ async function loadAppsList() {
     appsCache = r.apps || [];
     updateSidebar(appsCache);
     renderAppsListHtml();
-    // 🌟 Mise à jour de la visibilité du Dashboard
     if (typeof updateHubVisibility === 'function') updateHubVisibility();
 }
 
@@ -306,10 +313,7 @@ function renderAppsListHtml() {
     initDragReorder(list, '.app-item-row', '.app-item-drag-handle', async (orderedEls) => {
         const newOrder = orderedEls.map(el => el.dataset.id);
         appsCache.sort((a, b) => newOrder.indexOf(String(a.id)) - newOrder.indexOf(String(b.id)));
-        
-        // 🌟 CORRECTION : On regénère le HTML pour actualiser les index et les flèches grisées
         renderAppsListHtml(); 
-        
         updateSidebar(appsCache);
         if (typeof updateHubVisibility === 'function') updateHubVisibility();
 
@@ -357,6 +361,7 @@ function updateSidebar(apps) {
 
         if (app.driver === 'radarr') { href = 'films.php'; pageId = 'films'; }
         else if (app.driver === 'sonarr') { href = 'series.php'; pageId = 'series'; }
+        else if (app.driver === 'lidarr') { href = 'music.php'; pageId = 'music'; }
         else if (app.driver === 'prowlarr' || app.driver === 'indexer') { href = 'indexer.php'; pageId = 'indexer'; }
         else if (app.driver === 'transmission' || app.driver === 'download') { href = 'download.php'; pageId = 'downloads'; }
         else if (app.driver === 'docker') { href = 'docker.php'; pageId = 'docker'; }
@@ -366,10 +371,8 @@ function updateSidebar(apps) {
         if (href !== '#') {
             let isActive = false;
 
-            // On vérifie si on est sur la bonne page
             if (typeof CURRENT_PAGE !== 'undefined' && CURRENT_PAGE === pageId) {
                 if (app.driver === 'iframe') {
-                    // Pour les iframes, on vérifie que l'ID dans l'URL correspond à l'application
                     const urlParams = new URLSearchParams(window.location.search);
                     if (urlParams.get('id') == app.id) isActive = true;
                 } else {
@@ -395,7 +398,6 @@ async function toggleApp(id, btn) {
         if (appIndex !== -1) {
             appsCache[appIndex].enabled = r.enabled;
             if (typeof updateSidebar === 'function') updateSidebar(appsCache);
-            // 🌟 Mise à jour en temps réel de l'interface
             if (typeof updateHubVisibility === 'function') updateHubVisibility();
         }
     }
@@ -466,7 +468,6 @@ async function loadDriverFields() {
     let html = (r.fields||[]).map(f => {
         const val = app ? (app[f.key] || '') : '';
 
-        // 🌟 AJOUT : Support des listes déroulantes (select)
         if (f.type === 'select') {
             const optionsHtml = (f.options || []).map(opt => {
                 const isSelected = (val === opt.value) ? 'selected' : '';
@@ -481,7 +482,6 @@ async function loadDriverFields() {
             </select>
             </div>`;
         } else {
-            // Comportement classique pour les inputs textes et mots de passe
             return `<div class="form-row"><label>${esc(f.label)}</label><input type="${f.type}" name="${f.key}" value="${esc(val)}" placeholder="${esc(f.placeholder||'')}"></div>`;
         }
     }).join('');
@@ -516,7 +516,6 @@ async function loadDriverFields() {
     </div>
     </div>`;
 
-    // 🌟 NOUVEAU : Récupération robuste du raccourci avec editingId
     let currentShortcut = '';
     if (typeof editingId !== 'undefined' && editingId) {
         try {
@@ -533,7 +532,6 @@ async function loadDriverFields() {
 
     container.innerHTML = html;
 
-    // 🌟 PLACEMENT DU BOUTON TEST (AVEC TRADUCTION)
     const actionsDiv = document.querySelector('#modal-app .modal-actions');
     if (actionsDiv && !document.getElementById('btn-test-connection')) {
         const testBtn = document.createElement('button');
@@ -546,7 +544,6 @@ async function loadDriverFields() {
         testBtn.onmouseover = function() { this.style.background = 'var(--sonarr-bg)'; };
         testBtn.onmouseout = function() { this.style.background = 'var(--bg3)'; };
         
-        // Appel à la traduction
         testBtn.innerHTML = '🔌 ' + t('btn_test_connection');
         
         actionsDiv.insertBefore(testBtn, actionsDiv.firstChild);
@@ -618,7 +615,6 @@ async function saveApp() {
     if (editingId) data.id = editingId;
     document.querySelectorAll('#modal-fields input, #modal-fields select').forEach(el => { data[el.name] = el.value; });
 
-    // 🛡️ SÉCURITÉ : On capture la lettre tapée AVANT de communiquer avec le serveur
     const shortcutInput = document.getElementById('modal-shortcut');
     const shortcutValue = shortcutInput ? shortcutInput.value.toLowerCase() : '';
 
@@ -627,7 +623,6 @@ async function saveApp() {
     const r = await api('save_app', data);
 
     if (r.ok) {
-        // 🌟 NOUVEAU : Sauvegarde fiable du raccourci dans le cache du navigateur
         const targetId = editingId || r.id;
         if (targetId) {
             let shortcuts = {};
@@ -670,10 +665,8 @@ async function loadProwlarrIndexers() {
         const statusText = isActive ? 'ON' : 'OFF';
         const protocol = ind.protocol === 'torrent' ? 'Torrent 🧲' : 'Usenet 📥';
 
-        // Utilisation du bleu cyan pour ON, et rouge pour OFF (barre latérale)
         const barColor = isActive ? 'var(--accent)' : 'var(--accent3)';
 
-        // Pastilles translucides très propres, sans bordure
         const badgeStyle = isActive
         ? 'background: var(--accent-bg); color: var(--accent); border: none;'
         : 'background: rgba(255,93,143, 0.15); color: var(--accent3); border: none;';
@@ -773,8 +766,6 @@ async function searchProwlarr() {
     sortProwlarrResults(_prowlarrSortCriteria, true);
 }
 
-// Extrait un libellé de catégorie exploitable, que le résultat vienne de Jackett (déjà mappé en string)
-// ou de Prowlarr (tableau brut d'objets {id, name})
 function getResultCategoryLabel(res) {
     if (res.category) return res.category;
     if (Array.isArray(res.categories) && res.categories.length) {
@@ -860,7 +851,6 @@ async function sendToTransmission(url, btn) {
     btn.disabled = true;
     btn.textContent = '⏳...';
 
-    // 🌟 On utilise notre fonction api() qui gère automatiquement la sécurité et la session !
     const res = await api('add_torrent', { magnet: url });
 
     if (res.ok) {
@@ -877,7 +867,7 @@ async function sendToTransmission(url, btn) {
 }
 
 async function loadAppSystemStatus(type) {
-    const prefix = type === 'movie' ? 'movie' : 'serie';
+    const prefix = type === 'movie' ? 'movie' : (type === 'artist' ? 'music' : 'serie');
     const verEl = document.getElementById('app-version');
     const badgeEl = document.getElementById('app-update-badge');
     

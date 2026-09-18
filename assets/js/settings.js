@@ -9,7 +9,7 @@ async function loadTmdbConfig() {
 async function saveTmdbConfig() {
     const key = document.getElementById('setting-tmdb-key').value.trim();
     const btn = document.getElementById('btn-save-tmdb');
-    if (btn) { btn.disabled = true; btn.textContent = '⏳ ' + t('settings_vapid_saving'); }
+    if (btn) { btn.disabled = true; btn.textContent = '⏳ ' + t('loading'); }
 
     const r = await api('save_tmdb_key', { key: key });
     if (btn) { btn.disabled = false; btn.textContent = t('settings_tmdb_save'); }

@@ -25,12 +25,36 @@ async function toggleSeasonMonitor(seriesId, seasonNumber, newState, element) {
 }
 
 let seriesPage = 1, seriesTimer = null;
-
 let seriesSearchTimeout;
 
-function seriesSearchDebounce() { clearTimeout(seriesSearchTimeout); seriesSearchTimeout = setTimeout(() => { loadSeries(); }, 400); }
+// 🌟 VARIABLES DU CACHE GLOBAL
+let _seriesSortCriteria = 'title';
+let _seriesSortAsc = true;
+let _seriesSortOpen = false;
+let _seriesAllData = [];
+let _seriesDataLoaded = false;
 
-function seriesReload() { loadSeries(); }
+function seriesSearchDebounce() { 
+    clearTimeout(seriesSearchTimeout); 
+    const mode = document.getElementById('series-mode').value;
+    if (mode === 'search') {
+        seriesSearchTimeout = setTimeout(() => { loadSeries(); }, 400); 
+    } else {
+        // En mode local, on filtre très vite sans recharger l'API
+        seriesSearchTimeout = setTimeout(() => { renderFilteredSeries(); }, 200); 
+    }
+}
+
+function seriesReload(forceRefresh = false) { 
+    if (forceRefresh) {
+        _seriesDataLoaded = false; // Force la purge du cache
+        loadSeries();
+    } else {
+        const mode = document.getElementById('series-mode').value;
+        if (mode === 'search') loadSeries();
+        else renderFilteredSeries(); 
+    }
+}
 
 async function loadSeries() {
     const recentContainer = document.getElementById('dash-recent-series');
@@ -39,6 +63,7 @@ async function loadSeries() {
     const popularContainer = document.getElementById('dash-popular-series');
     const upcomingNewContainer = document.getElementById('dash-upcoming-new-series');
 
+    // --- GESTION DU DASHBOARD (Ne change pas) ---
     if (recentContainer || upcomingContainer || recoContainer || popularContainer || upcomingNewContainer) {
         if (recentContainer) recentContainer.innerHTML = `<p style="color:var(--muted);">${t('status_loading')}</p>`;
         if (upcomingContainer) upcomingContainer.innerHTML = `<p style="color:var(--muted);">${t('status_loading')}</p>`;
@@ -72,7 +97,6 @@ async function loadSeries() {
                     : `sessionStorage.setItem('serviarr_hub_tab', 'series'); window.location.href='series.php?serie=${sr.id}'`;
                     const badge = sr.is_new ? `<div class="dash-badge" style="background:var(--sonarr); color:#000;">+ ${t('badge_discover')}</div>` : '';
 
-                    // 🌟 AJOUT : Calcul du temps restant avant la diffusion
                     let dateBadge = '';
                     if (sr.release_date) {
                         const relDate = new Date(sr.release_date);
@@ -84,12 +108,10 @@ async function loadSeries() {
                             const diffDays = Math.round((relDate - today) / (1000 * 60 * 60 * 24));
 
                             if (diffDays === 0) {
-                                // Badge jaune Radarr remplacé par le badge bleu Sonarr
                                 dateBadge = `<div style="position:absolute; top:6px; right:6px; background:var(--sonarr); color:#000; font-size:10px; font-weight:900; padding:3px 6px; border-radius:6px; z-index:10; box-shadow:0 2px 4px rgba(0,0,0,0.5);">${t('date_today')}</div>`;
                             } else if (diffDays > 0 && diffDays <= 30) {
                                 dateBadge = `<div style="position:absolute; top:6px; right:6px; background:rgba(0,0,0,0.75); color:#fff; font-size:10px; font-weight:bold; padding:3px 6px; border-radius:6px; z-index:10; border:1px solid rgba(255,255,255,0.2); backdrop-filter:blur(4px);">${t('date_in_days').replace('{n}', diffDays)}</div>`;
                             } else {
-                                // Gère les dates > 30 jours ET les dates passées (< 0)
                                 const dateStr = relDate.toLocaleDateString(currentLocale(), {day: '2-digit', month: '2-digit', year: '2-digit'});
                                 dateBadge = `<div style="position:absolute; top:6px; right:6px; background:rgba(0,0,0,0.75); color:#fff; font-size:10px; font-weight:bold; padding:3px 6px; border-radius:6px; z-index:10; border:1px solid rgba(255,255,255,0.2); backdrop-filter:blur(4px);">${dateStr}</div>`;
                             }
@@ -130,40 +152,98 @@ async function loadSeries() {
         return;
     }
 
-    const mode   = document.getElementById('series-mode').value;
-    const q      = document.getElementById('series-search').value.trim();
-    const filter = document.getElementById('series-filter').value;
-    const grid   = document.getElementById('series-grid');
-    if(!grid) return;
+    const grid = document.getElementById('series-grid');
+    if (!grid) return;
+    const mode = document.getElementById('series-mode').value;
+    const q = document.getElementById('series-search').value.trim();
 
-    grid.innerHTML = Array(12).fill('<div class="media-card"><div class="media-card-poster-placeholder">🎬</div><div class="media-card-body"><div class="shimmer" style="height:11px;width:80%;margin-bottom:6px;"></div><div class="shimmer" style="height:10px;width:50%;"></div></div></div>').join('');
-
+    // 🌟 GESTION DE LA RECHERCHE EN LIGNE (TMDB)
     if (mode === 'search') {
+        grid.innerHTML = Array(12).fill('<div class="media-card"><div class="media-card-poster-placeholder">🎬</div><div class="media-card-body"><div class="shimmer" style="height:11px;width:80%;margin-bottom:6px;"></div><div class="shimmer" style="height:10px;width:50%;"></div></div></div>').join('');
         if (!q) { grid.innerHTML = `<div class="empty-state"><div class="icon">🔍</div><h3>${t('search_type_title')}</h3><p>${t('search_type_hint')}</p></div>`; return; }
-        document.getElementById('series-filter').style.display = 'none';
+        if (document.getElementById('series-filter')) document.getElementById('series-filter').style.display = 'none';
+
         const r = await api(`search_serie&q=${encodeURIComponent(q)}`, {}, 'GET');
-        document.getElementById('series-count').textContent = (r.results || []).length + ` ${t('search_results')}`;
+        if (document.getElementById('series-count')) document.getElementById('series-count').textContent = (r.results || []).length + ` ${t('search_results')}`;
         grid.innerHTML = '';
-        document.getElementById('series-pagination').innerHTML = '';
+        if (document.getElementById('series-pagination')) document.getElementById('series-pagination').innerHTML = '';
 
         const fragment = document.createDocumentFragment();
         (r.results || []).forEach(s => fragment.appendChild(makeSerieCard(s, true)));
         grid.appendChild(fragment);
 
     } else {
-        document.getElementById('series-filter').style.display = '';
-        const r = await api(`library_series&q=${encodeURIComponent(q)}&filter=${filter}`, {}, 'GET');
-        document.getElementById('series-count').textContent = (r.total || 0) + ` ${t('count_series')}`;
-        grid.innerHTML = '';
-        _seriesAllData = r.series || [];
-        const sortedSeries = applySortToSeries([..._seriesAllData]);
+        if (document.getElementById('series-filter')) document.getElementById('series-filter').style.display = '';
 
-        const fragment = document.createDocumentFragment();
-        sortedSeries.forEach(s => fragment.appendChild(makeSerieCard(s, false)));
-        grid.appendChild(fragment);
+        // 🌟 CACHE PERSISTANT
+        if (!_seriesDataLoaded) {
+            
+            const localCache = localStorage.getItem('serviarr_series_library');
+            if (localCache) {
+                try {
+                    _seriesAllData = JSON.parse(localCache);
+                    renderFilteredSeries();
+                } catch (e) {}
+            } else {
+                grid.innerHTML = Array(12).fill('<div class="media-card"><div class="media-card-poster-placeholder">📺</div><div class="media-card-body"><div class="shimmer" style="height:11px;width:80%;margin-bottom:6px;"></div><div class="shimmer" style="height:10px;width:50%;"></div></div></div>').join('');
+            }
 
-        document.getElementById('series-pagination').innerHTML = '';
+            api(`library_series&q=&filter=all`, {}, 'GET').then(r => {
+                if (!r.error && r.series) {
+                    const newDataString = JSON.stringify(r.series);
+                    if (newDataString !== localStorage.getItem('serviarr_series_library')) {
+                        _seriesAllData = r.series;
+                        localStorage.setItem('serviarr_series_library', newDataString);
+                        renderFilteredSeries();
+                    }
+                } else if (r.error && !localCache) {
+                    grid.innerHTML = `<div class="empty-state"><div class="icon">❌</div><h3>${t('err_conn_server')}</h3><p>${esc(r.error)}</p></div>`;
+                }
+            });
+
+            _seriesDataLoaded = true;
+        } else {
+            renderFilteredSeries();
+        }
     }
+}
+
+// 🌟 MOTEUR DE RENDU ET FILTRAGE 100% LOCAL
+function renderFilteredSeries() {
+    const grid = document.getElementById('series-grid');
+    if (!grid) return;
+
+    const q = document.getElementById('series-search').value.trim().toLowerCase();
+    const filterEl = document.getElementById('series-filter');
+    const filter = filterEl ? filterEl.value : 'all';
+
+    let filtered = _seriesAllData.filter(sr => {
+        // Filtre par texte
+        if (q && !(sr.title || '').toLowerCase().includes(q)) return false;
+        
+        // Filtres par statut
+        if (filter === 'monitored' && !sr.monitored) return false;
+        if (filter === 'unmonitored' && sr.monitored) return false;
+        if (filter === 'complete' && sr.pct < 100) return false;
+        if (filter === 'incomplete' && sr.pct >= 100) return false;
+        if (filter === 'ended' && sr.status !== 'ended') return false;
+        if (filter === 'continuing' && sr.status !== 'continuing') return false;
+        
+        return true;
+    });
+
+    const countEl = document.getElementById('series-count');
+    if (countEl) countEl.textContent = filtered.length + ` ${t('count_series')}`;
+
+    const sorted = applySortToSeries(filtered);
+
+    grid.innerHTML = '';
+    const fragment = document.createDocumentFragment();
+    sorted.forEach(sr => fragment.appendChild(makeSerieCard(sr, false)));
+    grid.appendChild(fragment);
+
+    const paginationEl = document.getElementById('series-pagination');
+    if (paginationEl) paginationEl.innerHTML = '';
 }
 
 function makeSerieCard(s, isSearch) {
@@ -176,7 +256,6 @@ function makeSerieCard(s, isSearch) {
     const monitoredIcon = monitored ? `<span title="${t('badge_monitored')}" style="color:var(--sonarr)">🔖</span>` : `<span title="${t('badge_unmonitored')}" style="color:var(--muted)">🔕</span>`;
     const addBtn = isSearch && !inLib ? `<button class="btn-add" onclick="event.stopPropagation();promptAddMedia('serie', ${s.tvdbId}, '${esc(s.title).replace(/'/g,"\\'").replace(/"/g,'&quot;')}', this)">＋</button>` : '';
     const seasonsBadge = !isSearch ? `<span style="font-size:10px;color:var(--sonarr)">${s.seasons} s.</span>` : (inLib ? '<span class="pill sonarr" style="font-size:10px">✓</span>' : '');
-    // 🌟 Le badge de poids avec la puce :
     const sizeBadge = s.sizeOnDisk > 0 ? `<span style="font-size:10px;color:var(--muted);font-weight:600;margin-left:4px;">${s.sizeOnDisk} GB</span>` : '';
     const networkBadge = s.network ? `<span style="font-size:10px;color:var(--muted)">${esc(s.network)}</span>` : '';
     const progressBar = (!isSearch && pct !== null) ? `<div class="progress-bar" style="margin-top:5px"><div class="progress-fill" style="width:${pct}%;background:var(--sonarr)"></div></div>` : '';
@@ -212,7 +291,7 @@ function makeSerieCard(s, isSearch) {
     if (bulkSelectedIds.has(s.id)) div.classList.add('bulk-selected');
 
     div.innerHTML = `
-    ${fanartHtml} <!-- 🌟 Fanart placé à la racine pour couvrir toute la carte -->
+    ${fanartHtml}
     ${bulkCheckbox}
     ${poster}${placeholder}
     <div class="monitored-badge">${!isSearch ? `<div class="monitored-badge" style="cursor:pointer;" onclick="event.stopPropagation(); toggleMonitor(${s.id}, 'serie', ${!monitored}, this)">${monitored ? ICON_MONITORED : ICON_UNMONITORED}</div>` : ''}</div>
@@ -274,7 +353,6 @@ function toggleSeason(header) {
 
     const epsContent = epDiv.innerHTML;
 
-    // 🌟 CORRECTION ICI : On englobe tout dans UNE SEULE <div> principale pour éviter le bug CSS
     const backBtn = `
     <div style="padding: 20px; background: var(--bg2); width: 100%; box-sizing: border-box; border-radius: 12px;">
     <div style="display:flex; align-items:center; gap:12px; margin-bottom:20px;">
@@ -388,14 +466,6 @@ function deleteSeasonFiles(fileIds, seriesId, seasonNumber) {
     );
 }
 
-let _seriesSortCriteria = 'title';
-
-let _seriesSortAsc = true;
-
-let _seriesSortOpen = false;
-
-let _seriesAllData = [];
-
 function toggleSeriesSort() {
     _seriesSortOpen = !_seriesSortOpen;
     const menu = document.getElementById('series-sort-menu');
@@ -403,13 +473,7 @@ function toggleSeriesSort() {
 }
 
 function renderSeriesGridOnly() {
-    const sorted = applySortToSeries([..._seriesAllData]);
-    const grid = document.getElementById('series-grid');
-    if (!grid) return;
-    grid.innerHTML = '';
-    const fragment = document.createDocumentFragment();
-    sorted.forEach(s => fragment.appendChild(makeSerieCard(s, false)));
-    grid.appendChild(fragment);
+    renderFilteredSeries();
 }
 
 function sortSeries(criteria) {
@@ -420,18 +484,10 @@ function sortSeries(criteria) {
         _seriesSortAsc = (criteria === 'title' || criteria === 'network' || criteria === 'status' || criteria === 'nextAiring');
     }
 
-    // Met à jour la liste déroulante
     const sel = document.getElementById('series-sort-select');
     if (sel) sel.value = criteria;
 
-    const sorted = applySortToSeries([..._seriesAllData]);
-    const grid = document.getElementById('series-grid');
-    if (!grid) return;
-    grid.innerHTML = '';
-
-    const fragment = document.createDocumentFragment();
-    sorted.forEach(s => fragment.appendChild(makeSerieCard(s, false)));
-    grid.appendChild(fragment);
+    renderFilteredSeries();
 }
 
 function applySortToSeries(series) {

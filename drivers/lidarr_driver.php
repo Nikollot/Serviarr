@@ -1,9 +1,12 @@
 <?php
 // Driver: Lidarr
-// Required fields: url, api_key
+// Required fields: url, local_url, api_key
 
 function lidarr_request($cfg, $endpoint) {
-    $url = rtrim($cfg['url'], '/') . '/api/v1/' . ltrim($endpoint, '/');
+    // Utilise l'URL locale si elle est définie, sinon l'URL publique
+    $base_url = !empty($cfg['local_url']) ? $cfg['local_url'] : $cfg['url'];
+    $url = rtrim($base_url, '/') . '/api/v1/' . ltrim($endpoint, '/');
+    
     $ch = curl_init($url);
     curl_setopt_array($ch, [
         CURLOPT_RETURNTRANSFER => true,
@@ -53,7 +56,8 @@ function lidarr_status($cfg) {
 
 function lidarr_fields() {
     return [
-        ['key' => 'url',     'label' => t('api_url_label'), 'type' => 'text',     'placeholder' => 'http://192.168.1.x:8686'],
-        ['key' => 'api_key', 'label' => t('api_key_label'), 'type' => 'password', 'placeholder' => t('api_key_lidarr')],
+        ['key' => 'url',       'label' => t('api_url_label') ?? 'URL Publique', 'type' => 'text', 'placeholder' => 'https://lidarr.mondomaine.fr'],
+        ['key' => 'local_url', 'label' => 'URL Locale (API & Images)', 'type' => 'text', 'placeholder' => 'http://192.168.1.x:8686'],
+        ['key' => 'api_key',   'label' => t('api_key_label'), 'type' => 'password', 'placeholder' => t('api_key_lidarr')],
     ];
 }

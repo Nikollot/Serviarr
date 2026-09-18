@@ -1,8 +1,6 @@
 <?php
 // ===== Serviarr - api-media-common.php =====
 
-
-
 // ── Filmographie de l'Acteur ──────────────────────────────────────────────────
 if ($action === 'actor_credits') {
     require_auth();
@@ -140,8 +138,6 @@ if ($action === 'actor_credits') {
     exit;
 }
 
-
-
 // ── GET OPTIONS & RAW ─────────────────────────────────────────────────────────
 if ($action === 'get_options') {
     $cfg = load_config();
@@ -149,43 +145,50 @@ if ($action === 'get_options') {
     $app = find_app_by_driver($cfg, $type);
     if (!$app) { echo json_encode(['error' => t('err_app_not_configured')]); exit; }
 
-    $profiles = arr_get($app, '/api/v3/qualityprofile');
-    $folders = arr_get($app, '/api/v3/rootfolder');
-    $tags = arr_get($app, '/api/v3/tag');
+    $v = ($type === 'lidarr') ? '/api/v1' : '/api/v3';
+
+    $profiles = arr_get($app, $v . '/qualityprofile');
+    $folders = arr_get($app, $v . '/rootfolder');
+    $tags = arr_get($app, $v . '/tag');
 
     echo json_encode([
         'profiles' => is_array($profiles) && !isset($profiles['_error']) ? $profiles : [],
-                     'folders'  => is_array($folders) && !isset($folders['_error']) ? $folders : [],
-                     'tags'     => is_array($tags) && !isset($tags['_error']) ? $tags : []
+        'folders'  => is_array($folders) && !isset($folders['_error']) ? $folders : [],
+        'tags'     => is_array($tags) && !isset($tags['_error']) ? $tags : []
     ]);
     exit;
 }
-
-
 
 if ($action === 'get_media_raw') {
     $cfg = load_config();
     $type = $_GET['type'] ?? 'movie';
     $id = (int)($_GET['id'] ?? 0);
-    $app = find_app_by_driver($cfg, $type === 'movie' ? 'radarr' : 'sonarr');
+
+    $driver = $type === 'movie' ? 'radarr' : ($type === 'artist' ? 'lidarr' : 'sonarr');
+    $app = find_app_by_driver($cfg, $driver);
     if (!$app) { echo json_encode(['error' => t('err_app_not_configured')]); exit; }
 
-    $endpoint = $type === 'movie' ? "/api/v3/movie/{$id}" : "/api/v3/series/{$id}";
+    if ($type === 'movie') $endpoint = "/api/v3/movie/{$id}";
+    elseif ($type === 'artist') $endpoint = "/api/v1/artist/{$id}";
+    else $endpoint = "/api/v3/series/{$id}";
+
     $data = arr_get($app, $endpoint);
 
     echo json_encode(isset($data['_error']) ? ['error' => $data['_error']] : $data);
     exit;
 }
 
-
-
 if ($action === 'edit_media') {
     $cfg = load_config();
     $type = $_POST['type'] ?? 'movie';
     $id = (int)$_POST['id'];
-    $app = find_app_by_driver($cfg, $type === 'movie' ? 'radarr' : 'sonarr');
 
-    $endpoint = $type === 'movie' ? "/api/v3/movie/{$id}" : "/api/v3/series/{$id}";
+    $driver = $type === 'movie' ? 'radarr' : ($type === 'artist' ? 'lidarr' : 'sonarr');
+    $app = find_app_by_driver($cfg, $driver);
+
+    if ($type === 'movie') $endpoint = "/api/v3/movie/{$id}";
+    elseif ($type === 'artist') $endpoint = "/api/v1/artist/{$id}";
+    else $endpoint = "/api/v3/series/{$id}";
 
     $item = arr_get($app, $endpoint);
     if (isset($item['_error'])) { echo json_encode(['error' => t('err_media_not_found')]); exit; }
@@ -206,8 +209,6 @@ if ($action === 'edit_media') {
     exit;
 }
 
-
-
 // ── TOGGLES & QUALITY ─────────────────────────────────────────────────────────
 if ($action === 'toggle_monitor') {
     $cfg = load_config();
@@ -220,7 +221,9 @@ if ($action === 'toggle_monitor') {
 
     $endpoint = $type === 'movie' ? "/api/v3/movie/{$id}" : "/api/v3/series/{$id}";
 
-    $raw = http_get(rtrim($app['url'], '/') . $endpoint . '?apikey=' . $app['api_key']);
+    $backend_url = !empty($app['local_url']) ? rtrim($app['local_url'], '/') : rtrim($app['url'], '/');
+    $raw = http_get($backend_url . $endpoint . '?apikey=' . $app['api_key']);
+    
     if (isset($raw['_error']) || !isset($raw['id'])) {
         echo json_encode(['error' => t('err_element_not_found_server')]); exit;
     }
@@ -236,8 +239,6 @@ if ($action === 'toggle_monitor') {
     }
     exit;
 }
-
-
 
 if ($action === 'update_media_quality') {
     $cfg = load_config();
@@ -263,8 +264,6 @@ if ($action === 'update_media_quality') {
     }
     exit;
 }
-
-
 
 // ── QUEUE & PROXY ─────────────────────────────────────────────────────────────
 if ($action === 'queue_status') {
@@ -308,37 +307,110 @@ if ($action === 'queue_status') {
     exit;
 }
 
-
-
 if ($action === 'proxy_image') {
     require_auth();
     $url = urldecode($_GET['url'] ?? '');
     $parsed = parse_url($url);
-    $path_ok = isset($parsed['path']) && strpos($parsed['path'], '/api/v3/mediacover') === 0;
+    $path = $parsed['path'] ?? '';
+    
+    // Détection des routes d'images locales
+    $path_ok = (stripos($path, '/api/v3/mediacover/') === 0
+             || stripos($path, '/api/v1/mediacover/') === 0
+             || stripos($path, '/MediaCover/') === 0);
+             
     $host_ok = false;
+    $app_api_key = '';
+    $final_url = $url;
+
     if ($path_ok && !empty($parsed['host'])) {
         $cfg = load_config();
         foreach ($cfg['apps'] ?? [] as $app) {
-            if (in_array($app['driver'] ?? '', ['radarr', 'sonarr'], true)) {
-                $app_host = parse_url($app['url'] ?? '', PHP_URL_HOST);
-                if ($app_host && strcasecmp($app_host, $parsed['host']) === 0) { $host_ok = true; break; }
+            if (in_array($app['driver'] ?? '', ['radarr', 'sonarr', 'lidarr'], true)) {
+                $public_host = parse_url($app['url'] ?? '', PHP_URL_HOST);
+                $local_host  = parse_url($app['local_url'] ?? '', PHP_URL_HOST);
+                $req_host    = $parsed['host'];
+
+                if (($public_host && strcasecmp($public_host, $req_host) === 0) || 
+                    ($local_host && strcasecmp($local_host, $req_host) === 0)) {
+                    
+                    $host_ok = true;
+                    $app_api_key = $app['api_key'] ?? '';
+                    
+                    // 🌟 On réécrit l'URL pour forcer le trafic en local
+                    $backend_base = !empty($app['local_url']) ? rtrim($app['local_url'], '/') : rtrim($app['url'], '/');                    
+                                 
+                    $query = isset($parsed['query']) ? '?' . $parsed['query'] : '';
+                    $final_url = $backend_base . $path . $query;
+                    break;
+                }
             }
         }
     }
+
     if ($path_ok && $host_ok) {
-        header('Content-Type: image/jpeg');
-        $ch = curl_init($url);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, false);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-        curl_exec($ch);
+        $cacheDir = APP_ROOT . '/data/cache/images';
+        if (!is_dir($cacheDir)) {
+            @mkdir($cacheDir, 0775, true);
+        }
+        $cacheKey  = md5($final_url);
+        $cacheFile = $cacheDir . '/' . $cacheKey . '.img';
+        $cacheMeta = $cacheDir . '/' . $cacheKey . '.meta';
+        $cacheTtl  = 86400; // 1 jour
+
+        if (is_file($cacheFile) && is_file($cacheMeta) && (time() - filemtime($cacheFile)) < $cacheTtl) {
+            $contentType = trim(@file_get_contents($cacheMeta)) ?: 'image/jpeg';
+            header("Content-Type: $contentType");
+            header('Cache-Control: max-age=86400, public');
+            header('X-Image-Cache: HIT');
+            readfile($cacheFile);
+            exit;
+        }
+
+        $ch = curl_init($final_url);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_SSL_VERIFYPEER => false,
+            CURLOPT_ENCODING       => "",
+            CURLOPT_TIMEOUT        => 15
+        ]);
+
+        if ($app_api_key) {
+            curl_setopt($ch, CURLOPT_HTTPHEADER, ['X-Api-Key: ' . $app_api_key]);
+        }
+
+        $imgData = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $contentType = curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
         curl_close($ch);
-        exit;
+
+        if ($httpCode >= 200 && $httpCode < 300 && $imgData) {
+            if (!$contentType) $contentType = 'image/jpeg';
+
+            @file_put_contents($cacheFile, $imgData);
+            @file_put_contents($cacheMeta, $contentType);
+
+            header("Content-Type: $contentType");
+            header('Cache-Control: max-age=86400, public');
+            header('X-Image-Cache: MISS');
+            echo $imgData;
+            exit;
+        } else {
+            if (is_file($cacheFile) && is_file($cacheMeta)) {
+                $contentType = trim(@file_get_contents($cacheMeta)) ?: 'image/jpeg';
+                header("Content-Type: $contentType");
+                header('Cache-Control: max-age=86400, public');
+                header('X-Image-Cache: STALE');
+                readfile($cacheFile);
+                exit;
+            }
+            http_response_code($httpCode ?: 404);
+            exit;
+        }
     }
-    http_response_code(404);
+    http_response_code(403);
     exit;
 }
-
-
 
 if ($action === 'proxy_fetch') {
     require_auth();
@@ -370,8 +442,6 @@ if ($action === 'proxy_fetch') {
     exit;
 }
 
-
-
 // ── BULK & DELETE & REFRESH ───────────────────────────────────────────────────
 if ($action === 'bulk_media_action') {
     $cfg = load_config();
@@ -389,6 +459,7 @@ if ($action === 'bulk_media_action') {
 
     $success = 0;
     $failed = [];
+    $backend_url = !empty($app['local_url']) ? rtrim($app['local_url'], '/') : rtrim($app['url'], '/');
 
     foreach ($ids as $id) {
         $id = (int)$id;
@@ -398,7 +469,7 @@ if ($action === 'bulk_media_action') {
             $res = arr_delete($app, $endpoint . "?deleteFiles={$deleteFiles}");
             if ($res['code'] >= 200 && $res['code'] < 300) $success++; else $failed[] = $id;
         } else {
-            $raw = http_get(rtrim($app['url'], '/') . $endpoint . '?apikey=' . $app['api_key']);
+            $raw = http_get($backend_url . $endpoint . '?apikey=' . $app['api_key']);
             if (isset($raw['_error']) || !isset($raw['id'])) { $failed[] = $id; continue; }
             $raw['monitored'] = ($bulkAction === 'monitor_on');
             $res = arr_put_raw($app, $endpoint, json_encode($raw, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
@@ -416,8 +487,6 @@ if ($action === 'bulk_media_action') {
     }
     exit;
 }
-
-
 
 if ($action === 'delete_media') {
     $cfg = load_config();
@@ -441,8 +510,6 @@ if ($action === 'delete_media') {
     exit;
 }
 
-
-
 if ($action === 'delete_file') {
     $cfg = load_config();
     $type = $_POST['type'] ?? 'movie';
@@ -461,8 +528,6 @@ if ($action === 'delete_file') {
     }
     exit;
 }
-
-
 
 if ($action === 'refresh_media') {
     $cfg = load_config();

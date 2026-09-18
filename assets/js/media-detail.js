@@ -17,9 +17,6 @@ function toggleFileDetailsCard(uid) {
     if (chevron) chevron.style.transform = open ? 'rotate(0deg)' : 'rotate(180deg)';
 }
 
-// Carte dépliable des détails d'un fichier (codecs vidéo/audio, sous-titres, chemin, formats personnalisés)
-// file: objet retourné par le backend (r.file pour un film, ep.file_details pour un épisode)
-// deleteArgs: chaîne d'arguments JS à passer à deleteFile(...), ex: "123, 'movie', 45"
 function buildFileDetailsCard(file, uid, deleteArgs) {
     if (!file) return '';
     const cfs = file.customFormats || [];
@@ -41,36 +38,70 @@ function buildFileDetailsCard(file, uid, deleteArgs) {
     </div>
     <div id="file-body-${uid}" style="display:none; padding:0 16px 16px 16px; border-top:1px solid var(--border);">
     ${cfs.length ? `
-    <div style="margin:14px 0 10px 0;">
-    <div style="font-size:10px; font-weight:bold; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px;">${'Formats personnalisés'}</div>
-    <div style="display:flex; flex-wrap:wrap; gap:6px;">
-    ${cfs.map(f => `<span style="border:1px solid var(--accent); color:var(--accent); padding:3px 10px; border-radius:20px; font-size:11px; font-weight:600;">${esc(f)}</span>`).join('')}
+        <div style="margin:14px 0 10px 0;">
+        <div style="font-size:10px; font-weight:bold; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px;">${t('detail_custom_formats')}</div>
+        <div style="display:flex; flex-wrap:wrap; gap:6px;">
+        ${cfs.map(f => `<span style="border:1px solid var(--accent); color:var(--accent); padding:3px 10px; border-radius:20px; font-size:11px; font-weight:600;">${esc(f)}</span>`).join('')}
+        </div>
+        </div>` : ''}
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:14px;">
+        <div>
+        <div style="font-size:10px; font-weight:bold; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px;">${t('detail_video')}</div>
+        ${_fdRow(t('detail_resolution'), file.resolution)}
+        ${_fdRow(t('detail_codec'), file.videoCodec)}
+        ${_fdRow(t('detail_depth'), file.bitDepth)}
+        ${_fdRow(t('detail_bitrate'), file.bitRate)}
+        ${_fdRow('FPS', file.fps)}
+        </div>
+        <div>
+        <div style="font-size:10px; font-weight:bold; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px;">${t('detail_audio')}</div>
+        ${_fdRow(t('detail_channels'), file.audioChannels)}
+        ${_fdRow(t('detail_codec'), file.audioCodec)}
+        ${_fdRow(t('detail_languages'), file.audioLanguages)}
+        ${_fdRow(t('detail_bitrate'), file.audioBitRate)}
+        ${_fdRow(t('detail_streams'), file.audioStreams)}
+        </div>
+        </div>
+        <div style="margin-top:14px;">
+        <div style="font-size:10px; font-weight:bold; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px;">${t('detail_other')}</div>
+        ${_fdRow(t('detail_runtime'), file.runTime)}
+        ${_fdRow(t('detail_subtitles'), file.subtitles)}
+        ${_fdRow(t('detail_group'), file.releaseGroup)}
+        ${_fdRow(t('detail_path'), file.path)}
+        </div>
+        </div>
+        </div>`;
+}
+
+function buildAudioFileDetailsCard(file, uid, deleteArgs) {
+    if (!file) return '';
+    const fileName = file.path ? file.path.split('/').pop() : '?';
+    return `
+    <div style="background:var(--bg3); border:1px solid var(--border); border-radius:12px; margin-bottom:20px; overflow:hidden;">
+    <div onclick="toggleFileDetailsCard('${uid}')" style="padding:14px 16px; cursor:pointer; display:flex; justify-content:space-between; align-items:flex-start; gap:10px;">
+    <div style="min-width:0; flex:1;">
+    <div style="font-size:12px; font-weight:600; color:var(--text); word-break:break-all; line-height:1.4;">${esc(fileName)}</div>
+    <div style="display:flex; align-items:center; gap:8px; margin-top:6px; flex-wrap:wrap; font-size:11px;">
+    ${file.size ? `<span style="color:var(--accent2); font-weight:bold;">✓ ${esc(file.size)}</span>` : ''}
+    ${file.quality ? `<span style="background:rgba(255,255,255,0.08); padding:2px 8px; border-radius:6px; color:var(--muted);">${esc(file.quality)}</span>` : ''}
     </div>
-    </div>` : ''}
-    <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:14px;">
-    <div>
-    <div style="font-size:10px; font-weight:bold; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px;">${'Vidéo'}</div>
-    ${_fdRow('Résolution', file.resolution)}
-    ${_fdRow('Codec', file.videoCodec)}
-    ${_fdRow('Profondeur', file.bitDepth)}
-    ${_fdRow('Débit', file.bitRate)}
-    ${_fdRow('FPS', file.fps)}
     </div>
-    <div>
-    <div style="font-size:10px; font-weight:bold; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px;">${'Audio'}</div>
-    ${_fdRow('Canaux', file.audioChannels)}
-    ${_fdRow('Codec', file.audioCodec)}
-    ${_fdRow('Langues', file.audioLanguages)}
-    ${_fdRow('Débit', file.audioBitRate)}
-    ${_fdRow('Flux', file.audioStreams)}
+    <div style="display:flex; align-items:center; gap:10px; flex-shrink:0;">
+    ${deleteArgs ? `<button onclick="event.stopPropagation(); deleteFile(${deleteArgs})" style="background:none; border:none; color:var(--accent3); cursor:pointer; padding:4px; font-size:16px;" title="${t('detail_delete')}">🗑️</button>` : ''}
+    <svg id="file-chevron-${uid}" viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="transition:transform 0.2s; margin-top:2px;"><polyline points="6 9 12 15 18 9"></polyline></svg>
     </div>
+    </div>
+    <div id="file-body-${uid}" style="display:none; padding:0 16px 16px 16px; border-top:1px solid var(--border);">
+    <div style="margin-top:14px;">
+    <div style="font-size:10px; font-weight:bold; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px;">${t('detail_audio')}</div>
+    ${_fdRow(t('detail_codec'), file.audioCodec)}
+    ${_fdRow(t('detail_channels'), file.audioChannels)}
+    ${_fdRow(t('detail_bitrate'), file.audioBitRate)}
+    ${_fdRow(t('detail_sampling'), file.sampleRate && file.sampleRate !== '?' ? file.sampleRate + ' Hz' : file.sampleRate)}
     </div>
     <div style="margin-top:14px;">
-    <div style="font-size:10px; font-weight:bold; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px;">${'Autre'}</div>
-    ${_fdRow('Durée', file.runTime)}
-    ${_fdRow('Sous-titres', file.subtitles)}
-    ${_fdRow('Groupe', file.releaseGroup)}
-    ${_fdRow('Chemin', file.path)}
+    <div style="font-size:10px; font-weight:bold; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px;">${t('detail_other')}</div>
+    ${_fdRow(t('detail_path'), file.path)}
     </div>
     </div>
     </div>`;
@@ -112,10 +143,7 @@ function animateContentSlideIn(el) {
 
 function toggleListElements(show) {
     document.querySelectorAll('.tab-page').forEach(el => el.style.display = show ? 'block' : 'none');
-    
-    // 🌟 CORRECTION ICI : On ajoute '.page-title-row' pour masquer toute la ligne du haut (incluant le bouton global)
     document.querySelectorAll('.lib-toolbar, .page-title, .page-title-row').forEach(el => el.style.display = show ? '' : 'none');
-    
     const allHomeTabs = document.querySelectorAll('.home-tab-content');
     if (show) {
         const activeHomeTab = document.querySelector('.home-tab-content.active');
@@ -150,14 +178,12 @@ function closeMovieDetail(fromPopState = false) {
             if (typeof toggleListElements === 'function') toggleListElements(true);
             window.scrollTo(0, savedScrollPosition);
             content.style.transform = ''; content.style.transition = ''; content.style.opacity = '';
-            
-            // 🌟 AJOUT : Réouverture automatique de la modale de recherche si on vient de là
+
             if (window._fromSearchModal) {
                 const searchModal = document.getElementById('modal-search-media');
                 if (searchModal) searchModal.style.display = 'flex';
-                window._fromSearchModal = false; // On efface le marque-page
+                window._fromSearchModal = false;
             }
-            
         }, 200);
     }
     if (fromPopState !== true) history.pushState(null, '', window.location.pathname + window.location.hash);
@@ -178,14 +204,12 @@ function closeSerieDetail(fromPopState = false) {
             if (typeof toggleListElements === 'function') toggleListElements(true);
             window.scrollTo(0, savedScrollPosition);
             content.style.transform = ''; content.style.transition = ''; content.style.opacity = '';
-            
-            // 🌟 AJOUT : Réouverture automatique de la modale de recherche si on vient de là
+
             if (window._fromSearchModal) {
                 const searchModal = document.getElementById('modal-search-media');
                 if (searchModal) searchModal.style.display = 'flex';
-                window._fromSearchModal = false; // On efface le marque-page
+                window._fromSearchModal = false;
             }
-            
         }, 200);
     }
     if (fromPopState !== true) history.pushState(null, '', window.location.pathname + window.location.hash);
@@ -298,23 +322,23 @@ async function openMovieDetail(id) {
             <span>${r.year}</span>
             ${runtime ? `<span>• ${runtime}</span>` : ''}
             ${r.rating ? `<span style="background:rgba(255,255,255,0.08); padding:1px 6px; border-radius:4px; color:var(--text);">⭐ ${r.rating}</span>` : ''}
-            <span style="cursor:pointer; display:flex; align-items:center;" onclick="toggleMonitor(${id}, 'movie', ${!r.monitored}, this)" title="Surveiller">
+            <span style="cursor:pointer; display:flex; align-items:center;" onclick="toggleMonitor(${id}, 'movie', ${!r.monitored}, this)" title="${t('detail_monitor')}">
             ${r.monitored ? ICON_MONITORED : ICON_UNMONITORED}
             </span>
             </div>
             </div>
             </div>
 
-            <!-- 💻 VERSION PC (Ancienne version avec texte) -->
+            <!-- 💻 VERSION PC -->
             <div class="action-buttons-desktop" style="gap:10px; padding:20px; overflow-x:auto; scrollbar-width:none; border-bottom:1px solid var(--border); margin-bottom:20px;">
             <button style="background:var(--bg3); border:1px solid var(--border); color:var(--text); padding:8px 16px; border-radius:20px; font-size:13px; font-weight:600; white-space:nowrap; cursor:pointer; flex-shrink:0; display:flex; gap:6px; align-items:center; transition:background 0.2s;" onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background='var(--bg3)'" onclick="movieSearchAuto(${r.id}, this)">🔍 ${t('detail_auto_search')}</button>
-            <button style="background:var(--bg3); border:1px solid var(--border); color:var(--text); padding:8px 16px; border-radius:20px; font-size:13px; font-weight:600; white-space:nowrap; cursor:pointer; flex-shrink:0; display:flex; gap:6px; align-items:center; transition:background 0.2s;" onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background='var(--bg3)'" onclick="openMovieReleases(${r.id}, '${safeTitle}')">👤 ${t('detail_search_releases')}</button>
+            <button style="background:var(--bg3); border:1px solid var(--border); color:var(--text); padding:8px 16px; border-radius:20px; font-size:13px; font-weight:600; white-space:nowrap; cursor:pointer; flex-shrink:0; display:flex; gap:6px; align-items:center; transition:background 0.2s;" onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background='var(--bg3)'" onclick="openMovieReleases(${r.id}, '${safeTitle}')">👤 ${t('detail_search_manual')}</button>
             <button style="background:var(--bg3); border:1px solid var(--border); color:var(--text); padding:8px 16px; border-radius:20px; font-size:13px; font-weight:600; white-space:nowrap; cursor:pointer; flex-shrink:0; display:flex; gap:6px; align-items:center; transition:background 0.2s;" onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background='var(--bg3)'" onclick="refreshMedia(${r.id}, 'movie', this)">🔄 ${t('detail_refresh')}</button>
             <button style="background:var(--bg3); border:1px solid var(--border); color:var(--text); padding:8px 16px; border-radius:20px; font-size:13px; font-weight:600; white-space:nowrap; cursor:pointer; flex-shrink:0; display:flex; gap:6px; align-items:center; transition:background 0.2s;" onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background='var(--bg3)'" onclick="openEditMediaModal(${r.id}, 'movie')">⚙️ ${t('modal_edit_radarr')}</button>
             <button style="background:rgba(255,93,143,0.1); border:1px solid rgba(255,93,143,0.3); color:var(--accent3); padding:8px 16px; border-radius:20px; font-size:13px; font-weight:600; white-space:nowrap; cursor:pointer; flex-shrink:0; display:flex; gap:6px; align-items:center; transition:background 0.2s;" onmouseover="this.style.background='rgba(255,93,143,0.2)'" onmouseout="this.style.background='rgba(255,93,143,0.1)'" onclick="deleteMedia(${r.id}, 'movie', '${safeTitle}')">🗑️ ${t('detail_delete')}</button>
             </div>
 
-            <!-- 📱 VERSION MOBILE (Icônes rondes avec loupe déroulante) -->
+            <!-- 📱 VERSION MOBILE -->
             <div class="action-buttons-mobile" style="justify-content:center; gap:20px; padding:15px 20px; border-bottom:1px solid var(--border); margin-bottom:20px; position:relative;">
 
             <div style="position:relative;">
@@ -470,9 +494,9 @@ async function openTmdbMovieDetail(tmdbId) {
             </div>
             <span style="color:var(--muted); font-size:20px;">›</span>
             </div>` : ''}
-        </div>
-        </div>`;
-        animateContentSlideIn(content);
+            </div>
+            </div>`;
+            animateContentSlideIn(content);
 }
 
 async function openTmdbSerieDetail(tmdbId) {
@@ -544,8 +568,8 @@ async function openTmdbSerieDetail(tmdbId) {
         </div>
 
         <div style="display:flex; justify-content:space-between; align-items:center; background:var(--bg3); padding:12px 15px; border-radius:12px; border:1px solid var(--border); margin-bottom:20px;">
-        <span style="font-size:13px; font-weight:bold; color:var(--text);">${r.seasons} Saisons</span>
-        <span style="font-size:12px; color:var(--muted);">Infos TMDB</span>
+        <span style="font-size:13px; font-weight:bold; color:var(--text);">${r.seasons} ${t('detail_seasons')}</span>
+        <span style="font-size:12px; color:var(--muted);">${t('detail_tmdb_info') || 'Infos TMDB'}</span>
         </div>
 
         <h3 style="margin:0 0 10px 0; font-size:16px; color:var(--text);">${t('detail_overview')}</h3>
@@ -677,7 +701,7 @@ async function openSerieDetail(id) {
                 ${ep.file_details ? buildFileDetailsCard(ep.file_details, 'ep-' + ep.id, null) : (ep.fileName ? `<div style="font-family:var(--mono); font-size:10px; color:var(--muted); margin-bottom:12px; padding:8px 10px; background:rgba(0,0,0,0.2); border-radius:6px; border:1px dashed var(--border); word-break:break-all;">📄 ${esc(ep.fileName)}</div>` : '')}
                 <div style="display:flex; gap:10px; justify-content:space-around;">
                 <button style="flex:1; background:var(--bg2); border:1px solid var(--border); border-radius:10px; color:var(--text); padding:10px 5px; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:6px; font-size:11px; transition:background 0.2s;" onclick="episodeSearchAuto(${ep.id}, this)"><span style="font-size:18px;">🔍</span> ${t('detail_auto_search')}</button>
-                <button style="flex:1; background:var(--bg2); border:1px solid var(--border); border-radius:10px; color:var(--text); padding:10px 5px; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:6px; font-size:11px; transition:background 0.2s;" onclick="openEpisodeReleases(${ep.id}, '${esc(formattedTitle).replace(/'/g, "\\'")}', ${r.id})"><span style="font-size:18px;">👤</span> ${t('detail_search_releases')}</button>
+                <button style="flex:1; background:var(--bg2); border:1px solid var(--border); border-radius:10px; color:var(--text); padding:10px 5px; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:6px; font-size:11px; transition:background 0.2s;" onclick="openEpisodeReleases(${ep.id}, '${esc(formattedTitle).replace(/'/g, "\\'")}', ${r.id})"><span style="font-size:18px;">👤</span> ${t('detail_search_manual') || 'Sorties manuelles'}</button>
                 ${ep.fileId ? `<button style="flex:1; background:rgba(255,93,143,0.05); border:1px solid rgba(255,93,143,0.2); border-radius:10px; color:var(--accent3); padding:10px 5px; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:6px; font-size:11px; transition:background 0.2s;" onclick="deleteFile(${ep.fileId}, 'serie', ${r.id})"><span style="font-size:18px;">🗑️</span> ${t('detail_delete')}</button>` : ''}
                 </div>
                 </div>
@@ -697,9 +721,9 @@ async function openSerieDetail(id) {
         <span style="margin-left:10px; color:var(--muted); font-size:14px;">›</span>
         </div>
         <div class="desktop-season-actions" style="display:flex; gap:10px; padding:0 15px; align-items:center; border-left:1px solid var(--border);" onclick="event.stopPropagation()">
-        <span style="cursor:pointer; display:flex; align-items:center;" onclick="toggleSeasonMonitor(${r.id}, ${s.number}, ${!s.monitored}, this)" title="Surveiller">${s.monitored ? ICON_MONITORED : ICON_UNMONITORED}</span>
+        <span style="cursor:pointer; display:flex; align-items:center;" onclick="toggleSeasonMonitor(${r.id}, ${s.number}, ${!s.monitored}, this)" title="${t('detail_monitor')}">${s.monitored ? ICON_MONITORED : ICON_UNMONITORED}</span>
         <button style="background:none; border:none; color:var(--muted); cursor:pointer; font-size:14px; display:flex; align-items:center;" onclick="seasonSearchAuto(${r.id}, ${s.number}, this)" title="${t('detail_auto_search')}">🔍</button>
-        <button style="background:none; border:none; color:var(--muted); cursor:pointer; font-size:14px; display:flex; align-items:center;" onclick="openSeasonReleases(${r.id}, ${s.number}, 'Saison ${s.number}')" title="${t('detail_search_releases')}">👤</button>
+        <button style="background:none; border:none; color:var(--muted); cursor:pointer; font-size:14px; display:flex; align-items:center;" onclick="openSeasonReleases(${r.id}, ${s.number}, 'Saison ${s.number}')" title="${t('detail_search_manual') || 'Sorties manuelles'}">👤</button>
         ${seasonFileIds.length > 0 ? `<button style="background:none; border:none; color:var(--accent3); cursor:pointer; font-size:14px; display:flex; align-items:center;" onclick="deleteSeasonFiles([${seasonFileIds.join(',')}], ${r.id}, ${s.number})" title="${t('detail_delete')}">🗑️</button>` : ''}
         </div>
         <button class="mobile-season-actions-toggle" onclick="event.stopPropagation(); openMobileSeasonMenu(${s.number});" style="border-left:1px solid var(--border); background:none; color:var(--text); font-size:20px; font-weight:bold; cursor:pointer; padding:0 18px; align-items:center; justify-content:center;">⋮</button>
@@ -714,11 +738,11 @@ async function openSerieDetail(id) {
         <div style="display:flex; flex-direction:column; gap:12px; width:100%;">
         <button class="sheet-btn" onclick="closeMobileSeasonMenu(${s.number}); toggleSeasonMonitor(${r.id}, ${s.number}, ${!s.monitored}, this.querySelector('.season-monitor-icon'));" style="background: var(--bg3); border: 1px solid var(--border); color: var(--text); padding: 18px; border-radius: 14px; font-size: 16px; font-weight: 500; display: flex; align-items: center; gap: 15px; cursor: pointer; text-align: left;">
         <span class="season-monitor-icon" style="display: flex; align-items: center; justify-content: center; width: 24px; height: 24px; flex-shrink: 0;">${s.monitored ? ICON_MONITORED : ICON_UNMONITORED}</span>
-        <span class="season-monitor-text">Surveiller</span>
+        <span class="season-monitor-text">${t('detail_monitor') || 'Surveiller'}</span>
         </button>
         <button class="sheet-btn" onclick="closeMobileSeasonMenu(${s.number}); seasonSearchAuto(${r.id}, ${s.number}, this);" style="background: var(--bg3); border: 1px solid var(--border); color: var(--text); padding: 18px; border-radius: 14px; font-size: 16px; font-weight: 500; display: flex; align-items: center; gap: 15px; cursor: pointer; text-align: left;"><span style="font-size: 20px;">🔍</span> ${t('detail_auto_search')}</button>
-        <button class="sheet-btn" onclick="closeMobileSeasonMenu(${s.number}); openSeasonReleases(${r.id}, ${s.number}, 'Saison ${s.number}');" style="background: var(--bg3); border: 1px solid var(--border); color: var(--text); padding: 18px; border-radius: 14px; font-size: 16px; font-weight: 500; display: flex; align-items: center; gap: 15px; cursor: pointer; text-align: left;"><span style="font-size: 20px;">👤</span> ${t('detail_search_releases')}</button>
-        ${seasonFileIds.length > 0 ? `<button class="sheet-btn danger" onclick="closeMobileSeasonMenu(${s.number}); deleteSeasonFiles([${seasonFileIds.join(',')}], ${r.id}, ${s.number});" style="background: rgba(255, 93, 143, 0.05); border: 1px solid rgba(255, 93, 143, 0.3); color: var(--accent3); padding: 18px; border-radius: 14px; font-size: 16px; font-weight: 500; display: flex; align-items: center; gap: 15px; cursor: pointer; text-align: left;"><span style="font-size: 20px;">🗑️</span> ${t('detail_delete')}</button>` : ''}
+        <button class="sheet-btn" onclick="closeMobileSeasonMenu(${s.number}); openSeasonReleases(${r.id}, ${s.number}, 'Saison ${s.number}');" style="background: var(--bg3); border: 1px solid var(--border); color: var(--text); padding: 18px; border-radius: 14px; font-size: 16px; font-weight: 500; display: flex; align-items: center; gap: 15px; cursor: pointer; text-align: left;"><span style="font-size: 20px;">👤</span> ${t('detail_search_manual') || 'Sorties manuelles'}</button>
+        ${seasonFileIds.length > 0 ? `<button class="sheet-btn danger" onclick="closeMobileSeasonMenu(${s.number}); deleteSeasonFiles([${seasonFileIds.join(',')}], ${r.id},${s.number});" style="background: rgba(255, 93, 143, 0.05); border: 1px solid rgba(255, 93, 143, 0.3); color: var(--accent3); padding: 18px; border-radius: 14px; font-size: 16px; font-weight: 500; display: flex; align-items: center; gap: 15px; cursor: pointer; text-align: left;"><span style="font-size: 20px;">🗑️</span> ${t('detail_delete')}</button>` : ''}
         </div>
         </div>`;
     });
@@ -798,19 +822,17 @@ async function openSerieDetail(id) {
             <span>${r.year}</span>
             ${r.network ? `<span>• ${esc(r.network)}</span>` : ''}
             ${r.rating ? `<span style="background:rgba(255,255,255,0.08); padding:1px 6px; border-radius:4px; color:var(--text);">⭐ ${r.rating}</span>` : ''}
-            <span style="cursor:pointer; display:flex; align-items:center;" onclick="toggleMonitor(${r.id}, 'serie', ${!r.monitored}, this)" title="Surveiller">${r.monitored ? ICON_MONITORED : ICON_UNMONITORED}</span>
+            <span style="cursor:pointer; display:flex; align-items:center;" onclick="toggleMonitor(${r.id}, 'serie', ${!r.monitored}, this)" title="${t('detail_monitor')}">${r.monitored ? ICON_MONITORED : ICON_UNMONITORED}</span>
             </div>
             </div>
             </div>
 
-            <!-- 💻 VERSION PC (Ancienne version avec texte) -->
             <div class="action-buttons-desktop" style="gap:10px; padding:20px; overflow-x:auto; scrollbar-width:none; border-bottom:1px solid var(--border); margin-bottom:20px;">
             <button style="background:var(--bg3); border:1px solid var(--border); color:var(--text); padding:8px 16px; border-radius:20px; font-size:13px; font-weight:600; white-space:nowrap; cursor:pointer; flex-shrink:0; display:flex; gap:6px; align-items:center; transition:background 0.2s;" onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background='var(--bg3)'" onclick="refreshMedia(${r.id}, 'serie', this)">🔄 ${t('detail_refresh')}</button>
             <button style="background:var(--bg3); border:1px solid var(--border); color:var(--text); padding:8px 16px; border-radius:20px; font-size:13px; font-weight:600; white-space:nowrap; cursor:pointer; flex-shrink:0; display:flex; gap:6px; align-items:center; transition:background 0.2s;" onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background='var(--bg3)'" onclick="openEditMediaModal(${r.id}, 'serie')">⚙️ ${t('modal_edit_sonarr')}</button>
             <button style="background:rgba(255,93,143,0.1); border:1px solid rgba(255,93,143,0.3); color:var(--accent3); padding:8px 16px; border-radius:20px; font-size:13px; font-weight:600; white-space:nowrap; cursor:pointer; flex-shrink:0; display:flex; gap:6px; align-items:center; transition:background 0.2s;" onmouseover="this.style.background='rgba(255,93,143,0.2)'" onmouseout="this.style.background='rgba(255,93,143,0.1)'" onclick="deleteMedia(${r.id}, 'serie', '${safeTitle}')">🗑️ ${t('detail_delete')}</button>
             </div>
 
-            <!-- 📱 VERSION MOBILE (Icônes rondes centrées) -->
             <div class="action-buttons-mobile" style="justify-content:center; gap:20px; padding:15px 20px; border-bottom:1px solid var(--border); margin-bottom:20px;">
             <button style="background:var(--bg2); border:1px solid var(--border); border-radius:50%; color:var(--text); width:48px; height:48px; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:20px; box-shadow:0 4px 10px rgba(0,0,0,0.2);" onclick="refreshMedia(${r.id}, 'serie', this)" title="${t('detail_refresh')}">🔄</button>
             <button style="background:var(--bg2); border:1px solid var(--border); border-radius:50%; color:var(--text); width:48px; height:48px; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:20px; box-shadow:0 4px 10px rgba(0,0,0,0.2);" onclick="openEditMediaModal(${r.id}, 'serie')" title="${t('modal_edit_sonarr')}">⚙️</button>
@@ -842,7 +864,7 @@ async function openSerieDetail(id) {
 
             clearInterval(window.serieProgressInterval);
             window.serieProgressInterval = setInterval(async () => {
-                if (document.hidden) return; // 🌟 Stoppe les requêtes en arrière-plan
+                if (document.hidden) return;
                 const modal = document.getElementById('modal-serie');
                 if (!modal || modal.style.display === 'none') {
                     clearInterval(window.serieProgressInterval);
@@ -1008,6 +1030,8 @@ async function grabRelease(guid, indexerId, mediaId, type, btn) {
     let r;
     if (type === 'movie') {
         r = await api('movie_download', { guid, indexerId, movieId: mediaId });
+    } else if (type === 'album') {
+        r = await api('album_download', { guid, indexerId, albumId: mediaId });
     } else {
         r = await api('episode_download', { guid, indexerId, seriesId: mediaId });
     }
@@ -1028,7 +1052,7 @@ function deleteMedia(id, type, title) {
     <input type="checkbox" id="delete-files-checkbox" checked style="width: 18px; height: 18px; cursor: pointer; accent-color: var(--accent3);">
     <span style="font-size: 13px; color: var(--text);">${t('confirm_delete_files')}</span>
     </label>
-    <div style="color: var(--accent3); font-size: 12px; margin-top: 12px;">${t('confirm_irreversible')}</div>
+    <div style="color: var(--accent3); font-size: 12px; margin-top: 12px;">${t('confirm_irreversible') || 'Cette action est irréversible.'}</div>
     `;
 
     showConfirmModal(
@@ -1108,11 +1132,8 @@ async function refreshMedia(id, type, btn) {
 }
 
 let _currentReleases = [];
-
 let _currentRelType = '';
-
 let _currentRelMediaId = 0;
-
 let _sortMenuOpen = false;
 
 function applyFilters() {
@@ -1134,7 +1155,6 @@ function toggleSortMenu() {
 }
 
 let _sortCriteria = 'seeders';
-
 let _sortAsc = false;
 
 function sortReleases(criteria) {
@@ -1222,11 +1242,8 @@ async function openEditMediaModal(id, type) {
 
     <div class="form-row" style="position: relative;">
     <label style="font-size:12px; font-weight:bold; color:var(--muted); text-transform:uppercase;">Tags</label>
-
     <div id="edit-tags-badges" style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:8px;"></div>
-
     <input type="text" id="edit-tags-input" placeholder="${t('tags', {fallback:'Ajouter...'})}" style="width:100%; padding:10px; background:var(--bg); border:1px solid var(--border); color:var(--text); border-radius:6px;" autocomplete="off">
-
     <div id="edit-tags-suggestions" style="position:absolute; left:0; right:0; top:100%; background:var(--bg2); border:1px solid var(--border); border-radius:6px; max-height:160px; overflow-y:auto; z-index:10005; display:none; box-shadow:0 6px 16px rgba(0,0,0,0.4); margin-top:4px;"></div>
     </div>
 
@@ -1239,21 +1256,26 @@ async function openEditMediaModal(id, type) {
     `;
 
     modal.classList.add('open');
-    const appDriver = type === 'movie' ? 'radarr' : 'sonarr';
+
+    const appDriver = type === 'movie' ? 'radarr' : (type === 'artist' ? 'lidarr' : 'sonarr');
 
     const [optionsRes, mediaRes] = await Promise.all([
         api(`get_options&app=${appDriver}`, {}, 'GET'),
                                                      api(`get_media_raw&type=${type}&id=${id}`, {}, 'GET')
     ]);
 
-    if (optionsRes.error || mediaRes.error || !mediaRes.title) {
+    if (optionsRes.error || mediaRes.error || (!mediaRes.title && !mediaRes.artistName)) {
         document.getElementById('edit-media-loader').innerHTML = `<span style="color:var(--accent3)">${t('error_connection')}</span>`;
         return;
     }
 
-    // On choisit la bonne traduction selon le type de média
-    const titleTranslation = type === 'movie' ? t('modal_edit_radarr') : t('modal_edit_sonarr');
-    document.getElementById('edit-media-title').textContent = titleTranslation + ' : ' + mediaRes.title;
+    let titleTranslation = '';
+    if (type === 'movie') titleTranslation = t('modal_edit_radarr') || "Éditer le film";
+    else if (type === 'artist') titleTranslation = t('modal_edit_lidarr') || "Éditer l'artiste";
+    else titleTranslation = t('modal_edit_sonarr') || "Éditer la série";
+
+    const itemTitle = mediaRes.title || mediaRes.artistName || '?';
+    document.getElementById('edit-media-title').textContent = titleTranslation + ' : ' + itemTitle;
 
     const profileSel = document.getElementById('edit-profile');
     const folderSel = document.getElementById('edit-root-folder');
@@ -1275,12 +1297,11 @@ async function openEditMediaModal(id, type) {
 
     function renderBadges() {
         if (selectedTagIds.length === 0) {
-            badgesContainer.innerHTML = `<span style="color:var(--muted); font-size:13px; font-style:italic; margin-bottom:4px;">Aucun tag</span>`;
+            badgesContainer.innerHTML = `<span style="color:var(--muted); font-size:13px; font-style:italic; margin-bottom:4px;">${t('no_tags') || 'Aucun tag'}</span>`;
             return;
         }
-
-        badgesContainer.innerHTML = selectedTagIds.map(id => {
-            const tagObj = allAvailableTags.find(t => t.id === id);
+        badgesContainer.innerHTML = selectedTagIds.map(tagId => {
+            const tagObj = allAvailableTags.find(t => t.id === tagId);
             if (!tagObj) return '';
             return `
             <span style="display:inline-flex; align-items:center; gap:6px; background:var(--accent); color:#fff; padding:4px 10px; border-radius:14px; font-size:13px; font-weight:500;">
@@ -1293,7 +1314,7 @@ async function openEditMediaModal(id, type) {
         badgesContainer.querySelectorAll('.remove-tag-btn').forEach(btn => {
             btn.onclick = (e) => {
                 const idToRemove = parseInt(btn.dataset.id);
-                selectedTagIds = selectedTagIds.filter(id => id !== idToRemove);
+                selectedTagIds = selectedTagIds.filter(tid => tid !== idToRemove);
                 renderBadges();
                 filterSuggestions(tagsInput.value);
             };
@@ -1302,7 +1323,6 @@ async function openEditMediaModal(id, type) {
 
     function filterSuggestions(searchQuery = '') {
         const query = searchQuery.toLowerCase().trim();
-
         const matches = allAvailableTags.filter(t => {
             const matchesSearch = t.label.toLowerCase().includes(query);
             const alreadySelected = selectedTagIds.includes(t.id);
@@ -1313,7 +1333,6 @@ async function openEditMediaModal(id, type) {
             suggestionsContainer.style.display = 'none';
             return;
         }
-
         suggestionsContainer.innerHTML = matches.map(t => `
         <div class="tag-suggestion-item" data-id="${t.id}" style="padding:10px; cursor:pointer; font-size:14px; border-bottom:1px solid var(--border); transition:background 0.2s;" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background='none'">
         🔍 ${esc(t.label)}
@@ -1345,7 +1364,6 @@ async function openEditMediaModal(id, type) {
         }
     };
     document.addEventListener('click', closeSuggestionsEvent);
-
     renderBadges();
 
     document.getElementById('edit-media-loader').style.display = 'none';
@@ -1356,7 +1374,6 @@ async function openEditMediaModal(id, type) {
         this.textContent = '⏳ ' + t('settings_vapid_saving');
 
         document.removeEventListener('click', closeSuggestionsEvent);
-
         const payload = {
             id: id,
             type: type,
@@ -1370,7 +1387,9 @@ async function openEditMediaModal(id, type) {
         if (r.ok) {
             notify(t('notif_saved'), 'ok');
             modal.classList.remove('open');
-            if (type === 'movie') openMovieDetail(id); else openSerieDetail(id);
+            if (type === 'movie') openMovieDetail(id);
+            else if (type === 'artist') openArtistDetail(id);
+            else openSerieDetail(id);
         } else {
             this.disabled = false;
             this.textContent = '💾 ' + t('settings_tmdb_save');
@@ -1392,18 +1411,12 @@ function openTrailerModal(videoId) {
     if (!modal) {
         modal = document.createElement('div');
         modal.id = 'modal-trailer';
-
-        // 🛠️ CORRECTION : On force le centrage absolu avec Flexbox directement en CSS
         modal.style.cssText = 'display:none; position:fixed; inset:0; background:rgba(0,0,0,0.9); z-index:999999; align-items:center; justify-content:center; padding:15px; backdrop-filter:blur(5px);';
-
-        // Ferme la modale si on clique à l'extérieur de la vidéo
         modal.addEventListener('click', e => {
             if (e.target === modal) closeTrailerModal();
         });
             document.body.appendChild(modal);
     }
-
-    // On injecte un iframe YouTube optimisé
     modal.innerHTML = `
     <div class="modal-box" style="width: clamp(320px, 90vw, 960px); max-width: 92vw; padding: 0; background: #000; border-radius: 12px; overflow: hidden; position: relative; box-shadow: 0 10px 40px rgba(0,0,0,0.8);">
     <div style="display:flex; justify-content:flex-end; position:absolute; top:10px; right:10px; z-index:10;">
@@ -1413,8 +1426,6 @@ function openTrailerModal(videoId) {
     <iframe id="trailer-iframe" style="position:absolute; top:0; left:0; width:100%; height:100%; border:none;" src="https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&showinfo=0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
     </div>
     </div>`;
-
-    // 🛠️ CORRECTION : On utilise 'flex' pour centrer l'écran
     modal.style.display = 'flex';
 }
 
@@ -1422,19 +1433,16 @@ function closeTrailerModal() {
     const modal = document.getElementById('modal-trailer');
     if (modal) {
         const iframe = document.getElementById('trailer-iframe');
-        if (iframe) iframe.src = ''; // 🛑 Coupe la vidéo
-        modal.style.display = 'none'; // Cache la modale
+        if (iframe) iframe.src = '';
+        modal.style.display = 'none';
     }
 }
 
 let _modalMousedownTarget = null;
 
 window.closeAndGoMedia = function(type, id) {
-    // 1. On ferme la popup
     const popup = document.getElementById('instant-popup-overlay');
     if (popup) popup.remove();
-
-    // 2. On ouvre la modale correspondante avec tes vraies fonctions
     if (type === 'movie' || type === 'film') {
         openMovieDetail(id);
     } else {
@@ -1447,18 +1455,15 @@ function showDetailedPopup(items) {
     if (oldPopup) oldPopup.remove();
 
     let innerContent = '';
-    const titleText = items.length === 1 ? "Nouveau téléchargement" : `${items.length} Nouveaux téléchargements`;
+    const titleText = items.length === 1 ? (t('new_download') || "Nouveau téléchargement") : `${items.length} ${t('new_downloads') || "Nouveaux téléchargements"}`;
     let backgroundHtml = '';
 
-    // 1. CAS UNIQUE : Un seul média (cliquable)
     if (items.length === 1) {
         const item = items[0];
-        let description = "Disponible dans ta bibliothèque.";
+        let description = t('available_in_lib') || "Disponible dans ta bibliothèque.";
         if (item.type === 'serie' && item.episodes && item.episodes.length > 0) {
             description = item.episodes[0].title;
         }
-
-        // 🌟 Ajout de l'événement onclick et d'un effet de zoom au survol
         innerContent = `
         <div onclick="closeAndGoMedia('${item.type}', ${item.id})" style="cursor:pointer; display:flex; flex-direction:column; align-items:center; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
         <img src="${item.poster}" style="width:140px; border-radius:8px; margin-bottom:18px; box-shadow:0 8px 16px rgba(0,0,0,0.5);">
@@ -1467,17 +1472,13 @@ function showDetailedPopup(items) {
         </div>
         `;
         backgroundHtml = `<div style="position:absolute; inset:0; background:url('${item.poster}') center/cover; opacity:0.12; z-index:0; filter: blur(4px);"></div>`;
-    }
-    // 2. CAS MULTIPLE : Liste élargie, scrollable et cliquable
-    else {
+    } else {
         innerContent = `<div style="text-align:left; width:100%; max-height:45vh; overflow-y:auto; padding-right:8px;">`;
-
         items.slice(0, 6).forEach(item => {
-            let desc = item.type === 'movie' ? 'Film' : 'Série';
+            let desc = item.type === 'movie' ? (t('type_movie') || 'Film') : (t('type_serie') || 'Série');
             if (item.type === 'serie' && item.episodes && item.episodes.length > 0) {
-                desc = item.episodes.length + (item.episodes.length > 1 ? " épisodes" : " épisode");
+                desc = item.episodes.length + (item.episodes.length > 1 ? " " + (t('word_episodes') || "épisodes") : " " + (t('word_episode') || "épisode"));
             }
-            // 🌟 Ajout de l'événement onclick et d'un effet de surbrillance
             innerContent += `
             <div onclick="closeAndGoMedia('${item.type}', ${item.id})" style="display:flex; align-items:center; gap:12px; margin-bottom:12px; background:var(--bg); padding:10px; border-radius:10px; border:1px solid var(--border); cursor:pointer; transition:all 0.2s;" onmouseover="this.style.borderColor='var(--accent3)'; this.style.background='rgba(255, 255, 255, 0.05)';" onmouseout="this.style.borderColor='var(--border)'; this.style.background='var(--bg)';">
             <img src="${item.poster}" style="width:45px; height:65px; object-fit:cover; border-radius:6px;">
@@ -1488,9 +1489,8 @@ function showDetailedPopup(items) {
             </div>
             `;
         });
-
         if (items.length > 6) {
-            innerContent += `<div style="color:var(--muted); font-size:14px; text-align:center; margin-top:10px; font-weight:500;">+ ${items.length - 6} autres médias...</div>`;
+            innerContent += `<div style="color:var(--muted); font-size:14px; text-align:center; margin-top:10px; font-weight:500;">+ ${items.length - 6} ${t('other_media') || 'autres médias...'}</div>`;
         }
         innerContent += `</div>`;
     }
@@ -1505,7 +1505,7 @@ function showDetailedPopup(items) {
     <div style="background:var(--bg3); border-radius:14px; padding:20px; margin-bottom:25px; border:1px solid var(--border); display:flex; flex-direction:column; align-items:center;">
     ${innerContent}
     </div>
-    <button onclick="document.getElementById('instant-popup-overlay').remove()" style="width:100%; padding:14px; background:rgba(255, 255, 255, 0.05); border:1px solid rgba(255, 255, 255, 0.15); color:var(--text); border-radius:12px; cursor:pointer; font-size:15px; font-weight:600; transition:all 0.2s;">Fermer</button>
+    <button onclick="document.getElementById('instant-popup-overlay').remove()" style="width:100%; padding:14px; background:rgba(255, 255, 255, 0.05); border:1px solid rgba(255, 255, 255, 0.15); color:var(--text); border-radius:12px; cursor:pointer; font-size:15px; font-weight:600; transition:all 0.2s;">${t('modal_cancel') || 'Fermer'}</button>
     </div>
     </div>
     </div>
@@ -1518,4 +1518,537 @@ function showDetailedPopup(items) {
     </style>
     `;
     document.body.insertAdjacentHTML('beforeend', popupHtml);
+}
+
+async function openMbArtistDetail(mbId) {
+    savedScrollPosition = window.scrollY;
+    toggleListElements(false);
+    makeFullscreenView('modal-serie', 'serie-detail-content');
+
+    const content = document.getElementById('serie-detail-content');
+    content.innerHTML = `<div style="text-align:center;padding:60px;color:var(--muted);">${t('loading')}</div>`;
+
+    const r = await api('artist_detail&id=' + id, {}, 'GET');
+    if (r.error) { content.innerHTML = `<p style="color:var(--accent3); padding:20px;">${esc(r.error)}</p>`; return; }
+
+    if (r.poster) r.poster = `api.php?action=proxy_image&url=${encodeURIComponent(r.poster)}`;
+    if (r.fanart) r.fanart = `api.php?action=proxy_image&url=${encodeURIComponent(r.fanart)}`;
+    if (r.albums) {
+        r.albums.forEach(alb => {
+            if (alb.poster && !alb.poster.includes('proxy_image')) {
+                alb.poster = `api.php?action=proxy_image&url=${encodeURIComponent(alb.poster)}`;
+            }
+        });
+    }
+
+    const posterUrl = r.poster || '';
+    const fanartUrl = r.fanart || posterUrl;
+    const safeTitle = esc(r.artistName).replace(/'/g, "\\'").replace(/"/g, '&quot;');
+    const genres = (r.genres || []).slice(0, 3).join(', ');
+
+    content.innerHTML = `
+    <div style="position:relative; width:100%; min-height:100vh; background:var(--bg2);">
+    <div style="width:100%; height:250px; background-image:url('${fanartUrl}'); background-size:cover; background-position:center 20%; position:relative;">
+    <div style="position:absolute; inset:0; background:linear-gradient(to bottom, rgba(19, 22, 30, 0.2) 0%, var(--bg2) 100%);"></div>
+    <button onclick="closeSerieDetail()" style="position:absolute; top:15px; left:15px; background:var(--bg3); color:var(--text); border:1px solid var(--border); padding:8px 16px; border-radius:8px; cursor:pointer; font-weight:600; font-size:13px; z-index:100; box-shadow:0 4px 15px rgba(0,0,0,0.6); display:inline-flex; align-items:center; gap:6px;">⬅ ${t('detail_back')}</button>
+    </div>
+
+    <div style="display:flex; gap:16px; padding:0 20px; margin-top:-70px; position:relative; z-index:10; align-items:flex-end;">
+    ${posterUrl ? `<img src="${posterUrl}" style="width:115px; height:115px; border-radius:50%; box-shadow:0 6px 20px rgba(0,0,0,0.6); object-fit:cover; flex-shrink:0; border:2px solid rgba(255,255,255,0.1);">` : `<div style="width:115px; height:115px; background:var(--bg3); border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:40px; box-shadow:0 6px 20px rgba(0,0,0,0.6); border:2px solid rgba(255,255,255,0.1); flex-shrink:0;">🎵</div>`}
+
+    <div style="padding-bottom:5px; flex:1; min-width:0;">
+    <div style="display:inline-block; font-size:10px; font-weight:bold; padding:3px 8px; border-radius:6px; background:rgba(255, 160, 60, 0.1); border:1px solid rgba(255, 160, 60, 0.3); color:#ffa03c; margin-bottom:6px;">${t('badge_discover')}</div>
+    <h2 style="font-size:22px; font-weight:800; line-height:1.2; margin:0 0 6px 0; color:var(--text); text-overflow:ellipsis; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;">${esc(r.artistName)}</h2>
+    <div style="font-size:12px; color:var(--muted); display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+    ${r.disambiguation ? `<span>${esc(r.disambiguation)}</span>` : ''}
+    ${r.rating ? `<span style="background:rgba(255,255,255,0.08); padding:1px 6px; border-radius:4px; color:var(--text);">⭐ ${r.rating}</span>` : ''}
+    </div>
+    </div>
+    </div>
+
+    <div class="action-buttons-desktop" style="gap:10px; padding:20px; overflow-x:auto; scrollbar-width:none; border-bottom:1px solid var(--border); margin-bottom:20px;">
+    <button id="btn-add-mb" style="background:var(--lidarr); border:none; color:#fff; padding:8px 16px; border-radius:8px; font-size:13px; font-weight:800; white-space:nowrap; cursor:pointer; flex-shrink:0; display:flex; gap:6px; align-items:center; box-shadow:0 4px 10px rgba(11,135,80,0.3);" onclick="promptAddMedia('artist', '${esc(mbId)}', '${safeTitle}', this, 'mb')">＋ ${t('music_add') || 'Ajouter l\'artiste'}</button>
+    <button style="background:var(--bg3); border:1px solid var(--border); color:var(--text); padding:8px 16px; border-radius:8px; font-size:13px; font-weight:600; white-space:nowrap; cursor:pointer; flex-shrink:0; display:flex; gap:6px; align-items:center; transition:background 0.2s;" onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background='var(--bg3)'" onclick="window.open('https://musicbrainz.org/artist/${esc(mbId)}', '_blank')">🌐 MusicBrainz</button>
+    </div>
+    <div class="action-buttons-mobile" style="justify-content:center; gap:20px; padding:15px 20px; border-bottom:1px solid var(--border); margin-bottom:20px;">
+    <button style="background:var(--lidarr); border:none; color:#fff; width:48px; height:48px; border-radius:50%; font-size:20px; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 10px rgba(11,135,80,0.3);" onclick="promptAddMedia('artist', '${esc(mbId)}', '${safeTitle}', this, 'mb')">＋</button>
+    <button style="background:var(--bg2); border:1px solid var(--border); color:var(--text); width:48px; height:48px; border-radius:50%; font-size:20px; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 10px rgba(0,0,0,0.2);" onclick="window.open('https://musicbrainz.org/artist/${esc(mbId)}', '_blank')">🌐</button>
+    </div>
+
+    <div style="padding:0 20px 40px 20px;">
+    <div style="font-size:12px; color:var(--muted); margin-bottom:20px; display:flex; justify-content:space-between;">
+    <span>${genres}</span>
+    </div>
+    <div style="display:flex; justify-content:space-between; align-items:center; background:var(--bg3); padding:12px 15px; border-radius:12px; border:1px solid var(--border); margin-bottom:20px;">
+    <span style="font-size:13px; font-weight:bold; color:var(--text);">${r.albumCount} ${t('detail_albums')}</span>
+    <span style="font-size:12px; color:var(--muted);">MusicBrainz</span>
+    </div>
+    </div>
+    </div>`;
+    animateContentSlideIn(content);
+}
+
+window.openAlbumView = function(albId, albTitle, albPoster, artistId) {
+    const artistContent = document.getElementById('serie-detail-content');
+    if (!artistContent.dataset.mainHtml) {
+        artistContent.dataset.mainHtml = artistContent.innerHTML;
+    }
+
+    const trackDiv = document.getElementById('album-tracks-data-' + albId);
+    if (!trackDiv) return;
+
+    const tracksContent = trackDiv.innerHTML;
+    const safeAlbTitle = esc(albTitle).replace(/'/g, "\\'");
+
+    const html = `
+    <style>
+    .action-buttons-mobile { display: none !important; }
+    .action-buttons-desktop { display: flex !important; }
+    @media (max-width: 768px) {
+        .action-buttons-mobile { display: flex !important; }
+        .action-buttons-desktop { display: none !important; }
+    }
+    </style>
+    <div style="position:relative; width:100%; min-height:100vh; background:var(--bg2);">
+    <button onclick="closeSeasonView()" style="position:absolute; top:15px; left:15px; background:var(--bg3); color:var(--text); border:1px solid var(--border); padding:8px 16px; border-radius:8px; cursor:pointer; font-weight:600; font-size:13px; z-index:100; box-shadow:0 4px 15px rgba(0,0,0,0.6); display:inline-flex; align-items:center; gap:6px;">⬅ ${t('detail_back')}</button>
+
+    <div style="width:100%; height:250px; background-image:url('${albPoster}'); background-size:cover; background-position:center; position:relative;">
+    <div style="position:absolute; inset:0; background:linear-gradient(to bottom, rgba(19, 22, 30, 0.2) 0%, var(--bg2) 100%);"></div>
+    </div>
+
+    <div style="display:flex; gap:16px; padding:0 20px; margin-top:-70px; position:relative; z-index:10; align-items:flex-end;">
+    ${albPoster ? `<img src="${albPoster}" style="width:115px; height:115px; border-radius:12px; box-shadow:0 6px 20px rgba(0,0,0,0.6); object-fit:cover; flex-shrink:0; border:1px solid rgba(255,255,255,0.1);">` : `<div style="width:115px; height:115px; background:var(--bg3); border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:40px; box-shadow:0 6px 20px rgba(0,0,0,0.6); border:1px solid rgba(255,255,255,0.1); flex-shrink:0;">🎵</div>`}
+
+    <div style="padding-bottom:5px; flex:1; min-width:0;">
+    <h2 style="font-size:22px; font-weight:800; line-height:1.2; margin:0 0 6px 0; color:var(--text); text-overflow:ellipsis; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;">${esc(albTitle)}</h2>
+    </div>
+    </div>
+
+    <div class="action-buttons-desktop" style="gap:10px; padding:20px; overflow-x:auto; scrollbar-width:none; border-bottom:1px solid var(--border); margin-bottom:20px;">
+    <button style="background:var(--bg3); border:1px solid var(--border); color:var(--text); padding:8px 16px; border-radius:20px; font-size:13px; font-weight:600; white-space:nowrap; cursor:pointer; flex-shrink:0; display:flex; gap:6px; align-items:center; transition:background 0.2s;" onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background='var(--bg3)'" onclick="albumSearchAuto(${albId}, this)">🔍 ${t('detail_auto_search')}</button>
+    <button style="background:var(--bg3); border:1px solid var(--border); color:var(--text); padding:8px 16px; border-radius:20px; font-size:13px; font-weight:600; white-space:nowrap; cursor:pointer; flex-shrink:0; display:flex; gap:6px; align-items:center; transition:background 0.2s;" onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background='var(--bg3)'" onclick="openAlbumReleases(${albId}, '${safeAlbTitle}', ${artistId})">👤 ${t('detail_search_manual') || 'Sorties manuelles'}</button>
+    <button style="background:var(--bg3); border:1px solid var(--border); color:var(--text); padding:8px 16px; border-radius:20px; font-size:13px; font-weight:600; white-space:nowrap; cursor:pointer; flex-shrink:0; display:flex; gap:6px; align-items:center; transition:background 0.2s;" onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background='var(--bg3)'" onclick="refreshArtist(${artistId}, this)">🔄 ${t('detail_refresh')}</button>
+    </div>
+
+    <div class="action-buttons-mobile" style="justify-content:center; gap:20px; padding:15px 20px; border-bottom:1px solid var(--border); margin-bottom:20px;">
+    <button style="background:var(--bg2); border:1px solid var(--border); border-radius:50%; color:var(--text); width:48px; height:48px; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:20px; box-shadow:0 4px 10px rgba(0,0,0,0.2);" onclick="albumSearchAuto(${albId}, this)" title="${t('detail_auto_search')}">🔍</button>
+    <button style="background:var(--bg2); border:1px solid var(--border); border-radius:50%; color:var(--text); width:48px; height:48px; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:20px; box-shadow:0 4px 10px rgba(0,0,0,0.2);" onclick="openAlbumReleases(${albId}, '${safeAlbTitle}', ${artistId})" title="${t('detail_search_manual') || 'Sorties manuelles'}">👤</button>
+    <button style="background:var(--bg2); border:1px solid var(--border); border-radius:50%; color:var(--text); width:48px; height:48px; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:20px; box-shadow:0 4px 10px rgba(0,0,0,0.2);" onclick="refreshArtist(${artistId}, this)" title="${t('detail_refresh')}">🔄</button>
+    </div>
+
+    <div style="width: 100%; padding: 0 10px 40px 10px; box-sizing: border-box;">
+    ${tracksContent}
+    </div>
+    </div>
+    `;
+
+    artistContent.style.transition = 'transform .25s ease, opacity .2s';
+    artistContent.style.transform = 'translateX(30px)';
+    artistContent.style.opacity = '0';
+
+    setTimeout(() => {
+        window.scrollTo(0, 0);
+        artistContent.innerHTML = html;
+        artistContent.style.transform = 'translateX(-30px)';
+        setTimeout(() => {
+            artistContent.style.transform = 'translateX(0)';
+            artistContent.style.opacity = '1';
+            setTimeout(() => {
+                artistContent.style.transform = '';
+                artistContent.style.transition = '';
+            }, 250);
+        }, 20);
+    }, 180);
+};
+
+window.toggleTrackActions = function(trackId, element) {
+    const actionsDiv = document.getElementById('track-actions-' + trackId);
+    const chevron = element.querySelector('.ep-chevron');
+
+    if (actionsDiv.style.display === 'none') {
+        document.querySelectorAll('[id^="track-actions-"]').forEach(el => el.style.display = 'none');
+        document.querySelectorAll('.ep-chevron').forEach(el => el.style.transform = 'rotate(0deg)');
+
+        actionsDiv.style.display = 'block';
+        if (chevron) chevron.style.transform = 'rotate(180deg)';
+    } else {
+        actionsDiv.style.display = 'none';
+        if (chevron) chevron.style.transform = 'rotate(0deg)';
+    }
+};
+
+window.toggleAlbumTypeGrid = function(idx, headerEl) {
+    const grid = document.getElementById('album-type-grid-' + idx);
+    if (!grid) return;
+    const chevron = headerEl.querySelector('.album-type-chevron');
+    const isHidden = grid.style.display === 'none';
+    grid.style.display = isHidden ? '' : 'none';
+    if (chevron) chevron.style.transform = isHidden ? 'rotate(0deg)' : 'rotate(-90deg)';
+};
+
+async function openArtistDetail(id) {
+    savedScrollPosition = window.scrollY;
+    toggleListElements(false);
+    makeFullscreenView('modal-serie', 'serie-detail-content');
+
+    const currentParam = new URLSearchParams(window.location.search).get('artist');
+    if (currentParam == id) {
+        history.replaceState({ modal: 'artist', id: id }, '', '?artist=' + id + window.location.hash);
+    } else {
+        history.pushState({ modal: 'artist', id: id }, '', '?artist=' + id + window.location.hash);
+    }
+
+    window.openMobileAlbumMenu = function(albId) {
+        const overlay = document.getElementById('album-menu-' + albId + '-overlay');
+        const sheet = document.getElementById('album-menu-' + albId);
+        if (overlay && sheet) {
+            overlay.style.display = 'block';
+            sheet.style.display = 'flex';
+            setTimeout(() => { overlay.classList.add('open'); sheet.classList.add('open'); }, 10);
+            document.body.style.overflow = 'hidden';
+        }
+    };
+    window.closeMobileAlbumMenu = function(albId) {
+        const overlay = document.getElementById('album-menu-' + albId + '-overlay');
+        const sheet = document.getElementById('album-menu-' + albId);
+        if (overlay && sheet) {
+            sheet.classList.remove('open'); overlay.classList.remove('open');
+            setTimeout(() => { overlay.style.display = 'none'; sheet.style.display = 'none'; document.body.style.overflow = ''; }, 300);
+        }
+    };
+
+    const content = document.getElementById('serie-detail-content');
+    content.innerHTML = `<div style="text-align:center;padding:60px;color:var(--muted);">${t('loading')}</div>`;
+
+    const r = await api('artist_detail&id=' + id, {}, 'GET');
+    if (r.error) { content.innerHTML = `<p style="color:var(--accent3); padding:20px;">${esc(r.error)}</p>`; return; }
+
+    const getSafeImg = (u) => {
+        if (!u) return '';
+        if (u.includes('proxy_image')) return u;
+        if (u.toLowerCase().includes('mediacover')) {
+            const bust = u.includes('?') ? '&cb=3' : '?cb=3';
+            return `api.php?action=proxy_image&url=${encodeURIComponent(u + bust)}`;
+        }
+        return u;
+    };
+
+    const posterUrl = getSafeImg(r.poster);
+    const fanartUrl = getSafeImg(r.fanart || r.poster);
+
+    if (r.albums) {
+        r.albums.forEach(alb => {
+            alb.poster = getSafeImg(alb.poster);
+        });
+    }
+
+    const safeTitle = esc(r.title).replace(/'/g, "\\'").replace(/"/g, '&quot;');
+    const genres = (r.genres || []).slice(0, 3).join(' • ');
+    const statusColor = r.pct >= 100 ? 'var(--accent2)' : r.pct > 0 ? '#ffa03c' : 'var(--muted)';
+    const statusText = r.pct >= 100 ? t('series_filter_complete') : r.pct > 0 ? t('series_filter_incomplete') : t('films_filter_missing');
+
+    let totalTracks = 0, haveTracks = 0;
+
+    const albumTypeCounts = {};
+    (r.albums || []).forEach(a => {
+        const ty = a.type || t('detail_other') || 'Autre';
+        albumTypeCounts[ty] = (albumTypeCounts[ty] || 0) + 1;
+    });
+
+    let albumsHtml = '';
+    let albumBottomSheetsHtml = '';
+    let lastAlbumType = null;
+    let albumTypeSectionIndex = -1;
+
+    (r.albums || []).forEach(alb => {
+        totalTracks += alb.total || 0;
+        haveTracks += alb.have || 0;
+        const albumFileIds = [];
+        let tracksHtml = '';
+
+        (alb.tracks || []).sort((a, b) => (a.track || 0) - (b.track || 0)).forEach(tr => {
+            if (tr.fileId) albumFileIds.push(tr.fileId);
+
+            let statusLabel = '';
+            if (tr.hasFile) {
+                statusLabel = `<span style="background: rgba(93, 255, 214, 0.15); color: var(--accent2); padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 800; text-transform: uppercase;">DL ✓</span>`;
+            } else {
+                statusLabel = `<span style="background: rgba(255, 255, 255, 0.1); color: var(--muted); padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 800; text-transform: uppercase;">${t('status_missing') || 'Manquant'}</span>`;
+            }
+
+            const durationStr = tr.duration ? new Date(tr.duration).toISOString().substr(14, 5) : '';
+            const trackFormatted = `${String(tr.track).padStart(2,'0')} - ${tr.title}`;
+
+            tracksHtml += `
+            <div style="display:flex; flex-direction:column; padding: 4px 0;">
+            <div onclick="toggleTrackActions(${tr.id}, this)" style="display:flex; align-items:center; justify-content:space-between; padding:12px 10px; cursor:pointer; user-select:none; border-radius: 8px; transition: background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.background='transparent'">
+            <div style="display:flex; align-items:center; gap:16px; flex:1; min-width:0;">
+            <div style="font-size: 16px; font-weight: 800; color: rgba(255,255,255,0.7); width: 24px; text-align: right;">
+            ${tr.track}
+            </div>
+            <div style="display:flex; flex-direction:column; gap:4px; flex:1; min-width:0;">
+            <span style="font-size:15px; font-weight:700; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${esc(tr.title)}</span>
+            <div style="display:flex; align-items:center; gap:8px; font-size:11px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+            ${durationStr ? `<span style="font-family: var(--mono);">${durationStr}</span>` : ''}
+            <span>${statusLabel}</span>
+            </div>
+            </div>
+            </div>
+            <div style="color:var(--muted); margin-left:10px; display:flex; align-items:center;">
+            <svg class="ep-chevron" viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="transition:transform 0.2s;"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </div>
+            </div>
+            <div id="track-actions-${tr.id}" style="display:none; background:rgba(0,0,0,0.2); border-radius: 8px; margin: 0 10px 10px 10px; padding:12px 16px; border: 1px solid rgba(255,255,255,0.05);">
+            ${tr.file_details ? buildAudioFileDetailsCard(tr.file_details, 'track-' + tr.id, null) : ''}
+            ${tr.fileId ? `<button style="width:100%; background:rgba(255,93,143,0.1); border:1px solid rgba(255,93,143,0.3); border-radius:8px; color:var(--accent3); padding:10px 5px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px; font-size:13px; font-weight:bold;" onclick="deleteAlbumFiles([${tr.fileId}], ${r.id}, '${esc(trackFormatted).replace(/'/g, "\\'")}')"><span style="font-size:16px;">🗑️</span> ${t('detail_delete')}</button>` : ''}
+            </div>
+            </div>`;
+        });
+
+        const albYear = alb.releaseDate ? alb.releaseDate.substring(0, 4) : '';
+        const isComplete = alb.have === alb.total && alb.total > 0;
+        const pctBgColor = isComplete ? 'rgba(93, 255, 214, 0.85)' : 'rgba(255, 93, 143, 0.85)';
+        const pctTextColor = isComplete ? '#000' : '#fff';
+        const albTitleSafe = esc(alb.title).replace(/'/g, "\\'");
+        const albPosterSafe = alb.poster ? esc(alb.poster).replace(/'/g, "\\'") : '';
+
+        const albType = alb.type || t('detail_other') || 'Autre';
+        if (albType !== lastAlbumType) {
+            if (lastAlbumType !== null) albumsHtml += '</div>';
+            albumTypeSectionIndex++;
+            albumsHtml += `
+            <h3 onclick="toggleAlbumTypeGrid(${albumTypeSectionIndex}, this)" style="margin:${lastAlbumType === null ? '0' : '30px'} 0 15px 0; padding:0 20px; font-size:16px; font-weight:800; color:var(--lidarr); -webkit-text-fill-color:var(--lidarr) !important; display:flex; align-items:center; gap:8px; cursor:pointer; user-select:none;">
+            ${esc(albType)}
+            <span style="font-size:12px; font-weight:700; color:var(--lidarr) !important; -webkit-text-fill-color:var(--lidarr) !important; background:var(--bg3); border:1px solid var(--border); padding:2px 9px; border-radius:10px;">${albumTypeCounts[albType] || 0}</span>
+            <svg class="album-type-chevron" viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="margin-left:auto; transition:transform 0.2s; color:var(--muted); flex-shrink:0;"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </h3>`;
+            albumsHtml += `<div class="albums-grid" id="album-type-grid-${albumTypeSectionIndex}">`;
+            lastAlbumType = albType;
+        }
+
+        albumsHtml += `
+        <div style="display:flex; flex-direction:column; gap:8px; position:relative;">
+        <div onclick="openAlbumView(${alb.id}, '${albTitleSafe}', '${albPosterSafe}', ${r.id})" style="position:relative; width:100%; aspect-ratio:1/1; border-radius:12px; overflow:hidden; background:var(--bg3); cursor:pointer; box-shadow:0 4px 10px rgba(0,0,0,0.3); transition:transform 0.2s;" onmouseover="this.style.transform='scale(1.03)'" onmouseout="this.style.transform='scale(1)'">
+
+        <img src="${alb.poster}" loading="lazy" style="width:100%; height:100%; object-fit:cover;" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+        <div style="display:none; align-items:center; justify-content:center; width:100%; height:100%; font-size:40px; color:var(--muted);">🎵</div>
+
+        <div style="position:absolute; inset:0; background:linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, transparent 50%, rgba(0,0,0,0.7) 100%); pointer-events:none;"></div>
+
+        <button class="mobile-album-actions-toggle" onclick="event.stopPropagation(); openMobileAlbumMenu(${alb.id});" style="position:absolute; top:8px; right:8px; background:rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.2); width:32px; height:32px; border-radius:50%; align-items:center; justify-content:center; color:#fff; cursor:pointer; backdrop-filter:blur(4px); font-size:18px; z-index:5;" onmouseover="this.style.background='rgba(255,255,255,0.3)'" onmouseout="this.style.background='rgba(0,0,0,0.4)'">⋮</button>
+
+        <div style="position:absolute; bottom:8px; right:8px; background:${pctBgColor}; color:${pctTextColor}; padding:4px 8px; border-radius:8px; font-size:11px; font-weight:800; font-family:var(--mono); z-index:5;">
+        ${alb.have}/${alb.total}
+        </div>
+        </div>
+
+        <div style="display:flex; flex-direction:column; padding:0 4px; text-align:center;">
+        <span class="album-card-title" style="font-weight:700; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${albTitleSafe}">${esc(alb.title)}</span>
+        <span class="album-card-year" style="color:var(--muted); font-weight:500;">${albYear}</span>
+        </div>
+
+        <div class="desktop-album-actions" style="justify-content:center; gap:12px; margin-top:2px;" onclick="event.stopPropagation()">
+        <span style="cursor:pointer; display:flex; align-items:center;" onclick="toggleAlbumMonitor(${alb.id}, ${!alb.monitored}, this)" title="${t('detail_monitor') || 'Surveiller'}">${alb.monitored ? ICON_MONITORED : ICON_UNMONITORED}</span>
+        <button style="background:none; border:none; color:var(--muted); cursor:pointer; display:flex; align-items:center; transition:color 0.2s; padding:0;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted)'" onclick="albumSearchAuto(${alb.id}, this)" title="${t('detail_auto_search')}">🔍</button>
+        <button style="background:none; border:none; color:var(--muted); cursor:pointer; display:flex; align-items:center; transition:color 0.2s; padding:0;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted)'" onclick="openAlbumReleases(${alb.id}, '${albTitleSafe}', ${r.id})" title="${t('detail_search_manual') || 'Sorties manuelles'}">👤</button>
+        ${albumFileIds.length > 0 ? `<button style="background:none; border:none; color:var(--accent3); cursor:pointer; display:flex; align-items:center; opacity:0.8; transition:opacity 0.2s; padding:0;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.8'" onclick="deleteAlbumFiles([${albumFileIds.join(',')}],${r.id}, '${albTitleSafe}')" title="${t('detail_delete')}">🗑️</button>` : ''}
+        </div>
+
+        <div id="album-tracks-data-${alb.id}" style="display:none;">${tracksHtml}</div>
+        </div>`;
+
+        albumBottomSheetsHtml += `
+        <div class="mobile-menu-overlay" id="album-menu-${alb.id}-overlay" onclick="closeMobileAlbumMenu(${alb.id})"></div>
+        <div class="mobile-bottom-sheet" id="album-menu-${alb.id}">
+        <div class="sheet-drag-handle" style="width: 40px; height: 5px; background: var(--border); border-radius: 5px; margin: 0 auto 20px auto;"></div>
+        <div style="display:flex; flex-direction:column; gap:12px; width:100%;">
+        <button class="sheet-btn" onclick="closeMobileAlbumMenu(${alb.id}); toggleAlbumMonitor(${alb.id}, ${!alb.monitored}, this.querySelector('.season-monitor-icon'));" style="background: var(--bg3); border: 1px solid var(--border); color: var(--text); padding: 18px; border-radius: 14px; font-size: 16px; font-weight: 500; display: flex; align-items: center; gap: 15px; cursor: pointer; text-align: left;">
+        <span class="season-monitor-icon" style="display: flex; align-items: center; justify-content: center; width: 24px; height: 24px; flex-shrink: 0;">${alb.monitored ? ICON_MONITORED : ICON_UNMONITORED}</span>
+        <span>${t('detail_monitor') || 'Surveiller'}</span>
+        </button>
+        <button class="sheet-btn" onclick="closeMobileAlbumMenu(${alb.id}); albumSearchAuto(${alb.id}, this);" style="background: var(--bg3); border: 1px solid var(--border); color: var(--text); padding: 18px; border-radius: 14px; font-size: 16px; font-weight: 500; display: flex; align-items: center; gap: 15px; cursor: pointer; text-align: left;"><span style="font-size: 20px;">🔍</span> ${t('detail_auto_search')}</button>
+        <button class="sheet-btn" onclick="closeMobileAlbumMenu(${alb.id}); openAlbumReleases(${alb.id}, '${albTitleSafe}', ${r.id});" style="background: var(--bg3); border: 1px solid var(--border); color: var(--text); padding: 18px; border-radius: 14px; font-size: 16px; font-weight: 500; display: flex; align-items: center; gap: 15px; cursor: pointer; text-align: left;"><span style="font-size: 20px;">👤</span> ${t('detail_search_manual') || 'Sorties manuelles'}</button>
+        ${albumFileIds.length > 0 ? `<button class="sheet-btn danger" onclick="closeMobileAlbumMenu(${alb.id}); deleteAlbumFiles([${albumFileIds.join(',')}], ${r.id}, '${albTitleSafe}');" style="background: rgba(255, 93, 143, 0.05); border: 1px solid rgba(255, 93, 143, 0.3); color: var(--accent3); padding: 18px; border-radius: 14px; font-size: 16px; font-weight: 500; display: flex; align-items: center; gap: 15px; cursor: pointer; text-align: left;"><span style="font-size: 20px;">🗑️</span> ${t('detail_delete')}</button>` : ''}
+        </div>
+        </div>`;
+    });
+    if (lastAlbumType !== null) albumsHtml += '</div>';
+
+    content.innerHTML = `
+    <style>
+    .mobile-menu-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 99998; opacity: 0; transition: opacity 0.3s; backdrop-filter: blur(2px); }
+    .mobile-menu-overlay.open { opacity: 1; }
+    .mobile-bottom-sheet { position: fixed; bottom: 0; left: 0; width: 100%; background: var(--bg2); border-radius: 24px 24px 0 0; z-index: 99999; padding: 15px 20px 30px; display: none; transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); box-shadow: 0 -10px 25px rgba(0,0,0,0.6); flex-direction: column; box-sizing: border-box; }
+    .mobile-bottom-sheet.open { transform: translateY(0); }
+
+    .albums-grid { display: grid; padding: 0 20px 40px 20px; }
+
+    @media (min-width: 769px) {
+        .action-buttons-mobile { display: none !important; }
+        .action-buttons-desktop { display: flex !important; }
+        .desktop-album-actions { display: flex !important; }
+        .mobile-album-actions-toggle { display: none !important; }
+
+        .albums-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 24px; }
+        .album-card-title { font-size: 14px; margin-top: 4px; }
+        .album-card-year { font-size: 12px; }
+        .desktop-album-actions button, .desktop-album-actions span { font-size: 18px !important; }
+    }
+
+    @media (max-width: 768px) {
+        .action-buttons-mobile { display: flex !important; }
+        .action-buttons-desktop { display: none !important; }
+        .desktop-album-actions { display: none !important; }
+        .mobile-album-actions-toggle { display: flex !important; }
+
+        .albums-grid { grid-template-columns: repeat(auto-fill, minmax(95px, 1fr)); gap: 12px; }
+        .album-card-title { font-size: 12px; }
+        .album-card-year { font-size: 11px; }
+    }
+    </style>
+    <div style="position:relative; width:100%; min-height:100vh; background:var(--bg2);">
+    <button onclick="closeSerieDetail()" style="position:absolute; top:15px; left:15px; background:var(--bg3); color:var(--text); border:1px solid var(--border); padding:8px 16px; border-radius:8px; cursor:pointer; font-weight:600; font-size:13px; z-index:100; box-shadow:0 4px 15px rgba(0,0,0,0.6); display:inline-flex; align-items:center; gap:6px;">⬅ ${t('detail_back')}</button>
+
+    <div style="width:100%; height:250px; background-image:url('${fanartUrl}'); background-size:cover; background-position:center 20%; position:relative;">
+    <div style="position:absolute; inset:0; background:linear-gradient(to bottom, rgba(19, 22, 30, 0.2) 0%, var(--bg2) 100%);"></div>
+    </div>
+
+    <div style="display:flex; gap:16px; padding:0 20px; margin-top:-70px; position:relative; z-index:10; align-items:flex-end;">
+    ${posterUrl ? `<img src="${posterUrl}" style="width:115px; height:115px; border-radius:50%; box-shadow:0 6px 20px rgba(0,0,0,0.6); object-fit:cover; flex-shrink:0; border:3px solid var(--bg2);">` : `<div style="width:115px; height:115px; background:var(--bg3); border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:40px; box-shadow:0 6px 20px rgba(0,0,0,0.6); border:3px solid var(--bg2); flex-shrink:0;">🎵</div>`}
+
+    <div style="padding-bottom:5px; flex:1; min-width:0;">
+    <div style="display:inline-block; font-size:10px; font-weight:bold; padding:3px 8px; border-radius:6px; background:var(--bg3); border:1px solid var(--border); color:${statusColor}; margin-bottom:6px;">${r.pct}% • ${statusText}</div>
+    <h2 style="font-size:22px; font-weight:800; line-height:1.2; margin:0 0 6px 0; color:var(--text); text-overflow:ellipsis; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;">${esc(r.title)}</h2>
+    <div style="font-size:12px; color:var(--muted); display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+    ${r.rating ? `<span style="background:rgba(255,255,255,0.08); padding:1px 6px; border-radius:4px; color:var(--text);">⭐ ${r.rating}</span>` : ''}
+    <span style="cursor:pointer; display:flex; align-items:center;" onclick="toggleArtistMonitor(${r.id}, ${!r.monitored}, this)" title="${t('detail_monitor')}">${r.monitored ? ICON_MONITORED : ICON_UNMONITORED}</span>
+    ${r.appUrl ? `<a href="${r.appUrl}" target="_blank" class="btn-app-link" style="padding:5px 12px; font-size:11px; border-radius:6px; box-shadow:none;"><span class="icon" style="font-size:13px;">🌐</span> <span class="btn-app-link-text">${t('music_open_lidarr')}</span></a>` : ''}
+    </div>
+    </div>
+    </div>
+
+    <!-- BOUTONS D'ACTION ARTISTE -->
+    <div class="action-buttons-desktop" style="gap:10px; padding:20px; overflow-x:auto; scrollbar-width:none; border-bottom:1px solid var(--border); margin-bottom:20px;">
+    <button style="background:var(--bg3); border:1px solid var(--border); color:var(--text); padding:8px 16px; border-radius:20px; font-size:13px; font-weight:600; white-space:nowrap; cursor:pointer; flex-shrink:0; display:flex; gap:6px; align-items:center; transition:background 0.2s;" onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background='var(--bg3)'" onclick="artistSearchAuto(${r.id}, this)">🔍 ${t('detail_auto_search')}</button>
+    <button style="background:var(--bg3); border:1px solid var(--border); color:var(--text); padding:8px 16px; border-radius:20px; font-size:13px; font-weight:600; white-space:nowrap; cursor:pointer; flex-shrink:0; display:flex; gap:6px; align-items:center; transition:background 0.2s;" onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background='var(--bg3)'" onclick="openEditMediaModal(${r.id}, 'artist')">⚙️ ${t('modal_edit_lidarr') || "Éditer l'artiste"}</button>
+    <button style="background:rgba(255,93,143,0.1); border:1px solid rgba(255,93,143,0.3); color:var(--accent3); padding:8px 16px; border-radius:20px; font-size:13px; font-weight:600; white-space:nowrap; cursor:pointer; flex-shrink:0; display:flex; gap:6px; align-items:center; transition:background 0.2s;" onmouseover="this.style.background='rgba(255,93,143,0.2)'" onmouseout="this.style.background='rgba(255,93,143,0.1)'" onclick="deleteArtist(${r.id}, '${safeTitle}')">🗑️ ${t('detail_delete')}</button>
+    </div>
+
+    <div class="action-buttons-mobile" style="justify-content:center; gap:20px; padding:15px 20px; border-bottom:1px solid var(--border); margin-bottom:20px;">
+    <button style="background:var(--bg2); border:1px solid var(--border); border-radius:50%; color:var(--text); width:48px; height:48px; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:20px; box-shadow:0 4px 10px rgba(0,0,0,0.2);" onclick="artistSearchAuto(${r.id}, this)" title="${t('detail_auto_search')}">🔍</button>
+    <button style="background:var(--bg2); border:1px solid var(--border); border-radius:50%; color:var(--text); width:48px; height:48px; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:20px; box-shadow:0 4px 10px rgba(0,0,0,0.2);" onclick="openEditMediaModal(${r.id}, 'artist')" title="${t('modal_edit_lidarr') || 'Éditer'}">⚙️</button>
+    <button style="background:rgba(255,93,143,0.05); border:1px solid rgba(255,93,143,0.2); border-radius:50%; color:var(--accent3); width:48px; height:48px; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:20px; box-shadow:0 4px 10px rgba(0,0,0,0.2);" onclick="deleteArtist(${r.id}, '${safeTitle}')" title="${t('detail_delete')}">🗑️</button>
+    </div>
+
+    <!-- STATS BAR -->
+    <div style="padding:0 20px 15px 20px; display:flex; justify-content:space-between; align-items:flex-end; box-sizing:border-box;">
+    <div>
+    <div style="font-size:12px; color:var(--muted); margin-bottom:15px;">
+    <span>${genres}</span>
+    </div>
+    <h3 style="margin:0; font-size:22px; color:var(--lidarr); -webkit-text-fill-color:var(--lidarr) !important; font-weight:800;">${(r.albums||[]).length} ${t('detail_albums')}</h3>
+    </div>
+    <div style="font-size:12px; font-family:var(--mono); color:var(--lidarr); font-weight:bold; background:var(--bg3); border:1px solid var(--border); padding:8px 12px; border-radius:8px;">
+    ${haveTracks} / ${totalTracks} ${t('detail_tracks')}
+    </div>
+    </div>
+
+    <!-- GRILLE D'ALBUMS RESPONSIVE -->
+    ${albumsHtml}
+
+    ${albumBottomSheetsHtml}
+    </div>`;
+
+    animateContentSlideIn(content);
+}
+
+async function refreshArtist(id, btn) {
+    if (btn) { btn.disabled = true; }
+    const r = await api('refresh_artist', { artistId: id });
+    if (btn) { btn.disabled = false; }
+    if (r.ok) notify(t('refresh_started') || 'Actualisation lancée', 'ok');
+    else notify(r.error || t('notif_error') || 'Erreur', 'err');
+}
+
+function deleteArtist(id, title) {
+    const safeTitle = esc(title);
+
+    const msgHtml = `
+    <div style="margin-bottom: 15px;">${t('confirm_delete_msg_media').replace('{title}', '<strong>'+safeTitle+'</strong>')}</div>
+    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; background: var(--bg2); padding: 12px; border-radius: 8px; border: 1px solid var(--border);">
+    <input type="checkbox" id="delete-files-checkbox-artist" checked style="width: 18px; height: 18px; cursor: pointer; accent-color: var(--accent3);">
+    <span style="font-size: 13px; color: var(--text);">${t('confirm_delete_files')}</span>
+    </label>
+    <div style="color: var(--accent3); font-size: 12px; margin-top: 12px;">${t('confirm_irreversible')}</div>
+    `;
+
+    showConfirmModal(
+        (t('confirm_delete_title') || 'Supprimer') + ' — ' + title,
+                     msgHtml,
+                     async () => {
+                         const deleteFiles = document.getElementById('delete-files-checkbox-artist') ? document.getElementById('delete-files-checkbox-artist').checked : true;
+
+                         const r = await api('delete_artist', { artistId: id, deleteFiles: deleteFiles });
+
+                         if (r.ok) {
+                             notify((t('deleted_ok')).replace('{title}', title), 'ok');
+                             closeSerieDetail();
+                             setTimeout(() => {
+                                 if (typeof _musicDataLoaded !== 'undefined') _musicDataLoaded = false;
+                                 if (window.location.pathname.includes('music.php')) {
+                                     if (typeof loadArtists === 'function') loadArtists();
+                                 } else {
+                                     window.location.href = 'music.php';
+                                 }
+                             }, 300);
+                         } else {
+                             notify(r.error || t('delete_error'), 'err');
+                         }
+                     }
+    );
+}
+
+async function artistSearchAuto(artistId, btn) {
+    btn.disabled = true; btn.textContent = '⏳';
+    const r = await api('artist_search_auto', { artistId });
+    if (r.ok) { btn.textContent = '✓'; notify(t('search_started'), 'ok'); }
+    else { btn.disabled = false; btn.textContent = '🔍'; notify(r.error || t('notif_error'), 'err'); }
+}
+
+async function albumSearchAuto(albumId, btn) {
+    btn.disabled = true; btn.textContent = '⏳';
+    const r = await api('album_search_auto', { albumId });
+    if (r.ok) { btn.textContent = '✓'; notify(t('search_started'), 'ok'); }
+    else { btn.disabled = false; btn.textContent = '🔍'; notify(r.error || t('notif_error'), 'err'); }
+}
+
+async function openAlbumReleases(albumId, label, artistId) {
+    showReleasesModal((t('detail_search_releases') || 'Releases') + ' — ' + label);
+    const r = await api('album_releases&albumId=' + albumId, {}, 'GET');
+    if (r.error) {
+        document.getElementById('releases-content').innerHTML = `<div class="empty-state"><div class="icon">⚠️</div><h3>${t('notif_error') || 'Erreur'}</h3><p>${esc(r.error)}</p></div>`;
+        return;
+    }
+    renderReleasesTable(r.releases || [], 'album', albumId);
+}
+
+function deleteAlbumFiles(fileIds, artistId, albumTitle) {
+    showConfirmModal(
+        (t('detail_delete') || 'Supprimer') + ' — ' + albumTitle,
+                     t('confirm_delete_file_msg'),
+                     async () => {
+                         notify(t('loading') || 'Chargement...', 'ok');
+                         let successCount = 0;
+                         for (let fileId of fileIds) {
+                             const r = await api('delete_track_file', { fileId: fileId });
+                             if (r.ok) successCount++;
+                         }
+                         if (successCount > 0) {
+                             notify((t('deleted_ok')).replace('{title}', albumTitle), 'ok');
+                             openArtistDetail(artistId);
+                         } else {
+                             notify(t('delete_error'), 'err');
+                         }
+                     }
+    );
 }

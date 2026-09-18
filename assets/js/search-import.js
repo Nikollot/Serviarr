@@ -113,9 +113,7 @@ document.addEventListener('click', (e) => {
 });
 
 let _importListType = 'movie';
-
 let _importResults = [];
-
 let _importSelected = new Set();
 
 function openImportListModal(type) {
@@ -172,10 +170,8 @@ function handleImportFileUpload(event) {
     reader.onload = function(e) {
         const textarea = document.getElementById('import-list-textarea');
         if (textarea) {
-            // Remplit le champ texte avec le contenu du fichier
             textarea.value = e.target.result;
         }
-        // Réinitialise l'input file pour permettre de recharger le même fichier si on se trompe
         event.target.value = '';
     };
     reader.readAsText(file);
@@ -201,7 +197,6 @@ async function analyzeImportList() {
     document.getElementById('import-list-step1').style.display = 'none';
     document.getElementById('import-list-step2').style.display = 'flex';
 
-    // Charge les options (profil qualité / dossier) une seule fois pour tout le lot
     const appDriver = _importListType === 'movie' ? 'radarr' : 'sonarr';
     const opts = await api(`get_options&app=${appDriver}`, {}, 'GET');
     const optsDiv = document.getElementById('import-list-options');
@@ -301,7 +296,15 @@ function openSearchModal(type) {
     }
 
     const isMovie = type === 'movie';
-    document.getElementById('search-modal-title').textContent = isMovie ? t('type_movie') : t('type_serie');
+    const isSerie = type === 'serie';
+    
+    // 🌟 CORRECTION DU TITRE SELON LE TYPE DE MÉDIA
+    let titleText = t('type_movie');
+    if (isSerie) titleText = t('type_serie');
+    if (type === 'artist') titleText = t('music_add') || 'Ajouter un artiste';
+
+    document.getElementById('search-modal-title').textContent = titleText;
+    
     const input = document.getElementById('search-modal-input');
     input.dataset.type = type;
     input.value = '';
@@ -318,7 +321,12 @@ async function executeModalSearch(type, query) {
     const resultsDiv = document.getElementById('search-modal-results');
     resultsDiv.innerHTML = `<div style="color:var(--muted); text-align:center; padding:40px;">${t('loading')}</div>`;
 
-    const action = type === 'movie' ? 'search_movie' : 'search_serie';
+    // 🌟 CORRECTION DE L'ACTION API
+    let action = '';
+    if (type === 'movie') action = 'search_movie';
+    else if (type === 'serie') action = 'search_serie';
+    else if (type === 'artist') action = 'search_artist'; // Action Lidarr
+
     const r = await api(action + '&q=' + encodeURIComponent(query), {}, 'GET');
 
     if (r.error || !r.results) {
@@ -327,39 +335,63 @@ async function executeModalSearch(type, query) {
     }
 
     if (r.results.length === 0) {
-        resultsDiv.innerHTML = `<div style="color:var(--muted); text-align:center; padding:40px;">${type === 'movie' ? t('no_movie_found') : t('no_series_found')}</div>`;
+        let noResultMsg = t('no_movie_found');
+        if (type === 'serie') noResultMsg = t('no_series_found');
+        if (type === 'artist') noResultMsg = t('no_artist_found') || 'Aucun artiste trouvé';
+        
+        resultsDiv.innerHTML = `<div style="color:var(--muted); text-align:center; padding:40px;">${noResultMsg}</div>`;
         return;
     }
 
     let html = '';
     r.results.forEach((item, index) => {
         const isMovie = type === 'movie';
-        const id = isMovie ? item.tmdbId : (item.tvdbId || item.tmdbId);
-        const idType = isMovie ? 'tmdb' : (item.tvdbId ? 'tvdb' : 'tmdb');
-        const safeTitle = esc(item.title).replace(/'/g, "\\'");
+        const isSerie = type === 'serie';
+        const isArtist = type === 'artist';
 
-        const posterHtml = item.poster
-        ? `<img src="${item.poster}" loading="lazy" style="width:100%; height:135px; object-fit:cover; border-radius:8px; border:1px solid rgba(255,255,255,0.05);">`
-        : `<div style="width:100%; height:135px; background:var(--bg2); border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:30px; border:1px solid var(--border);">${isMovie ? '🎬' : '📺'}</div>`;
+        // 🌟 GESTION DES IDENTIFIANTS MULTIPLES
+        let id;
+        let idType;
+        if (isMovie) { id = item.tmdbId; idType = 'tmdb'; }
+        else if (isSerie) { id = (item.tvdbId || item.tmdbId); idType = item.tvdbId ? 'tvdb' : 'tmdb'; }
+        else if (isArtist) { id = item.mbId; idType = 'mb'; }
 
+        const safeTitle = esc(item.title || item.artistName).replace(/'/g, "\\'");
+
+        // 🌟 GESTION DE L'AFFICHAGE DU POSTER SELON LE TYPE (Même si c'est un artiste on force le proxy)
+        let finalPoster = item.poster || '';
+        if (isArtist && finalPoster && finalPoster.toLowerCase().includes('mediacover') && !finalPoster.includes('proxy_image')) {
+            const bustPoster = finalPoster.includes('?') ? '&cb=5' : '?cb=5';
+            finalPoster = `api.php?action=proxy_image&url=${encodeURIComponent(finalPoster + bustPoster)}`;
+        }
+
+        const iconFallback = isMovie ? '🎬' : (isSerie ? '📺' : '🎵');
+        const posterHtml = finalPoster
+        ? `<img src="${finalPoster}" loading="lazy" style="width:100%; height:${isArtist ? '90px' : '135px'}; object-fit:cover; border-radius:8px; border:1px solid rgba(255,255,255,0.05);">`
+        : `<div style="width:100%; height:${isArtist ? '90px' : '135px'}; background:var(--bg2); border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:30px; border:1px solid var(--border);">${iconFallback}</div>`;
+
+        // Bouton d'ajout
         let actionHtml = '';
         if (item.in_lib) {
             actionHtml = `<div style="background:rgba(93,255,214,0.1); color:var(--accent2); text-align:center; padding:6px 12px; border-radius:6px; font-size:12px; font-weight:bold; border:1px solid rgba(93,255,214,0.3); display:inline-block;">✓ ${t('badge_library')}</div>`;
         } else {
-            // event.stopPropagation() pour éviter d'ouvrir la fiche quand on clique sur "Ajouter"
-            actionHtml = `<button id="col-card-${index}" class="btn-pill primary-${isMovie ? 'radarr' : 'sonarr'}" style="padding:6px 16px; font-size:12px; font-weight:bold;" onclick="event.stopPropagation(); promptAddMedia('${type}', ${id}, '${safeTitle}', this, '${idType}')">＋ ${t('films_add')}</button>`;
+            let btnClass = 'primary-radarr';
+            if (isSerie) btnClass = 'primary-sonarr';
+            if (isArtist) btnClass = 'primary-lidarr'; // Vert pour Lidarr
+            
+            actionHtml = `<button id="col-card-${index}" class="btn-pill ${btnClass}" style="padding:6px 16px; font-size:12px; font-weight:bold; background:var(--lidarr); color:#000;" onclick="event.stopPropagation(); promptAddMedia('${type}', '${id}', '${safeTitle}', this, '${idType}')">＋ ${t('films_add')}</button>`;
         }
 
         const networkText = item.network ? ` • ${esc(item.network)}` : '';
         const ratingText = item.rating ? ` • ⭐ ${item.rating}` : '';
-        const overviewText = item.overview ? esc(item.overview) : t('detail_overview');
+        const overviewText = item.overview ? esc(item.overview) : (isArtist ? '' : t('detail_overview'));
 
-        // Préparation du lien d'ouverture selon le type (et création du marque-page)
-        const rowClickAction = isMovie 
-            ? `document.getElementById('modal-search-media').style.display='none'; window._fromSearchModal=true; openTmdbMovieDetail(${item.tmdbId});` 
-            : `document.getElementById('modal-search-media').style.display='none'; window._fromSearchModal=true; openTmdbSerieDetail(${item.tmdbId});`;
+        // Action au clic de la ligne
+        let rowClickAction = `document.getElementById('modal-search-media').style.display='none'; window._fromSearchModal=true;`;
+        if (isMovie) rowClickAction += `openTmdbMovieDetail(${item.tmdbId});`;
+        else if (isSerie) rowClickAction += `openTmdbSerieDetail(${item.tmdbId});`;
+        else if (isArtist) rowClickAction += `openMbArtistDetail('${item.mbId}');`;
 
-        // onclick et cursor:pointer placés sur la div parente
         html += `
         <div onclick="${rowClickAction}" style="cursor:pointer; display:flex; gap:15px; background:var(--bg3); padding:12px; border-radius:12px; border:1px solid var(--border); transition:background 0.2s;" onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background='var(--bg3)'">
 
@@ -369,8 +401,8 @@ async function executeModalSearch(type, query) {
 
             <div style="flex:1; min-width:0; display:flex; flex-direction:column;">
 
-                <div style="font-size:15px; font-weight:bold; color:var(--text); margin-bottom:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${esc(item.title)}">
-                    ${esc(item.title)}
+                <div style="font-size:15px; font-weight:bold; color:var(--text); margin-bottom:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${esc(item.title || item.artistName)}">
+                    ${esc(item.title || item.artistName)}
                 </div>
 
                 <div style="font-size:11px; color:var(--muted); margin-bottom:8px; font-weight:600;">
@@ -439,11 +471,8 @@ function initAlphabetScrubber() {
         }
     };
 
-    // 🌟 Écoute optimisée du défilement (l'option passive rend le défilement mobile plus fluide)
     window.addEventListener('scroll', checkVisibility, { passive: true });
     
-    // 🌟 On vérifie la visibilité uniquement quand tu touches l'écran (ex: ouverture/fermeture de fenêtre)
-    // Le processeur est désormais à 0% d'utilisation quand tu ne fais rien !
     document.addEventListener('click', () => setTimeout(checkVisibility, 50));
     document.addEventListener('touchend', () => setTimeout(checkVisibility, 50), { passive: true });
 
@@ -488,8 +517,6 @@ function scrollToLetter(letter) {
     for (let el of titles) {
         let text = el.innerText || el.textContent;
         text = text.trim().toUpperCase();
-
-        //text = text.replace(/^(THE|A|AN|LE|LA|LES|L')\s+/i, '');
 
         let match = false;
         if (letter === '#') {
@@ -547,7 +574,6 @@ async function openExportListModal(type) {
         modal.addEventListener('click', e => { if (e.target === modal) modal.style.display = 'none'; });
     }
 
-    // On stocke le type de média pour générer le nom du fichier
     document.getElementById('export-list-textarea').dataset.type = type;
 
     document.getElementById('export-list-title').textContent = type === 'movie' ? t('export_movies_title') : t('export_series_title');
@@ -578,11 +604,9 @@ function downloadExportList() {
     const textarea = document.getElementById('export-list-textarea');
     const type = textarea.dataset.type === 'movie' ? 'films' : 'series';
 
-    // Génère la date du jour (ex: 2026-07-17)
     const date = new Date().toISOString().split('T')[0];
     const filename = `export_imdb_${type}_${date}.txt`;
 
-    // Création du fichier "virtuel" et téléchargement
     const blob = new Blob([textarea.value], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
 

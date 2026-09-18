@@ -10,6 +10,7 @@ if ($action === 'calendar') {
     $end   = $_GET['end']   ?? date('Y-m-t');
     $events = [];
 
+    // 1. SÉRIES (Sonarr)
     $sonarr = find_app_by_driver($cfg, 'sonarr');
     if ($sonarr) {
         $base_url = rtrim($sonarr['url'], '/');
@@ -32,6 +33,7 @@ if ($action === 'calendar') {
         }
     }
 
+    // 2. FILMS (Radarr)
     $radarr = find_app_by_driver($cfg, 'radarr');
     if ($radarr) {
         $base_url = rtrim($radarr['url'], '/');
@@ -46,11 +48,11 @@ if ($action === 'calendar') {
                 $physical = !empty($mv['physicalRelease'])  ? substr($mv['physicalRelease'], 0, 10) : null;
 
                 $today = null;
-                $releaseType = 'Attendu';
+                $releaseType = t('status_upcoming') ?: 'Attendu';
                 foreach ([
-                    $cinemas  => '🎬 Cinéma',
-                    $digital  => '💻 Digital',
-                    $physical => '📦 Physique',
+                    $cinemas  => '🎬 ' . (t('cal_cinema') ?: 'Cinéma'),
+                         $digital  => '💻 ' . (t('cal_digital') ?: 'Digital'),
+                         $physical => '📦 ' . (t('cal_physical') ?: 'Physique'),
                 ] as $date => $label) {
                     if ($date && $date >= $start && $date <= $end) {
                         if ($today === null || $date < $today) {
@@ -62,12 +64,12 @@ if ($action === 'calendar') {
 
                 if ($today === null) {
                     $today = $cinemas ?? $digital ?? $physical ?? '';
-                    if ($cinemas)  $releaseType = '🎬 Cinéma';
-                    elseif ($digital)  $releaseType = '💻 Digital';
-                    elseif ($physical) $releaseType = '📦 Physique';
+                    if ($cinemas)  $releaseType = '🎬 ' . (t('cal_cinema') ?: 'Cinéma');
+                    elseif ($digital)  $releaseType = '💻 ' . (t('cal_digital') ?: 'Digital');
+                    elseif ($physical) $releaseType = '📦 ' . (t('cal_physical') ?: 'Physique');
                 }
 
-                if ($mv['hasFile'] ?? false) $releaseType .= ' · ✅ Disponible';
+                if ($mv['hasFile'] ?? false) $releaseType .= ' · ✅ ' . (t('cal_available') ?: 'Disponible');
 
                 if (empty($today)) continue;
 
@@ -85,11 +87,36 @@ if ($action === 'calendar') {
         }
     }
 
+    // 3. MUSIQUE (Lidarr)
+    $lidarr = find_app_by_driver($cfg, 'lidarr');
+    if ($lidarr) {
+        $base_url = rtrim($lidarr['url'], '/');
+        $data = arr_get($lidarr, "/api/v1/calendar?start=$start&end=$end");
+        if (is_array($data) && !isset($data['_error'])) {
+            foreach ($data as $al) {
+                $artistId = $al['artistId'] ?? null;
+                $poster = $artistId ? $base_url . '/api/v1/mediacover/artist/' . $artistId . '/poster-250.jpg?apikey=' . $lidarr['api_key'] : null;
+
+                $releaseDate = substr($al['releaseDate'] ?? '', 0, 10);
+                if (empty($releaseDate)) continue;
+
+                $events[] = [
+                    'type'    => 'album',
+                    'date'    => $releaseDate,
+                    'title'   => $al['artist']['artistName'] ?? '?',
+                    'sub'     => $al['title'] ?? (t('music_album') ?: 'Album'),
+                    'poster'  => $poster,
+                    'grabbed' => ($al['statistics']['trackFileCount'] ?? 0) > 0,
+                    'lidarrId'=> $artistId
+                ];
+            }
+        }
+    }
+
     usort($events, fn($a, $b) => strcmp($a['date'], $b['date']));
     echo json_encode(['events' => $events]);
     exit;
 }
-
 
 
 // ── RECENT DOWNLOADS ──────────────────────────────────────────────────────────

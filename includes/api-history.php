@@ -1,20 +1,25 @@
 <?php
 // ===== Serviarr - api-history.php =====
 
-
-
 // ── HISTORIQUE DE TÉLÉCHARGEMENT ──────────────────────────────────────────────
 if ($action === 'get_history') {
     require_auth();
     $cfg = load_config();
     $type = $_GET['type'] ?? 'movie';
 
-    $app = find_app_by_driver($cfg, $type === 'movie' ? 'radarr' : 'sonarr');
+    // 🌟 CORRECTION DU ROUTAGE : On intègre Lidarr
+    $driver = 'sonarr';
+    if ($type === 'movie') $driver = 'radarr';
+    elseif ($type === 'artist') $driver = 'lidarr';
+
+    $app = find_app_by_driver($cfg, $driver);
     if (!$app) { echo json_encode(['error' => t('err_app_not_configured')]); exit; }
 
-    // On récupère les 100 derniers événements
     if ($type === 'movie') {
         $endpoint = '/api/v3/history?pageSize=100&sortKey=date&sortDirection=descending';
+    } elseif ($type === 'artist') {
+        // API v1 pour Lidarr avec inclusion de la musique
+        $endpoint = '/api/v1/history?pageSize=100&sortKey=date&sortDirection=descending&includeArtist=true&includeAlbum=true&includeTrack=true';
     } else {
         $endpoint = '/api/v3/history?pageSize=100&sortKey=date&sortDirection=descending&includeSeries=true&includeEpisode=true';
     }
@@ -26,9 +31,15 @@ if ($action === 'get_history') {
     if (isset($data['records'])) {
         foreach ($data['records'] as $r) {
             $title = '';
-            // Formatage intelligent du titre selon Radarr ou Sonarr
+
+            // Formatage intelligent du titre
             if ($type === 'movie') {
                 $title = $r['movie']['title'] ?? $r['sourceTitle'] ?? 'Inconnu';
+            } elseif ($type === 'artist') {
+                $artistName = $r['artist']['artistName'] ?? 'Artiste inconnu';
+                $trackTitle = $r['track']['title'] ?? '';
+                $title = $artistName . ($trackTitle ? ' - ' . $trackTitle : '');
+                if (!$trackTitle && isset($r['sourceTitle'])) $title = $r['sourceTitle'];
             } else {
                 $seriesTitle = $r['series']['title'] ?? $r['sourceTitle'] ?? 'Série inconnue';
                 $seasonNum = $r['episode']['seasonNumber'] ?? null;
@@ -41,8 +52,9 @@ if ($action === 'get_history') {
 
             $history[] = [
                 'id'          => $r['id'],
-                'movieId'     => $r['movieId'] ?? ($r['movie']['id'] ?? null), // 🌟 AJOUT DE L'ID FILM
-                'seriesId'    => $r['seriesId'] ?? ($r['series']['id'] ?? null), // 🌟 AJOUT DE L'ID SÉRIE
+                'movieId'     => $r['movieId'] ?? ($r['movie']['id'] ?? null),
+                'seriesId'    => $r['seriesId'] ?? ($r['series']['id'] ?? null),
+                'artistId'    => $r['artistId'] ?? ($r['artist']['id'] ?? null), // 🌟 AJOUT DE L'ID LIDARR
                 'title'       => $title,
                 'sourceTitle' => $r['sourceTitle'] ?? $title,
                 'eventType'   => $r['eventType'] ?? 'unknown',
@@ -55,8 +67,6 @@ if ($action === 'get_history') {
     echo json_encode(['success' => true, 'history' => $history], JSON_UNESCAPED_UNICODE);
     exit;
 }
-
-
 
 // ── STATISTIQUES SERVEUR (Espace Disque) ──────────────────────────────────────
 if ($action === 'server_stats') {
@@ -110,8 +120,6 @@ if ($action === 'server_stats') {
     echo json_encode(['success' => true, 'disks' => $disks]);
     exit;
 }
-
-
 
 // ── STATISTIQUES SERVEUR (Historique DL) ──────────────────────────────────────
 if ($action === 'server_dl_stats') {
@@ -190,8 +198,6 @@ if ($action === 'server_dl_stats') {
     exit;
 }
 
-
-
 // ── STATISTIQUES SERVEUR (Historique Chronologique Unifié & Dédoublonné) ────
 if ($action === 'server_detailed_history') {
     require_auth();
@@ -236,7 +242,7 @@ if ($action === 'server_detailed_history') {
                     if (!isset($raw_history_list[$unique_key]) || $added > $raw_history_list[$unique_key]['date']) {
                         $raw_history_list[$unique_key] = [
                             'type' => 'movie',
-                            'id' => $m_id, // 🌟 AJOUT DE L'ID
+                            'id' => $m_id,
                             'title' => $m_title,
                             'date' => $added,
                             'poster' => $poster,
@@ -286,7 +292,7 @@ if ($action === 'server_detailed_history') {
 
                         $raw_history_list[$unique_key] = [
                             'type' => 'serie',
-                            'id' => $s_id, // 🌟 AJOUT DE L'ID
+                            'id' => $s_id,
                             'title' => $s_title,
                             'date' => $added,
                             'poster' => $poster,
