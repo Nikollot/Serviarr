@@ -1,6 +1,6 @@
 // ===== Serviarr - utils.js (extrait de script.js) =====
 
-const APP_VERSION = "1.9";
+const APP_VERSION = "1.9.1";
 
 const UPDATE_URL = "https://raw.githubusercontent.com/Nikollot/Serviarr/main/version.json";
 
@@ -868,3 +868,143 @@ function downloadExportList() {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
 }
+
+// ============================================================================
+// GESTION DES MENUS DÉROULANTS DU HEADER (Notifs & Downloads)
+// ============================================================================
+
+let headerDlInterval = null;
+
+window.toggleHeaderMenu = function(menuId) {
+    const menus = ['notif-dropdown', 'dl-dropdown'];
+    const targetMenu = document.getElementById(menuId);
+
+    // On ferme tous les autres menus
+    menus.forEach(id => {
+        if (id !== menuId) {
+            const el = document.getElementById(id);
+            if (el) el.style.display = 'none';
+        }
+    });
+
+    if (!targetMenu) return;
+
+    // On bascule l'affichage du menu demandé
+    if (targetMenu.style.display === 'block') {
+        targetMenu.style.display = 'none';
+        if (menuId === 'dl-dropdown') clearInterval(headerDlInterval);
+    } else {
+        targetMenu.style.display = 'block';
+
+        // Chargement des données spécifiques
+        if (menuId === 'notif-dropdown' && typeof loadNotifMenuData === 'function') {
+            loadNotifMenuData();
+        } else if (menuId === 'dl-dropdown') {
+            loadHeaderDownloadsData();
+            // Actualisation automatique toutes les 3 secondes tant que le menu est ouvert
+            if (headerDlInterval) clearInterval(headerDlInterval);
+            headerDlInterval = setInterval(loadHeaderDownloadsData, 3000);
+        }
+    }
+};
+
+// Clic en dehors pour fermer
+document.addEventListener('click', (e) => {
+    const notifDropdown = document.getElementById('notif-dropdown');
+    const notifBtn = document.getElementById('notif-toggle-btn');
+    const dlDropdown = document.getElementById('dl-dropdown');
+    const dlBtn = document.getElementById('dl-toggle-btn');
+
+    if (notifDropdown && notifDropdown.style.display === 'block') {
+        if (!notifDropdown.contains(e.target) && !notifBtn.contains(e.target)) {
+            notifDropdown.style.display = 'none';
+        }
+    }
+
+    if (dlDropdown && dlDropdown.style.display === 'block') {
+        if (!dlDropdown.contains(e.target) && !dlBtn.contains(e.target)) {
+            dlDropdown.style.display = 'none';
+            clearInterval(headerDlInterval);
+        }
+    }
+});
+
+// Chargement des téléchargements pour le volet Header
+async function loadHeaderDownloadsData() {
+    const list = document.getElementById('header-dl-list');
+    const indicator = document.getElementById('dl-badge-indicator');
+
+    if (!list) return;
+
+    try {
+        const r = await api('get_downloads', {}, 'GET');
+
+        if (r.error || !r.torrents) {
+            list.innerHTML = `<div style="padding:20px; text-align:center; color:var(--accent3); font-size:13px;">${esc(r.error || t('error_connection'))}</div>`;
+            return;
+        }
+
+        const torrents = r.torrents;
+        // On vérifie s'il y a des téléchargements actifs (statuts 3 ou 4 dans Transmission)
+        const activeCount = torrents.filter(t => [3,4].includes(t.status)).length;
+
+        // Affichage ou non de la pastille rouge d'alerte sur l'icône Header
+        if (indicator) indicator.style.display = activeCount > 0 ? 'block' : 'none';
+
+        if (torrents.length === 0) {
+            list.innerHTML = `<div style="padding:30px 15px; text-align:center; color:var(--muted); font-size:13px;">${t('dl_empty')}</div>`;
+            return;
+        }
+
+        // On trie : les plus récents/actifs en haut
+        torrents.sort((a, b) => (b.addedDate || 0) - (a.addedDate || 0));
+
+        let html = '';
+        torrents.forEach(tInfo => {
+            // Utilisation de ta fonction formatBytes déjà présente
+            const percent = (tInfo.percentDone * 100).toFixed(1);
+            let statusColor = 'var(--muted)';
+            let statusText = t('status_stopped');
+            let isDownloading = false;
+
+            if ([3, 4].includes(tInfo.status)) { statusColor = 'var(--sonarr)'; statusText = t('status_downloading'); isDownloading = true; }
+            else if ([5, 6].includes(tInfo.status)) { statusColor = 'var(--accent)'; statusText = t('status_seeding'); }
+            else if ([1, 2].includes(tInfo.status)) { statusColor = '#ffa03c'; statusText = t('status_checking'); }
+
+            const speed = (isDownloading && tInfo.rateDownload > 0) ? `<span style="color:var(--accent); font-family:var(--mono);">↓ ${formatBytes(tInfo.rateDownload)}/s</span>` : '';
+
+            html += `
+            <div onclick="window.location.href='download.php'" style="padding:12px 16px; border-bottom:1px solid var(--border); border-left:3px solid ${statusColor}; transition:background 0.2s; cursor:pointer;" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background='transparent'">
+            <div style="font-size:13px; font-weight:600; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-bottom:6px;">${esc(tInfo.name)}</div>
+            <div style="display:flex; justify-content:space-between; align-items:center; font-size:11px; margin-bottom:6px;">
+            <span style="color:${statusColor}; font-weight:700;">${statusText}</span>
+            ${speed}
+            <span style="color:var(--muted); font-family:var(--mono);">${percent}%</span>
+            </div>
+            <div class="progress-bar" style="height:4px; background:var(--bg3); margin:0;">
+            <div class="progress-fill" style="width:${percent}%; background:${statusColor}; transition:width 0.5s;"></div>
+            </div>
+            </div>`;
+        });
+
+        list.innerHTML = html;
+
+    } catch (e) {
+        list.innerHTML = `<div style="padding:15px; text-align:center; color:var(--accent3); font-size:13px;">${t('notif_error')}</div>`;
+    }
+}
+
+// 🌟 Optionnel : Lancement furtif au démarrage pour vérifier s'il faut afficher la pastille rouge
+document.addEventListener('DOMContentLoaded', () => {
+    // Si on est sur une page nécessitant l'authentification (dashboard, media, etc.)
+    if (typeof CURRENT_PAGE !== 'undefined' && document.getElementById('dl-badge-indicator')) {
+        setTimeout(() => {
+            api('get_downloads', {}, 'GET').then(r => {
+                if (r.torrents) {
+                    const activeCount = r.torrents.filter(t => [3,4].includes(t.status)).length;
+                    document.getElementById('dl-badge-indicator').style.display = activeCount > 0 ? 'block' : 'none';
+                }
+            });
+        }, 1500); // 1.5s après le chargement pour ne pas ralentir l'affichage initial
+    }
+});

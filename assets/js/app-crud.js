@@ -388,6 +388,17 @@ function updateSidebar(apps) {
         }
     });
     nav.innerHTML = html;
+
+    // 🌟 NOUVEAU : Récupérer l'icône de l'application de téléchargement pour le volet droit
+    const dlApp = apps.find(a => a.driver === 'transmission' || a.driver === 'download');
+    if (dlApp) {
+        const iconHtml = getAppIconHtml(dlApp);
+        const dlHeaderIconEl = document.getElementById('dl-header-icon');
+        const dlSidebarIconEl = document.getElementById('dl-sidebar-icon');
+
+        if (dlHeaderIconEl) dlHeaderIconEl.innerHTML = iconHtml;
+        if (dlSidebarIconEl) dlSidebarIconEl.innerHTML = iconHtml;
+    }
 }
 
 async function toggleApp(id, btn) {

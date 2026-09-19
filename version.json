@@ -1,5 +1,5 @@
 {
-  "version": "1.9",
-  "changelog": "### Updates\n - integration Lidarr\n - delete VAPID notifications",
+  "version": "1.9.1",
+  "changelog": "### Updates\n - correction notifications web bug\n - add torrent on right side bar",
   "url": "https://github.com/Nikollot/Serviarr/releases/latest"
 }

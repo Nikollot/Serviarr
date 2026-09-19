@@ -1,4 +1,4 @@
-// ===== Serviarr - torrents.js (extrait de script.js) =====
+// ===== Serviarr - torrents.js =====
 
 function formatBytes(bytes) {
     if (bytes === 0) return '0 B';
@@ -12,14 +12,18 @@ function getTransmissionStatus(code) {
         1: { text: t('status_check_wait'), color: '#ffa03c' },
         2: { text: t('status_checking'), color: '#ffa03c' },
         3: { text: t('status_dl_wait'), color: '#ffa03c' },
-        4: { text: t('status_downloading'), color: 'var(--sonarr)' }, /* 👈 Bleu : En cours de DL */
+        4: { text: t('status_downloading'), color: 'var(--sonarr)' },
         5: { text: t('status_seed_wait'), color: 'var(--muted)' },
-        6: { text: t('status_seeding'), color: 'var(--accent)' }      /* 👈 Vert doux : Terminé / En Seed */
+        6: { text: t('status_seeding'), color: 'var(--accent)' }
     };
     return statuses[code] || { text: t('status_unknown'), color: 'var(--muted)' };
 }
 
-let dlSortField = 'addedDate', dlSortReverse = false, dlTorrentsCache = [], dlFilterTab = 'all', dlTrackerFilter = 'all';
+window.dlSortField = 'addedDate';
+window.dlSortReverse = false;
+window.dlTorrentsCache = [];
+window.dlFilterTab = 'all';
+window.dlTrackerFilter = 'all';
 
 function formatEta(seconds) {
     if (!seconds || seconds < 0) return '∞';
@@ -35,56 +39,55 @@ function formatDate(ts) {
     return d.toLocaleDateString(currentLocale(), { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' });
 }
 
-// Extrait un nom de tracker exploitable pour le tri (hostname si possible)
-function getTorrentTrackerKey(t) {
-    if (t.trackers && t.trackers.length > 0) {
-        try { return new URL(t.trackers[0].announce).hostname; } catch (e) { return t.trackers[0].announce || ''; }
+function getTorrentTrackerKey(tInfo) {
+    if (tInfo.trackers && tInfo.trackers.length > 0) {
+        try { return new URL(tInfo.trackers[0].announce).hostname; } catch (e) { return tInfo.trackers[0].announce || ''; }
     }
-    if (t.tracker) return t.tracker;
+    if (tInfo.tracker) return tInfo.tracker;
     return '';
 }
 
+function filterTorrents(torrents, tab) {
+    switch (tab) {
+        case 'active':   return torrents.filter(tInfo => [3, 4].includes(tInfo.status));
+        case 'seeding':  return torrents.filter(tInfo => [5, 6].includes(tInfo.status) && tInfo.rateUpload > 0);
+        case 'paused':   return torrents.filter(tInfo => tInfo.status === 0 && tInfo.percentDone < 1);
+        case 'finished': return torrents.filter(tInfo => tInfo.percentDone >= 1);
+        default:         return torrents;
+    }
+}
+
+// ============================================================================
+// LOGIQUE DE LA PAGE DE TÉLÉCHARGEMENT PLEIN ÉCRAN (download.php)
+// ============================================================================
+
 function sortTorrents(torrents) {
     const sorted = [...torrents].sort((a, b) => {
-        switch (dlSortField) {
+        switch (window.dlSortField) {
             case 'name':        return (a.name || '').localeCompare(b.name || '');
             case 'tracker':     return getTorrentTrackerKey(a).localeCompare(getTorrentTrackerKey(b));
-            // Pour tous les autres, on inverse l'ordre (b - a) pour avoir le plus grand/récent en premier
             case 'percentDone': return (b.percentDone || 0) - (a.percentDone || 0);
             case 'totalSize':   return (b.totalSize || 0) - (a.totalSize || 0);
             case 'status':      return (b.status || 0) - (a.status || 0);
             case 'uploadRatio': return (b.uploadRatio || 0) - (a.uploadRatio || 0);
             case 'addedDate':
-            default:            return (b.addedDate || 0) - (a.addedDate || 0); /* 👈 Les plus récents en haut ! */
+            default:            return (b.addedDate || 0) - (a.addedDate || 0);
         }
     });
-    return dlSortReverse ? sorted.reverse() : sorted;
-}
-
-function filterTorrents(torrents, tab) {
-    switch (tab) {
-        case 'active':   return torrents.filter(t => [3, 4].includes(t.status));
-        // En seed : statut seed ET vitesse d'upload supérieure à zéro
-        case 'seeding':  return torrents.filter(t => [5, 6].includes(t.status) && t.rateUpload > 0);
-        // En pause : uniquement les torrents non terminés mis en pause (pour ne pas doublonner avec "Terminés")
-        case 'paused':   return torrents.filter(t => t.status === 0 && t.percentDone < 1);
-        // Terminés : TOUS les torrents à 100%, peu importe leur statut (en pause, en seed, etc.)
-        case 'finished': return torrents.filter(t => t.percentDone >= 1);
-        default:         return torrents;
-    }
+    return window.dlSortReverse ? sorted.reverse() : sorted;
 }
 
 function updateDlBadges(torrents) {
     const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val || ''; };
     set('dl-count',          torrents.length);
-    set('dl-count-active',   torrents.filter(t => [3,4].includes(t.status)).length || '');
-    set('dl-count-seeding',  torrents.filter(t => [5,6].includes(t.status) && t.rateUpload > 0).length || '');
-    set('dl-count-paused',   torrents.filter(t => t.status === 0 && t.percentDone < 1).length || '');
-    set('dl-count-finished', torrents.filter(t => t.percentDone >= 1).length || '');
+    set('dl-count-active',   torrents.filter(tInfo => [3,4].includes(tInfo.status)).length || '');
+    set('dl-count-seeding',  torrents.filter(tInfo => [5,6].includes(tInfo.status) && tInfo.rateUpload > 0).length || '');
+    set('dl-count-paused',   torrents.filter(tInfo => tInfo.status === 0 && tInfo.percentDone < 1).length || '');
+    set('dl-count-finished', torrents.filter(tInfo => tInfo.percentDone >= 1).length || '');
 }
 
 function switchDlTab(tab, button) {
-    dlFilterTab = tab;
+    window.dlFilterTab = tab;
     if (button && button.parentNode) {
         button.parentNode.querySelectorAll('.hub-btn').forEach(b => b.classList.remove('active'));
         button.classList.add('active');
@@ -94,49 +97,47 @@ function switchDlTab(tab, button) {
 
 function getVisibleTorrents() {
     const searchQuery = (document.getElementById('dl-search')?.value || '').toLowerCase();
-    let torrents = filterTorrents(dlTorrentsCache, dlFilterTab);
+    let torrents = filterTorrents(window.dlTorrentsCache, window.dlFilterTab);
     if (searchQuery) {
-        torrents = torrents.filter(t => (t.name || '').toLowerCase().includes(searchQuery));
+        torrents = torrents.filter(tInfo => (tInfo.name || '').toLowerCase().includes(searchQuery));
     }
-    if (dlTrackerFilter !== 'all') {
-        torrents = torrents.filter(t => getTorrentTrackerKey(t) === dlTrackerFilter);
+    if (window.dlTrackerFilter !== 'all') {
+        torrents = torrents.filter(tInfo => getTorrentTrackerKey(tInfo) === window.dlTrackerFilter);
     }
     return sortTorrents(torrents);
 }
 
-// Remplit le menu déroulant avec la liste des trackers distincts présents dans les torrents actuels
 function populateTrackerFilterOptions() {
     const sel = document.getElementById('dl-tracker-filter');
     if (!sel) return;
 
     const trackers = new Set();
-    dlTorrentsCache.forEach(t => {
-        const key = getTorrentTrackerKey(t);
+    window.dlTorrentsCache.forEach(tInfo => {
+        const key = getTorrentTrackerKey(tInfo);
         if (key) trackers.add(key);
     });
 
-    const sorted = Array.from(trackers).sort((a, b) => a.localeCompare(b));
-    const previousValue = dlTrackerFilter;
+        const sorted = Array.from(trackers).sort((a, b) => a.localeCompare(b));
+        const previousValue = window.dlTrackerFilter;
 
-    let html = `<option value="all">${t('dl_tracker_all') || 'Tous les trackers'}</option>`;
-    sorted.forEach(name => {
-        html += `<option value="${esc(name)}">${esc(name)}</option>`;
-    });
-    sel.innerHTML = html;
-
-    // Si le tracker précédemment sélectionné n'existe plus dans la liste, on revient sur "Tous"
-    sel.value = sorted.includes(previousValue) ? previousValue : 'all';
-    dlTrackerFilter = sel.value;
+        let html = `<option value="all">${t('dl_tracker_all') || 'Tous les trackers'}</option>`;
+        sorted.forEach(name => {
+            html += `<option value="${esc(name)}">${esc(name)}</option>`;
+        });
+        sel.innerHTML = html;
+        sel.value = sorted.includes(previousValue) ? previousValue : 'all';
+        window.dlTrackerFilter = sel.value;
 }
 
 function setDlTrackerFilter(value) {
-    dlTrackerFilter = value;
+    window.dlTrackerFilter = value;
     renderTorrents();
 }
 
 function renderTorrents() {
     const container = document.getElementById('downloads-list');
-    updateDlBadges(dlTorrentsCache);
+    if(!container) return;
+    updateDlBadges(window.dlTorrentsCache);
 
     const torrents = getVisibleTorrents();
 
@@ -158,201 +159,333 @@ function renderTorrents() {
         ? `<button class="btn-ep" onclick="event.stopPropagation(); torrentAction('torrent-start', '${tInfo.id}')" title="${t('torrent_resume')}">▶</button>`
         : `<button class="btn-ep" onclick="event.stopPropagation(); torrentAction('torrent-stop', '${tInfo.id}')" title="${t('torrent_pause')}">⏸</button>`;
 
-        const bulkCheckbox = `
+        const bulkCheckbox = typeof bulkSelectMode !== 'undefined' ? `
         <div class="bulk-select-checkbox ${bulkSelectMode ? 'visible' : ''}" style="top:8px; left:8px;" onclick="event.stopPropagation(); toggleBulkSelect('${tInfo.id}')">
         <input type="checkbox" ${bulkSelectedIds.has(tInfo.id) ? 'checked' : ''} readonly>
-        </div>`;
+        </div>` : '';
 
         html += `
-        <div class="card ${bulkSelectedIds.has(tInfo.id) ? 'bulk-selected' : ''}"
+        <div class="card ${typeof bulkSelectedIds !== 'undefined' && bulkSelectedIds.has(tInfo.id) ? 'bulk-selected' : ''}"
         style="padding:10px 14px; border-left:4px solid ${status.color}; cursor:pointer; position:relative; -webkit-touch-callout:none; user-select:none;"
         ontouchstart="startLongPress('${tInfo.id}')"
         ontouchend="cancelLongPress()"
         ontouchcancel="cancelLongPress()"
         oncontextmenu="if(window.preventNextClick) return false;"
-        onclick="if(window.preventNextClick){ window.preventNextClick=false; return; } ${bulkSelectMode ? `toggleBulkSelect('${tInfo.id}')` : `openTorrentDetail('${tInfo.id}')`}">
+        onclick="if(window.preventNextClick){ window.preventNextClick=false; return; } ${typeof bulkSelectMode !== 'undefined' && bulkSelectMode ? `toggleBulkSelect('${tInfo.id}')` : `openTorrentDetail('${tInfo.id}')`}">
         ${bulkCheckbox}
 
-        <!-- Ligne 1 : Titre et Boutons -->
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-        <div style="font-weight:600; font-size:13px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin-right:15px; ${bulkSelectMode ? 'padding-left:34px;' : ''}">${esc(tInfo.name)}</div>
+        <div style="font-weight:600; font-size:13px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin-right:15px; ${typeof bulkSelectMode !== 'undefined' && bulkSelectMode ? 'padding-left:34px;' : ''}">${esc(tInfo.name)}</div>
         <div style="display:flex; gap:6px; flex-shrink:0;">
         ${btnPlayPause}
         <button class="btn-ep" style="color:var(--accent3); border-color:var(--accent3);" onclick="event.stopPropagation(); confirmDeleteTorrent('${tInfo.id}', '${esc(tInfo.name).replace(/'/g,"\'")}')">🗑</button>
         </div>
         </div>
 
-        <!-- Ligne 2 : Statuts, Vitesses et Infos condensées -->
         <div style="display:flex; justify-content:space-between; align-items:center; font-size:11px; color:var(--muted); margin-bottom:6px; flex-wrap:wrap; gap:8px;">
         <div style="display:flex; gap:12px; align-items:center;">
         <span style="color:${status.color}; font-weight:700;">${status.text}${tInfo.errorString ? ' ⚠️' : ''}</span>
         <span style="color:var(--accent); font-family:var(--mono);">${dlSpeed}</span>
         <span style="color:var(--accent2); font-family:var(--mono);">${upSpeed}</span>
         </div>
-
         <div style="display:flex; gap:12px; align-items:center; font-family:var(--mono);">
         <span>Ratio: ${(tInfo.uploadRatio || 0).toFixed(2)}</span>
         ${tInfo.eta > 0 ? `<span>ETA: ${formatEta(tInfo.eta)}</span>` : ''}
         <span style="font-weight:600; color:var(--text);">${percent}% / ${size}</span>
         </div>
         </div>
-
-        <!-- Ligne 3 : Barre de progression (plus fine) -->
         <div class="progress-bar" style="height:4px; background:var(--bg3); margin:0;">
         <div class="progress-fill" style="width:${percent}%; background:${status.color}; transition:width 0.5s;"></div>
         </div>
-
         </div>`;
     });
 
     container.innerHTML = html;
 }
 
-let _dlLastErrorShown = null;
+window._dlLastErrorShown = null;
 
-async function loadDownloads() {
-    if (document.hidden) return; // 🌟 Stoppe les requêtes si l'app est en arrière-plan
-
+window.loadDownloads = async function() {
+    if (document.hidden) return;
     if (typeof CURRENT_PAGE === 'undefined' || CURRENT_PAGE !== 'downloads') return;
 
     const r = await api('get_downloads', {}, 'GET');
     if (!r.torrents) {
-        if (r.error && r.error !== _dlLastErrorShown) {
+        if (r.error && r.error !== window._dlLastErrorShown) {
             notify(r.error, 'err');
-            _dlLastErrorShown = r.error;
+            window._dlLastErrorShown = r.error;
         }
         return;
     }
-    _dlLastErrorShown = null;
+    window._dlLastErrorShown = null;
 
-    dlTorrentsCache = r.torrents;
-    document.getElementById('dl-count').textContent = r.torrents.length;
+    window.dlTorrentsCache = r.torrents;
+    const dlCountEl = document.getElementById('dl-count');
+    if(dlCountEl) dlCountEl.textContent = r.torrents.length;
+
     populateTrackerFilterOptions();
     renderTorrents();
+};
+
+// ============================================================================
+// LOGIQUE DU VOLET LATÉRAL DROIT (Header Downloads)
+// ============================================================================
+
+window.headerDlInterval = null;
+window.headerDlSortField = 'addedDate';
+window.headerDlSortReverse = false;
+window.headerDlFilterTab = 'all';
+window.headerDlTrackerFilter = 'all';
+
+window.toggleRightSidebar = function() {
+    const sidebar = document.getElementById('sidebar-right');
+    const overlay = document.getElementById('sidebar-right-overlay');
+    const notifDropdown = document.getElementById('notif-dropdown');
+
+    if (notifDropdown) notifDropdown.style.display = 'none';
+    if (!sidebar) return;
+
+    if (sidebar.style.transform === 'translateX(0px)') {
+        sidebar.style.transform = 'translateX(100%)';
+        overlay.style.display = 'none';
+        clearInterval(window.headerDlInterval);
+    } else {
+        sidebar.style.transform = 'translateX(0px)';
+        overlay.style.display = 'block';
+        loadHeaderDownloadsData();
+
+        if (window.headerDlInterval) clearInterval(window.headerDlInterval);
+        window.headerDlInterval = setInterval(loadHeaderDownloadsData, 3000);
+    }
+};
+
+// 🌟 GESTION DU GLISSEMENT TACTILE (SWIPE) POUR LE VOLET DROIT
+let rightSwipeStartX = 0;
+let rightSwipeStartY = 0;
+
+document.addEventListener('touchstart', e => {
+    rightSwipeStartX = e.changedTouches[0].screenX;
+    rightSwipeStartY = e.changedTouches[0].screenY;
+}, { passive: true });
+
+document.addEventListener('touchend', e => {
+    const diffX = e.changedTouches[0].screenX - rightSwipeStartX;
+    const diffY = e.changedTouches[0].screenY - rightSwipeStartY;
+
+    // Même distance de validation que pour ton menu de gauche (60 pixels)
+    const threshold = 60;
+
+    // Vérifie que c'est bien un swipe horizontal
+    if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > threshold) {
+        const sidebar = document.getElementById('sidebar-right');
+        const isSidebarOpen = sidebar && sidebar.style.transform === 'translateX(0px)';
+
+        // 👈 Swipe de la droite vers la gauche (Ouverture du volet)
+        if (diffX < 0 && !isSidebarOpen) {
+            // Zone d'accroche beaucoup plus large (les 150 derniers pixels du bord droit)
+            if (rightSwipeStartX > window.innerWidth - 150) {
+                window.toggleRightSidebar();
+            }
+        }
+        // 👉 Swipe de la gauche vers la droite (Fermeture du volet)
+        else if (diffX > 0 && isSidebarOpen) {
+            window.toggleRightSidebar();
+        }
+    }
+}, { passive: true });
+
+window.switchHeaderDlTab = function(tab, btn) {
+    window.headerDlFilterTab = tab;
+    document.querySelectorAll('.header-dl-tab').forEach(b => {
+        b.style.color = 'var(--muted)';
+    });
+    if (btn) btn.style.color = 'var(--text)';
+    renderHeaderTorrents();
+};
+
+window.setHeaderDlSort = function(field, toggle = false) {
+    if (toggle) {
+        if (window.headerDlSortField === field) {
+            window.headerDlSortReverse = !window.headerDlSortReverse;
+        }
+    } else {
+        window.headerDlSortField = field;
+        window.headerDlSortReverse = false;
+    }
+    const sel = document.getElementById('header-dl-sort');
+    if (sel && !toggle) sel.value = field;
+    renderHeaderTorrents();
+};
+
+window.setHeaderDlTrackerFilter = function(value) {
+    window.headerDlTrackerFilter = value;
+    renderHeaderTorrents();
+};
+
+function populateHeaderTrackerOptions() {
+    const sel = document.getElementById('header-dl-tracker');
+    if (!sel) return;
+
+    const trackers = new Set();
+    (window.dlTorrentsCache || []).forEach(tInfo => {
+        const key = getTorrentTrackerKey(tInfo);
+        if (key) trackers.add(key);
+    });
+
+        const sorted = Array.from(trackers).sort((a, b) => a.localeCompare(b));
+        const previousValue = window.headerDlTrackerFilter;
+
+        let html = `<option value="all">${t('dl_tracker_all') || 'Tous les trackers'}</option>`;
+        sorted.forEach(name => {
+            html += `<option value="${esc(name)}">${esc(name)}</option>`;
+        });
+        sel.innerHTML = html;
+        sel.value = sorted.includes(previousValue) ? previousValue : 'all';
+        window.headerDlTrackerFilter = sel.value;
 }
 
-function openAddTorrentModal() {
-    let modal = document.getElementById('modal-add-torrent');
-    if (!modal) {
-        modal = document.createElement('div');
-        modal.id = 'modal-add-torrent';
-        modal.className = 'modal-bg';
-        modal.style.zIndex = '10002';
+function updateHeaderDlBadges(torrents) {
+    const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val ? val : ''; };
+    set('h-dl-count',          torrents.length);
+    set('h-dl-count-active',   torrents.filter(tInfo => [3,4].includes(tInfo.status)).length || '');
+    set('h-dl-count-seeding',  torrents.filter(tInfo => [5,6].includes(tInfo.status) && tInfo.rateUpload > 0).length || '');
+    set('h-dl-count-paused',   torrents.filter(tInfo => tInfo.status === 0 && tInfo.percentDone < 1).length || '');
+    set('h-dl-count-finished', torrents.filter(tInfo => tInfo.percentDone >= 1).length || '');
+}
 
-        modal.innerHTML = `
-        <div class="modal-box" style="width: clamp(320px, 90vw, 440px); max-width: 92vw; max-height: 90vh; display: flex; flex-direction: column; padding: 0; border-radius: 16px; overflow: hidden; background: var(--bg2);">
-        <h3 style="margin:0; border-bottom:1px solid var(--border); padding: 20px; flex-shrink: 0; background: var(--bg2);">${t('torrent_add_title')}</h3>
-        <div style="padding: 20px; overflow-y: auto; flex: 1;">
-        <div class="form-row">
-        <label style="font-size:12px; font-weight:bold; color:var(--muted); text-transform:uppercase;">${t('torrent_file_label')}</label>
-        <div style="display:flex; align-items:center; gap:10px; width:100%; padding:10px; background:var(--bg3); border:1px solid var(--border); border-radius:6px;">
-        <button type="button" class="btn-sm" onclick="document.getElementById('torrent-upload-file').click()" style="flex-shrink:0;">${t('file_choose')}</button>
-        <span id="torrent-file-name" style="color:var(--muted); font-size:13px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${t('file_none_chosen')}</span>
-        <input type="file" id="torrent-upload-file" accept=".torrent" style="display:none;" onchange="document.getElementById('torrent-file-name').textContent = this.files.length ? this.files[0].name : t('file_none_chosen')">
-        </div>
-        </div>
-        <div style="text-align:center; margin:15px 0; color:var(--muted); font-size:12px; font-weight:bold;">${t('word_or')}</div>
-        <div class="form-row">
-        <label style="font-size:12px; font-weight:bold; color:var(--muted); text-transform:uppercase;">${t('torrent_magnet_label')}</label>
-        <input type="text" id="torrent-magnet-link" placeholder="magnet:?xt=urn:btih:..." style="width:100%; padding:10px; background:var(--bg3); border:1px solid var(--border); color:var(--text); border-radius:6px;">
-        </div>
-        <div style="display:flex; gap:10px; margin-top:25px; flex-shrink:0;">
-        <button class="btn-primary" onclick="submitAddTorrent()" style="flex:1;">＋ ${t('torrent_add_btn')}</button>
-        <button class="btn-detail secondary" onclick="document.getElementById('modal-add-torrent').classList.remove('open')">${t('auth_cancel_btn')}</button>
-        </div>
-        </div>
-        </div>
-        `;
-        document.body.appendChild(modal);
-        modal.addEventListener('click', e => { if (e.target === modal) modal.classList.remove('open'); });
+async function loadHeaderDownloadsData() {
+    const list = document.getElementById('header-dl-list');
+    const indicator = document.getElementById('dl-badge-indicator');
+
+    if (!list) return;
+
+    try {
+        const r = await api('get_downloads', {}, 'GET');
+
+        if (r.error || !r.torrents) {
+            list.innerHTML = `<div style="padding:20px; text-align:center; color:var(--accent3); font-size:13px;">${esc(r.error || t('error_connection'))}</div>`;
+            return;
+        }
+
+        window.dlTorrentsCache = r.torrents;
+
+        const activeCount = r.torrents.filter(tInfo => [3,4].includes(tInfo.status)).length;
+        if (indicator) indicator.style.display = activeCount > 0 ? 'block' : 'none';
+
+        populateHeaderTrackerOptions();
+        renderHeaderTorrents();
+
+    } catch (e) {
+        list.innerHTML = `<div style="padding:15px; text-align:center; color:var(--accent3); font-size:13px;">${t('notif_error')}</div>`;
+    }
+}
+
+function renderHeaderTorrents() {
+    const list = document.getElementById('header-dl-list');
+    if (!list) return;
+
+    updateHeaderDlBadges(window.dlTorrentsCache || []);
+
+    const searchQuery = (document.getElementById('header-dl-search')?.value || '').toLowerCase();
+    let torrents = filterTorrents(window.dlTorrentsCache || [], window.headerDlFilterTab);
+
+    if (searchQuery) {
+        torrents = torrents.filter(tInfo => (tInfo.name || '').toLowerCase().includes(searchQuery));
+    }
+    if (window.headerDlTrackerFilter !== 'all') {
+        torrents = torrents.filter(tInfo => getTorrentTrackerKey(tInfo) === window.headerDlTrackerFilter);
     }
 
-    document.getElementById('torrent-upload-file').value = '';
-    document.getElementById('torrent-file-name').textContent = t('file_none_chosen');
-    document.getElementById('torrent-magnet-link').value = '';
+    torrents = [...torrents].sort((a, b) => {
+        switch (window.headerDlSortField) {
+            case 'name':        return (a.name || '').localeCompare(b.name || '');
+            case 'tracker':     return getTorrentTrackerKey(a).localeCompare(getTorrentTrackerKey(b));
+            case 'percentDone': return (b.percentDone || 0) - (a.percentDone || 0);
+            case 'totalSize':   return (b.totalSize || 0) - (a.totalSize || 0);
+            case 'status':      return (b.status || 0) - (a.status || 0);
+            case 'uploadRatio': return (b.uploadRatio || 0) - (a.uploadRatio || 0);
+            case 'addedDate':
+            default:            return (b.addedDate || 0) - (a.addedDate || 0);
+        }
+    });
+    if (window.headerDlSortReverse) torrents.reverse();
 
-    modal.classList.add('open');
-}
-
-async function submitAddTorrent() {
-    const fileInput = document.getElementById('torrent-upload-file');
-    const magnetInput = document.getElementById('torrent-magnet-link').value.trim();
-
-    const fd = new FormData();
-    fd.append('action', 'add_torrent');
-
-    if (fileInput.files.length > 0) {
-        fd.append('torrent_file', fileInput.files[0]);
-    } else if (magnetInput) {
-        fd.append('magnet', magnetInput);
-    } else {
-        notify(t('torrent_select_or_paste'), 'err');
+    if (torrents.length === 0) {
+        list.innerHTML = `<div style="padding:30px 15px; text-align:center; color:var(--muted); font-size:13px;">${t('dl_empty')}</div>`;
         return;
     }
 
-    document.getElementById('modal-add-torrent').classList.remove('open');
-    notify(t('torrent_sending'), 'ok');
+    let html = '';
+    torrents.forEach(tInfo => {
+        const status = getTransmissionStatus(tInfo.status);
+        const percent = (tInfo.percentDone * 100).toFixed(1);
+        const size = formatBytes(tInfo.totalSize);
+        const dlSpeed = tInfo.rateDownload > 0 ? `↓ ${formatBytes(tInfo.rateDownload)}/s` : '';
+        const upSpeed = tInfo.rateUpload > 0 ? `↑ ${formatBytes(tInfo.rateUpload)}/s` : '';
+        const isPaused = tInfo.status === 0;
 
-    try {
-        // 🌟 AJOUT VITAL : credentials: 'same-origin' pour envoyer le cookie de session !
-        const response = await fetch('api.php', { method: 'POST', body: fd, credentials: 'same-origin' });
-        const res = await response.json();
+        const btnPlayPause = isPaused
+        ? `<button class="btn-ep" onclick="event.stopPropagation(); torrentAction('torrent-start', '${tInfo.id}')" title="${t('torrent_resume')}">▶</button>`
+        : `<button class="btn-ep" onclick="event.stopPropagation(); torrentAction('torrent-stop', '${tInfo.id}')" title="${t('torrent_pause')}">⏸</button>`;
 
-        if (res.ok) {
-            notify(t('torrent_added'), 'ok');
-            loadDownloads();
-        } else {
-            notify(res.error || t('notif_error'), 'err');
-        }
-    } catch (e) {
-        notify(t('error_connection'), 'err');
-    }
+        html += `
+        <div class="card"
+        style="padding:10px 14px; margin-bottom:10px; border-left:4px solid ${status.color}; cursor:pointer; position:relative; user-select:none; background:var(--bg3); border-radius:8px; border-top:1px solid var(--border); border-right:1px solid var(--border); border-bottom:1px solid var(--border);"
+        onclick="openTorrentDetail('${tInfo.id}')">
+
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+        <div style="font-weight:600; font-size:13px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin-right:15px; color:var(--text);">${esc(tInfo.name)}</div>
+        <div style="display:flex; gap:6px; flex-shrink:0;">
+        ${btnPlayPause}
+        <button class="btn-ep" style="color:var(--accent3); border-color:var(--accent3);" onclick="event.stopPropagation(); confirmDeleteTorrent('${tInfo.id}', '${esc(tInfo.name).replace(/'/g,"\\'").replace(/"/g,'&quot;')}')">🗑</button>
+        </div>
+        </div>
+
+        <div style="display:flex; justify-content:space-between; align-items:center; font-size:11px; color:var(--muted); margin-bottom:6px; flex-wrap:wrap; gap:8px;">
+        <div style="display:flex; gap:12px; align-items:center;">
+        <span style="color:${status.color}; font-weight:700;">${status.text}${tInfo.errorString ? ' ⚠️' : ''}</span>
+        <span style="color:var(--accent); font-family:var(--mono);">${dlSpeed || upSpeed}</span>
+        </div>
+        <div style="display:flex; gap:12px; align-items:center; font-family:var(--mono);">
+        <span>Ratio: ${(tInfo.uploadRatio || 0).toFixed(2)}</span>
+        <span style="font-weight:600; color:var(--text);">${percent}% / ${size}</span>
+        </div>
+        </div>
+
+        <div class="progress-bar" style="height:4px; background:var(--bg); margin:0; border-radius:2px; overflow:hidden;">
+        <div class="progress-fill" style="width:${percent}%; background:${status.color}; transition:width 0.5s;"></div>
+        </div>
+
+        </div>`;
+    });
+
+    list.innerHTML = html;
 }
 
-function setDlSort(field) {
-    if (dlSortField === field) {
-        dlSortReverse = !dlSortReverse;
-    } else {
-        dlSortField = field;
-        dlSortReverse = false;
-    }
-    const sel = document.getElementById('dl-sort-select');
-    if (sel) sel.value = field;
-    renderTorrents();
-}
+// ============================================================================
+// RESTE DES FONCTIONS GLOBALES (Détails, Modales, Actions)
+// ============================================================================
 
 function buildFileTree(files, stats) {
     const root = { name: 'root', type: 'dir', children: {}, size: 0, completed: 0, wantedFiles: 0, totalFiles: 0 };
-
     files.forEach((f, i) => {
         const parts = f.name.split('/');
         let current = root;
         const isWanted = stats[i] ? stats[i].wanted : true;
         const bytesCompleted = stats[i] ? stats[i].bytesCompleted : 0;
-
         root.size += f.length || 0;
         root.completed += bytesCompleted;
         root.totalFiles++;
         if (isWanted) root.wantedFiles++;
-
         for (let j = 0; j < parts.length; j++) {
             const part = parts[j];
             const isFile = (j === parts.length - 1);
-
             if (!current.children[part]) {
                 current.children[part] = {
-                    name: part,
-                    type: isFile ? 'file' : 'dir',
-                    children: {},
-                    fileIndex: isFile ? i : -1,
-                    size: 0,
-                    completed: 0,
-                    wantedFiles: 0,
-                    totalFiles: 0,
-                    wanted: isWanted
+                    name: part, type: isFile ? 'file' : 'dir', children: {}, fileIndex: isFile ? i : -1,
+                    size: 0, completed: 0, wantedFiles: 0, totalFiles: 0, wanted: isWanted
                 };
             }
-
             const nextNode = current.children[part];
             if (!isFile) {
                 nextNode.size += f.length || 0;
@@ -365,16 +498,13 @@ function buildFileTree(files, stats) {
                 nextNode.totalFiles = 1;
                 nextNode.wantedFiles = isWanted ? 1 : 0;
             }
-
             current = nextNode;
         }
     });
-
     const rootKeys = Object.keys(root.children);
     if (rootKeys.length === 1 && root.children[rootKeys[0]].type === 'dir') {
         return root.children[rootKeys[0]];
     }
-
     return root;
 }
 
@@ -412,25 +542,20 @@ function renderFileTreeHtml(node, torrentId, depth = 0) {
         ${isIndeterminate ? 'data-indeterminate="true"' : ''}
         onclick="event.stopPropagation()"
         onchange="toggleTorrentFileWanted(event, '${torrentId}')"
-        style="margin:0; width:16px; height:16px; accent-color:var(--accent); cursor:pointer;">
-        `;
+        style="margin:0; width:16px; height:16px; accent-color:var(--accent); cursor:pointer;">`;
 
         if (child.type === 'dir') {
             const folderUid = 'folder_' + Math.random().toString(36).substr(2, 9);
             html += `
             <div style="padding-left:${paddingLeft}px; margin-bottom:4px;">
             <div style="display:flex; align-items:center; gap:10px; padding:6px 8px; cursor:pointer; border-radius:6px; transition:background 0.2s;" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background='transparent'" onclick="const e=document.getElementById('${folderUid}'); e.style.display=e.style.display==='none'?'block':'none'; const i=document.getElementById('icon_${folderUid}'); i.style.transform=i.style.transform==='rotate(90deg)'?'rotate(0deg)':'rotate(90deg)';">
-            <div style="display:flex; align-items:center; justify-content:center;" onclick="event.stopPropagation()">
-            ${checkboxHtml}
-            </div>
+            <div style="display:flex; align-items:center; justify-content:center;" onclick="event.stopPropagation()">${checkboxHtml}</div>
             <span id="icon_${folderUid}" style="transition:transform 0.2s; color:var(--muted); font-size:12px; display:inline-block;">▶</span>
             <span style="font-size:16px;">📁</span>
             <div style="font-size:13px; font-weight:bold; color:var(--text); flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${esc(child.name)}</div>
             <div style="font-size:11px; color:var(--muted);">${formatBytes(child.size)}</div>
             </div>
-            <div id="${folderUid}" style="display:none; border-left:1px solid var(--border); margin-left:18px; margin-top:4px;">
-            ${renderFileTreeHtml(child, torrentId, depth + 1)}
-            </div>
+            <div id="${folderUid}" style="display:none; border-left:1px solid var(--border); margin-left:18px; margin-top:4px;">${renderFileTreeHtml(child, torrentId, depth + 1)}</div>
             </div>`;
         } else {
             const isCompleted = child.completed === child.size && child.size > 0;
@@ -438,9 +563,7 @@ function renderFileTreeHtml(node, torrentId, depth = 0) {
 
             html += `
             <div class="torrent-file-row" style="display:flex; align-items:center; gap:10px; padding:6px 8px; padding-left:${paddingLeft + 15}px; border-radius:6px; transition:background 0.2s;" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background='transparent'">
-            <div style="display:flex; align-items:center; justify-content:center;">
-            ${checkboxHtml}
-            </div>
+            <div style="display:flex; align-items:center; justify-content:center;">${checkboxHtml}</div>
             <span style="font-size:16px;">📄</span>
             <div style="flex:1; min-width:0;">
             <div class="torrent-file-name" style="font-size:12px; color:${titleColor}; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; text-decoration:${child.wanted ? 'none' : 'line-through'};" title="${esc(child.name)}">${esc(child.name)}</div>
@@ -452,11 +575,8 @@ function renderFileTreeHtml(node, torrentId, depth = 0) {
             </div>`;
         }
     });
-
     return html;
 }
-
-let wantedUpdateTimeout = null;
 
 function toggleTorrentFileWanted(event, torrentId) {
     const cb = event.target;
@@ -510,8 +630,8 @@ function toggleTorrentFileWanted(event, torrentId) {
         });
     }
 
-    clearTimeout(wantedUpdateTimeout);
-    wantedUpdateTimeout = setTimeout(async () => {
+    if (window.wantedUpdateTimeout) clearTimeout(window.wantedUpdateTimeout);
+    window.wantedUpdateTimeout = setTimeout(async () => {
         if (!detailModal) return;
         const allFileCbs = detailModal.querySelectorAll('.torrent-file-checkbox:not([data-is-dir="true"])');
         const wanted = [];
@@ -532,11 +652,12 @@ function toggleTorrentFileWanted(event, torrentId) {
         });
 
         if (typeof loadDownloads === 'function') loadDownloads();
+        if (typeof loadHeaderDownloadsData === 'function') loadHeaderDownloadsData();
     }, 600);
 }
 
 async function openTorrentDetail(id) {
-    const tInfo = dlTorrentsCache.find(x => x.id === id);
+    const tInfo = window.dlTorrentsCache.find(x => x.id === id);
     if (!tInfo) return;
 
     if (!tInfo.files || tInfo.files.length === 0) {
@@ -573,10 +694,8 @@ async function openTorrentDetail(id) {
 
     const tree = buildFileTree(tInfo.files || [], tInfo.fileStats || []);
     const filesHtml = renderFileTreeHtml(tree, tInfo.id);
-
     const isPaused = (tInfo.status === 0);
 
-    // 🌟 On ajoute des IDs (ex: id="torrent-detail-action-btn") pour pouvoir cibler ces éléments lors du rafraîchissement
     const bottomActionsHtml = `
     <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; padding-top:10px; border-top:1px solid var(--border);">
     <button id="torrent-detail-action-btn" onclick="torrentAction('torrent-${isPaused ? 'start' : 'stop'}', '${tInfo.id}'); closeTorrentDetail();"
@@ -660,11 +779,10 @@ async function openTorrentDetail(id) {
         modal.querySelectorAll('.torrent-file-checkbox[data-indeterminate="true"]').forEach(cb => { cb.indeterminate = true; });
     }, 10);
 
-    // 🚀 LA MAGIE COMMENCE ICI : Boucle d'actualisation en arrière-plan
     if (window.torrentDetailInterval) clearInterval(window.torrentDetailInterval);
 
     const fetchTorrentUpdates = async () => {
-        if (document.hidden) return; // 🌟 Stoppe les requêtes en arrière-plan
+        if (document.hidden) return;
         const modalCheck = document.getElementById('modal-torrent-detail');
         if (!modalCheck || !modalCheck.classList.contains('open')) {
             clearInterval(window.torrentDetailInterval);
@@ -679,10 +797,9 @@ async function openTorrentDetail(id) {
         if(spinner) spinner.style.opacity = '0';
 
         if (r.torrents) {
-            dlTorrentsCache = r.torrents;
-
-            // Met aussi à jour la liste en arrière-plan discrètement
+            window.dlTorrentsCache = r.torrents;
             if (typeof renderTorrents === 'function') renderTorrents();
+            if (typeof renderHeaderTorrents === 'function') renderHeaderTorrents();
 
             const tInfoLive = r.torrents.find(x => x.id === id);
             if (tInfoLive) {
@@ -697,7 +814,6 @@ async function openTorrentDetail(id) {
                 const uploadedLive = formatBytes(tInfoLive.uploadedEver || 0);
                 const sizeLive = formatBytes(tInfoLive.totalSize || 0);
 
-                // On injecte les nouvelles valeurs sans recréer le HTML
                 const badge = document.getElementById('torrent-detail-status-badge');
                 if(badge) {
                     badge.textContent = statusLive.text + (tInfoLive.errorString ? ' ⚠️' : '');
@@ -734,14 +850,12 @@ async function openTorrentDetail(id) {
                     btnAction.setAttribute('onclick', `torrentAction('torrent-${isPausedLive ? 'start' : 'stop'}', '${tInfoLive.id}'); closeTorrentDetail();`);
                 }
             } else {
-                // Si le torrent a disparu (supprimé en arrière-plan)
                 clearInterval(window.torrentDetailInterval);
                 closeTorrentDetail();
             }
         }
     };
 
-    // Exécute la boucle toutes les 2,5 secondes (2500 ms)
     window.torrentDetailInterval = setInterval(fetchTorrentUpdates, 5000);
 }
 
@@ -752,7 +866,6 @@ function closeTorrentDetail() {
         modal.classList.remove('open');
         document.body.style.overflow = '';
     }
-    // 🌟 On n'oublie pas de couper la boucle quand on ferme la fenêtre !
     if (window.torrentDetailInterval) clearInterval(window.torrentDetailInterval);
 }
 
@@ -776,27 +889,103 @@ function confirmDeleteTorrent(id, name) {
         const deleteFiles = document.getElementById('delete-files-checkbox').checked;
 
         closeConfirmModal();
-        closeTorrentDetail(); // 👈 LIGNE À AJOUTER ICI POUR FERMER LE DÉTAIL
+        closeTorrentDetail();
 
         await api('torrent_action', {
             method: 'torrent-remove',
             id: id,
             'delete-local-data': deleteFiles
         });
-        loadDownloads();
+
+        if (typeof loadHeaderDownloadsData === 'function') loadHeaderDownloadsData();
+        if (typeof loadDownloads === 'function') loadDownloads();
     };
 
-    if (modal) modal.classList.add('open');
+        if (modal) modal.classList.add('open');
 }
 
 async function torrentAction(method, id) {
     await api('torrent_action', { method: method, id: id });
-    loadDownloads();
+    if (typeof loadHeaderDownloadsData === 'function') loadHeaderDownloadsData();
+    if (typeof loadDownloads === 'function') loadDownloads();
 }
 
 async function torrentActionGlobale(method) {
     await api('torrent_action', { method: method });
-    loadDownloads();
+    if (typeof loadHeaderDownloadsData === 'function') loadHeaderDownloadsData();
+    if (typeof loadDownloads === 'function') loadDownloads();
+}
+
+function openAddTorrentModal() {
+    let modal = document.getElementById('modal-add-torrent');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'modal-add-torrent';
+        modal.className = 'modal-bg';
+        modal.style.zIndex = '10002';
+
+        modal.innerHTML = `
+        <div class="modal-box" style="width: clamp(320px, 90vw, 440px); max-width: 92vw; max-height: 90vh; display: flex; flex-direction: column; padding: 0; border-radius: 16px; overflow: hidden; background: var(--bg2);">
+        <h3 style="margin:0; border-bottom:1px solid var(--border); padding: 20px; flex-shrink: 0; background: var(--bg2);">${t('torrent_add_title')}</h3>
+        <div style="padding: 20px; overflow-y: auto; flex: 1;">
+        <div class="form-row">
+        <label style="font-size:12px; font-weight:bold; color:var(--muted); text-transform:uppercase;">${t('torrent_file_label')}</label>
+        <div style="display:flex; align-items:center; gap:10px; width:100%; padding:10px; background:var(--bg3); border:1px solid var(--border); border-radius:6px;">
+        <button type="button" class="btn-sm" onclick="document.getElementById('torrent-upload-file').click()" style="flex-shrink:0;">${t('file_choose')}</button>
+        <span id="torrent-file-name" style="color:var(--muted); font-size:13px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${t('file_none_chosen')}</span>
+        <input type="file" id="torrent-upload-file" accept=".torrent" style="display:none;" onchange="document.getElementById('torrent-file-name').textContent = this.files.length ? this.files[0].name : t('file_none_chosen')">
+        </div>
+        </div>
+        <div style="text-align:center; margin:15px 0; color:var(--muted); font-size:12px; font-weight:bold;">${t('word_or')}</div>
+        <div class="form-row">
+        <label style="font-size:12px; font-weight:bold; color:var(--muted); text-transform:uppercase;">${t('torrent_magnet_label')}</label>
+        <input type="text" id="torrent-magnet-link" placeholder="magnet:?xt=urn:btih:..." style="width:100%; padding:10px; background:var(--bg3); border:1px solid var(--border); color:var(--text); border-radius:6px;">
+        </div>
+        <div style="display:flex; gap:10px; margin-top:25px; flex-shrink:0;">
+        <button class="btn-primary" onclick="submitAddTorrent()" style="flex:1;">＋ ${t('torrent_add_btn')}</button>
+        <button class="btn-detail secondary" onclick="document.getElementById('modal-add-torrent').classList.remove('open')">${t('auth_cancel_btn')}</button>
+        </div>
+        </div>
+        </div>
+        `;
+        document.body.appendChild(modal);
+        modal.addEventListener('click', e => { if (e.target === modal) modal.classList.remove('open'); });
+    }
+
+    document.getElementById('torrent-upload-file').value = '';
+    document.getElementById('torrent-file-name').textContent = t('file_none_chosen');
+    document.getElementById('torrent-magnet-link').value = '';
+    modal.classList.add('open');
+}
+
+async function submitAddTorrent() {
+    const fileInput = document.getElementById('torrent-upload-file');
+    const magnetInput = document.getElementById('torrent-magnet-link').value.trim();
+    const fd = new FormData();
+    fd.append('action', 'add_torrent');
+
+    if (fileInput.files.length > 0) {
+        fd.append('torrent_file', fileInput.files[0]);
+    } else if (magnetInput) {
+        fd.append('magnet', magnetInput);
+    } else {
+        notify(t('torrent_select_or_paste'), 'err');
+        return;
+    }
+
+    document.getElementById('modal-add-torrent').classList.remove('open');
+    notify(t('torrent_sending'), 'ok');
+
+    try {
+        const response = await fetch('api.php', { method: 'POST', body: fd, credentials: 'same-origin' });
+        const res = await response.json();
+        if (res.ok) {
+            notify(t('torrent_added'), 'ok');
+            if (typeof loadHeaderDownloadsData === 'function') loadHeaderDownloadsData();
+            if (typeof loadDownloads === 'function') loadDownloads();
+        }
+        else { notify(res.error || t('notif_error'), 'err'); }
+    } catch (e) { notify(t('error_connection'), 'err'); }
 }
 
 if ('registerProtocolHandler' in navigator) {

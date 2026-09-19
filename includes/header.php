@@ -9,27 +9,19 @@ if (isset($_SESSION['auth']) && $_SESSION['auth'] === true) {
 
 // ── MOTEUR DE LANGUE PHP ──
 $lang = $_COOKIE['serviarr_lang'] ?? 'fr';
-
-// On cherche le fichier dans le dossier parent (racine du site)
 $lang_file = __DIR__ . "/../lang/{$lang}.json";
-
-// Sécurité au cas où header.php serait déjà à la racine
-if (!file_exists($lang_file)) {
-    $lang_file = __DIR__ . "/lang/{$lang}.json";
-}
+if (!file_exists($lang_file)) { $lang_file = __DIR__ . "/lang/{$lang}.json"; }
 
 $translations = [];
 if (file_exists($lang_file)) {
     $content = file_get_contents($lang_file);
     $decoded = json_decode($content, true);
-    if (is_array($decoded)) {
-        $translations = $decoded;
-    }
+    if (is_array($decoded)) { $translations = $decoded; }
 }
 
 function t($key) {
     global $translations;
-    return $translations[$key] ?? $key; // Retourne la traduction, ou la clé si introuvable
+    return $translations[$key] ?? $key;
 }
 ?>
 <!DOCTYPE html>
@@ -44,10 +36,7 @@ function t($key) {
 <link rel="stylesheet" href="assets/css/style.css">
 <link rel="manifest" href="/manifest.json">
 <script src="assets/js/i18n.js"></script>
-<script>
-// ── MOTEUR DE LANGUE JS ──
-const I18N = <?= json_encode($translations) ?>;
-</script>
+<script>const I18N = <?= json_encode($translations) ?>;</script>
 <script>
 const CURRENT_PAGE = '<?php echo isset($page) ? $page : ""; ?>';
 const savedTheme = localStorage.getItem('serviarr_theme') || 'auto';
@@ -97,8 +86,7 @@ if (savedTheme === 'light' || (savedTheme === 'auto' && window.matchMedia('(pref
 <div id="auth-form-2fa" class="auth-error-hidden">
 <p class="auth-hint"><?= t('auth_2fa_hint') ?></p>
 <label><?= t('auth_2fa_code') ?></label>
-<input type="text" id="login-2fa-code" class="auth-2fa-input" placeholder="123456"
-autocomplete="one-time-code" maxlength="6">
+<input type="text" id="login-2fa-code" class="auth-2fa-input" placeholder="123456" autocomplete="one-time-code" maxlength="6">
 <div class="auth-error auth-error-hidden" id="2fa-err"></div>
 <button class="btn-primary" onclick="doVerify2FA()"><?= t('auth_verify_btn') ?></button>
 <button class="btn-detail secondary auth-cancel-btn" onclick="location.reload()"><?= t('auth_cancel_btn') ?></button>
@@ -107,9 +95,9 @@ autocomplete="one-time-code" maxlength="6">
 </div>
 
 <div id="app">
+<!-- Menu Latéral Gauche (Navigation) -->
 <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
 <aside class="sidebar" id="sidebar">
-<!-- On ajoute un onclick sur le container global pour qu'un clic n'importe où renvoie à l'accueil -->
 <div class="sidebar-header" style="cursor: pointer;" onclick="window.location.href='index.php'" title="<?= t('nav_dashboard') ?>">
 <div class="sidebar-logo">
 <img src="/assets/img/icons/gemini-svg.svg" alt="Logo">
@@ -117,12 +105,9 @@ autocomplete="one-time-code" maxlength="6">
 </div>
 </div>
 
-
 <div class="omni-search-wrap">
 <div class="omni-search-inner">
-<input type="text" id="omni-input" class="omni-input"
-placeholder="<?= t('nav_search_placeholder') ?>"
-oninput="triggerOmnisearch()">
+<input type="text" id="omni-input" class="omni-input" placeholder="<?= t('nav_search_placeholder') ?>" oninput="triggerOmnisearch()">
 <span class="omni-icon">🔍</span>
 </div>
 <div id="omni-results" class="omni-dropdown"></div>
@@ -144,20 +129,95 @@ oninput="triggerOmnisearch()">
 </div>
 </aside>
 
+<!-- 🌟 Volet Latéral Droit (Téléchargements) -->
+<div class="sidebar-overlay" id="sidebar-right-overlay" style="z-index:9998; display:none; background:rgba(0,0,0,0.5); backdrop-filter:blur(2px);" onclick="toggleRightSidebar()"></div>
+<aside class="sidebar" id="sidebar-right" style="left:auto; right:0; width:min(450px, 100vw); transform:translateX(100%); z-index:9999; border-right:none; border-left:1px solid var(--border); transition:transform 0.3s ease; display:flex; flex-direction:column; background:var(--bg);">
+
+<!-- En-tête -->
+<div class="sidebar-header" style="justify-content:space-between; padding:15px 20px; border-bottom:1px solid var(--border);">
+<span style="font-weight:bold; font-size:16px; display:flex; align-items:center; gap:10px;">
+<span id="dl-sidebar-icon" style="display:flex; align-items:center; justify-content:center; width:24px; height:24px; font-size:20px;">⬇️</span>
+<?= t('page_downloads') ?>
+</span>
+<div style="display: flex; gap: 10px; align-items:center;">
+<button onclick="window.location.href='download.php'" style="background:var(--bg3); border:1px solid var(--border); color:var(--accent); cursor:pointer; font-size:16px; width:32px; height:32px; border-radius:8px; display:flex; justify-content:center; align-items:center;" title="<?= t('btn_open') ?>">🌐</button>
+<button onclick="toggleRightSidebar()" style="background:none; border:none; color:var(--text); cursor:pointer; font-size:16px; padding:5px;">✕</button>
+</div>
+</div>
+
+<!-- Filtres et Recherche -->
+<div style="padding:15px; border-bottom:1px solid var(--border); display:flex; flex-direction:column; gap:10px; background:var(--bg2);">
+<div style="display:flex; gap:10px;">
+<input type="text" id="header-dl-search" placeholder="<?= t('dl_search_placeholder') ?? 'Rechercher un torrent...' ?>" style="flex:1; padding:8px 12px; background:var(--bg); border:1px solid var(--border); color:var(--text); border-radius:8px; font-size:13px;" oninput="renderHeaderTorrents()">
+<button style="background:var(--bg3); border:1px solid var(--border); color:var(--text); border-radius:8px; padding:0 12px; cursor:pointer; font-size:14px;" onclick="torrentActionGlobale('torrent-start')" title="<?= t('dl_resume_all') ?>">▶</button>
+<button style="background:var(--bg3); border:1px solid var(--border); color:var(--text); border-radius:8px; padding:0 12px; cursor:pointer; font-size:14px;" onclick="torrentActionGlobale('torrent-stop')" title="<?= t('dl_pause_all') ?>">⏸</button>
+</div>
+<div style="display:flex; gap:10px;">
+<select id="header-dl-sort" style="flex:1; padding:8px; background:var(--bg); border:1px solid var(--border); color:var(--text); border-radius:8px; font-size:13px;" onchange="setHeaderDlSort(this.value)">
+<option value="addedDate"><?= t('dl_sort_date') ?? 'Date d\'ajout' ?></option>
+<option value="name"><?= t('dl_sort_name') ?? 'Nom' ?></option>
+<option value="percentDone"><?= t('dl_sort_progress') ?? 'Progression' ?></option>
+<option value="totalSize"><?= t('dl_sort_size') ?? 'Taille' ?></option>
+<option value="uploadRatio"><?= t('dl_sort_ratio') ?? 'Ratio' ?></option>
+<option value="status"><?= t('dl_sort_status') ?? 'Statut' ?></option>
+<option value="tracker"><?= t('dl_sort_tracker') ?? 'Tracker' ?></option>
+</select>
+<button style="background:var(--bg3); border:1px solid var(--border); color:var(--text); border-radius:8px; width:34px; cursor:pointer;" onclick="setHeaderDlSort(window.headerDlSortField, true)">⇅</button>
+<select id="header-dl-tracker" style="flex:1.5; padding:8px; background:var(--bg); border:1px solid var(--border); color:var(--text); border-radius:8px; font-size:13px;" onchange="setHeaderDlTrackerFilter(this.value)">
+<option value="all"><?= t('dl_tracker_all') ?? 'Tous les trackers' ?></option>
+</select>
+</div>
+</div>
+
+<!-- Liste des Téléchargements -->
+<div id="header-dl-list" style="overflow-y:auto; flex:1; padding:15px; background:var(--bg2);">
+<div class="notif-placeholder">⏳ <?= t('loading') ?></div>
+</div>
+
+<!-- Barre de navigation du bas -->
+<div style="border-top:1px solid var(--border); background:var(--bg); padding:10px; display:flex; justify-content:space-between; align-items:center;">
+<div style="display:flex; gap:5px; flex:1; overflow-x:auto; scrollbar-width:none; padding-right:10px;" id="header-dl-tabs">
+<button class="header-dl-tab" data-tab="all" onclick="switchHeaderDlTab('all', this)" style="display:flex; flex-direction:column; align-items:center; background:none; border:none; color:var(--text); cursor:pointer; flex:1; padding:5px; border-radius:8px;">
+<span style="font-size:16px; margin-bottom:2px;">📋</span>
+<span style="font-size:10px; white-space:nowrap;"><?= t('dl_all') ?? 'Tous' ?> <span id="h-dl-count"></span></span>
+</button>
+<button class="header-dl-tab" data-tab="active" onclick="switchHeaderDlTab('active', this)" style="display:flex; flex-direction:column; align-items:center; background:none; border:none; color:var(--muted); cursor:pointer; flex:1; padding:5px; border-radius:8px;">
+<span style="font-size:16px; margin-bottom:2px;">⬇️</span>
+<span style="font-size:10px; white-space:nowrap;"><?= t('dl_active') ?? 'Actifs' ?> <span id="h-dl-count-active"></span></span>
+</button>
+<button class="header-dl-tab" data-tab="seeding" onclick="switchHeaderDlTab('seeding', this)" style="display:flex; flex-direction:column; align-items:center; background:none; border:none; color:var(--muted); cursor:pointer; flex:1; padding:5px; border-radius:8px;">
+<span style="font-size:16px; margin-bottom:2px;">🌱</span>
+<span style="font-size:10px; white-space:nowrap;"><?= t('dl_seeding') ?? 'En seed' ?> <span id="h-dl-count-seeding"></span></span>
+</button>
+<button class="header-dl-tab" data-tab="paused" onclick="switchHeaderDlTab('paused', this)" style="display:flex; flex-direction:column; align-items:center; background:none; border:none; color:var(--muted); cursor:pointer; flex:1; padding:5px; border-radius:8px;">
+<span style="font-size:16px; margin-bottom:2px;">⏸</span>
+<span style="font-size:10px; white-space:nowrap;"><?= t('dl_paused') ?? 'En pause' ?> <span id="h-dl-count-paused"></span></span>
+</button>
+<button class="header-dl-tab" data-tab="finished" onclick="switchHeaderDlTab('finished', this)" style="display:flex; flex-direction:column; align-items:center; background:none; border:none; color:var(--muted); cursor:pointer; flex:1; padding:5px; border-radius:8px;">
+<span style="font-size:16px; margin-bottom:2px;">✅</span>
+<span style="font-size:10px; white-space:nowrap;"><?= t('dl_finished') ?? 'Terminés' ?> <span id="h-dl-count-finished"></span></span>
+</button>
+</div>
+<button class="btn-primary" onclick="openAddTorrentModal()" style="width:44px; height:44px; border-radius:12px; font-size:24px; font-weight:bold; display:flex; align-items:center; justify-content:center; flex-shrink:0; padding:0; box-shadow:0 4px 10px rgba(0,0,0,0.3);">＋</button>
+</div>
+</aside>
+
 <header>
 <button class="btn-icon btn-menu" onclick="toggleSidebar()">☰</button>
 
+<!-- 🌟 L'ORDRE DES BOUTONS A ÉTÉ CHANGÉ ICI POUR QUE LES TÉLÉCHARGEMENTS SOIENT À DROITE -->
 <div class="header-right">
 <div class="notif-wrap">
+<!-- Bouton Notif -->
 <button id="notif-toggle-btn" class="btn-notif" onclick="toggleNotifMenu()" title="<?= t('notif_latest') ?>">
 🔔
 </button>
 <div id="notif-dropdown" class="notif-dropdown">
 <div class="notif-dropdown-header" style="display: flex; justify-content: space-between; align-items: center;">
-    <span><?= t('notif_history') ?></span>
-    <span id="notif-sync-indicator" style="font-size: 11px; font-weight: normal; color: var(--accent); opacity: 0; transition: opacity 0.3s; display: flex; align-items: center; gap: 4px;">
-        <span class="sync-dot">●</span> <?= t('notif_syncing') ?>
-    </span>
+<span><?= t('notif_history') ?></span>
+<span id="notif-sync-indicator" style="font-size: 11px; font-weight: normal; color: var(--accent); opacity: 0; transition: opacity 0.3s; display: flex; align-items: center; gap: 4px;">
+<span class="sync-dot">●</span> <?= t('notif_syncing') ?>
+</span>
 </div>
 <div id="notif-list" class="notif-list">
 <div class="notif-placeholder">⏳ <?= t('loading') ?></div>
@@ -165,9 +225,18 @@ oninput="triggerOmnisearch()">
 </div>
 </div>
 
+<!-- Mode sombre/clair déplacé avant les téléchargements -->
 <button id="theme-toggle-btn" class="btn-theme" onclick="quickToggleTheme()" title="<?= t('theme_change') ?>">
 🌓
 </button>
+
+<div class="notif-wrap">
+<!-- 🌟 Bouton Volet Téléchargements placé tout à droite -->
+<button id="dl-toggle-btn" class="btn-notif" onclick="toggleRightSidebar()" title="<?= t('page_downloads') ?>" style="position:relative; display:flex; align-items:center; justify-content:center;">
+<span id="dl-header-icon" style="display:flex; align-items:center; justify-content:center; width:20px; height:20px; font-size:18px; color:var(--text); opacity:0.8;">⬇️</span>
+<div id="dl-badge-indicator" style="display:none; position:absolute; top:-2px; right:-2px; width:8px; height:8px; background:var(--accent3); border-radius:50%; box-shadow:0 0 6px var(--accent3);"></div>
+</button>
+</div>
 </div>
 </header>
 
